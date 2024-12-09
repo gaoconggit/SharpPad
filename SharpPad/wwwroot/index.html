@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharp Pad</title>
+    <script src="axios.min.js"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body onload="loadFileList()">
+    <div id="fileList" style="overflow: auto; max-width: 800px; width: 290px;">
+        <div class="file-list-header">
+            <input type="text" id="fileFilter" placeholder="搜索文件..." onkeyup="filterFiles(this.value)">
+            <div style="display: flex; gap: 5px;">
+                <button onclick="addFolder()" id="addFolderBtn" title="新建文件夹">📁</button>
+                <button onclick="addFile()" id="addFileBtn" title="新建文件">+</button>
+            </div>
+        </div>
+        <ul id="fileListItems">
+        </ul>
+    </div>
+    <div id="container"></div>
+    <div id="outputPanel">
+        <div class="resize-handle"></div>
+        <div class="output-header">
+            <span>输出信息</span>
+            <div class="output-buttons">
+                <button id="formatOutput" title="格式化 JSON">{ }</button>
+                <button id="clearOutput" title="清除输出 (Alt+C)">清除</button>
+            </div>
+        </div>
+        <div id="outputContent"></div>
+    </div>
+    <div class="button-container">
+        <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
+    </div>
+    <div class="notification" id="notification"></div>
+    <div id="fileContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移</div>
+        <div class="context-menu-item" onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">下移</div>
+        <div class="context-menu-item" onclick="renameFile()">重命名</div>
+        <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
+        <div class="context-menu-item delete" onclick="deleteFile()">删除</div>
+    </div>
+    <div id="folderContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件</div>
+        <div class="context-menu-item" onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件夹</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'up')">上移</div>
+        <div class="context-menu-item" onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'down')">下移</div>
+        <div class="context-menu-item" onclick="renameFolder()">重命名</div>
+        <div class="context-menu-item delete" onclick="deleteFolder()">删除</div>
+    </div>
+    <div id="rootContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="addFile()">新建文件</div>
+        <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
+    </div>
+
+    <!-- NuGet Configuration Dialog -->
+    <div id="nugetConfigDialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>NuGet 包配置</h2>
+                <button onclick="closeNuGetConfigDialog()" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="nuget-config-section">
+                    <h3>包引用</h3>
+                    <div class="package-references" id="packageReferences">
+                        <!-- Package references will be listed here -->
+                    </div>
+                    <button onclick="addPackageReference()" class="add-package-button">添加包引用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="csharpLanguageProvider.js"></script>
+    <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
+    <script src="index.js"></script>
+</body>
+
+</html>
