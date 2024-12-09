@@ -19,7 +19,6 @@ namespace MonacoRoslynCompletionProvider
     {
         private static readonly string[] s_assemblies = [
             ".\\Dll\\System.Text.Json.dll",
-            ".\\Dll\\SqlApi.AppService.dll",
             ".\\Dll\\FreeSql.dll",
             ".\\Dll\\CSRedisCore.dll",
             ".\\Dll\\RestSharp.dll",
