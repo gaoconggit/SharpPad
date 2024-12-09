@@ -1,5 +1,5 @@
 # SharpPad
-Roslyn +Monaco 开发的快速验证 c# 代码片段的工具 。
+基于Roslyn 开发的快速验证 c# 代码片段的工具 。
 
 ![image](https://github.com/user-attachments/assets/86302f6f-7a0c-4e75-913d-2c725b3dc1c8)
 
