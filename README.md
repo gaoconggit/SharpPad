@@ -5,7 +5,7 @@
 
 快速开始:
  1. 进入wwwroot 目录安装 monaco-editor
-       `npm i --registry=https://registry.npm.taobao.org`
+      - `npm i --registry=https://registry.npm.taobao.org`
     
  2. vs 启动 SharpPad项目 
 
