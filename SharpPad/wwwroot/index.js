@@ -61,6 +61,8 @@ class Program
 
     document.getElementById('runButton').addEventListener('click', async () => {
         if (!editor || !editor.getValue()) return;
+
+
         await runCode(editor.getValue());
     });
 
@@ -311,6 +313,13 @@ function appendOutput(message, type = 'info') {
 
 async function runCode(code) {
     if (!code) return;
+
+    //运行代码之前如果已选择文件则自动保存
+    const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
+    if (fileId) {
+        // 保存到 localStorage
+        localStorage.setItem(`file_${fileId}`, x_editor.getValue());
+    }
 
     // 获取当前文件的包配置
     const file = getCurrentFile();
