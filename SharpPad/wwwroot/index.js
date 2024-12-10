@@ -883,7 +883,7 @@ function moveFileToFolder(fileId, folderId) {
     const targetFolder = findFolder(files);
 
     if (itemToMove && targetFolder) {
-        // 如果在根目录中
+        // 如果在根目录
         if (!sourceFolder) {
             files.splice(files.findIndex(f => f.id === fileId), 1);
         } else {
@@ -921,7 +921,7 @@ function renameFolder() {
     function findAndRenameFolder(items) {
         for (let item of items) {
             if (item.id === folderId) {
-                const newFolderName = prompt('请输入新的文件夹名称：', item.name);
+                const newFolderName = prompt('请输入新的文件夹名称', item.name);
                 if (!newFolderName || newFolderName === item.name) return;
 
                 item.name = newFolderName;
@@ -1493,7 +1493,7 @@ async function addPackageReference() {
                 const name = packageNameInput.value.trim();
                 const version = packageVersionInput.value.trim();
                 if (!name || !version) {
-                    showNotification('包名和版本不能为空', true);
+                    showNotification('包名和版��不能为空', true);
                     return;
                 }
                 resolve({ name, version });
@@ -1538,7 +1538,7 @@ async function addPackageReference() {
         }
     } catch (err) {
         console.error('添加包引用错误:', err);
-        showNotification(`添加包引用失败: ${err.message}`, 'error');
+        showNotification(`添加���引用失败: ${err.message}`, 'error');
         return;
     }
 
@@ -1615,10 +1615,39 @@ function generateUUID() {
     });
 }
 
+// 递归查找文件
+function findFile(items, fileId) {
+    for (let item of items) {
+        if (item.id === fileId) {
+            return item;
+        }
+        if (item.type === 'folder' && item.files) {
+            const found = findFile(item.files, fileId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+// 查找原文件的父文件夹
+function findParentFolder(items, fileId) {
+    for (let item of items) {
+        if (item.type === 'folder' && item.files) {
+            if (item.files.some(file => file.id === fileId)) {
+                return item;
+            }
+            const found = findParentFolder(item.files, fileId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
 function duplicateFile() {
     const fileId = document.getElementById('fileContextMenu').getAttribute('data-target-file-id');
     const files = GetCurrentFiles();
-    const originalFile = files.find(f => f.id === fileId);
+
+    const originalFile = findFile(files, fileId);
 
     if (!originalFile) return;
 
@@ -1630,8 +1659,12 @@ function duplicateFile() {
         nugetConfig: originalFile.nugetConfig || { packages: [] }
     };
 
-    // 将新文件添加到文件列表中
-    files.push(newFile);
+    const parentFolder = findParentFolder(files, originalFile.id);
+    if (parentFolder) {
+        parentFolder.files.push(newFile);
+    } else {
+        files.push(newFile);
+    }
 
     // 保存文件内容
     localStorage.setItem(`file_${newFile.id}`, newFile.content);
@@ -1717,5 +1750,178 @@ function duplicateFolder() {
     }
 
     findAndDuplicateFolder(files);
+}
+
+function exportFolder() {
+    const menu = document.getElementById('folderContextMenu');
+    const folderId = menu.getAttribute('data-folder-id');
+    menu.style.display = 'none';
+
+    if (!folderId) return;
+
+    const filesData = localStorage.getItem('controllerFiles');
+    const files = filesData ? JSON.parse(filesData) : [];
+
+    // 递归查找文件夹
+    function findFolder(items) {
+        for (let item of items) {
+            if (item.id === folderId) {
+                // 创建一个包含文件夹内容的对象
+                const folderData = {
+                    name: item.name,
+                    type: 'folder',
+                    files: []
+                };
+
+                // 递归获取文件夹中的所有文件内容
+                function getFilesContent(folder, targetArray) {
+                    if (folder.files) {
+                        folder.files.forEach(file => {
+                            if (file.type === 'folder') {
+                                const subFolder = {
+                                    name: file.name,
+                                    type: 'folder',
+                                    files: []
+                                };
+                                targetArray.push(subFolder);
+                                getFilesContent(file, subFolder.files);
+                            } else {
+                                const fileContent = localStorage.getItem(`file_${file.id}`);
+                                targetArray.push({
+                                    name: file.name,
+                                    content: fileContent,
+                                    nugetConfig: file.nugetConfig
+                                });
+                            }
+                        });
+                    }
+                }
+
+                getFilesContent(item, folderData.files);
+
+                // 创建并下载 JSON 文件
+                const jsonContent = JSON.stringify(folderData, null, 2);
+                const blob = new Blob([jsonContent], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${item.name}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showNotification('文件夹已导出', 'success');
+                return true;
+            }
+            if (item.type === 'folder' && item.files) {
+                if (findFolder(item.files)) return true;
+            }
+        }
+        return false;
+    }
+
+    findFolder(files);
+}
+
+function importFolder() {
+    const menu = document.getElementById('folderContextMenu');
+    const targetFolderId = menu.getAttribute('data-folder-id');
+    menu.style.display = 'none';
+
+    if (!targetFolderId) return;
+
+    // 创建文件输入元素
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    fileInput.onchange = function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+            document.body.removeChild(fileInput);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+
+                // 验证导入的数据格式
+                if (!importedData.name || !importedData.type || !Array.isArray(importedData.files)) {
+                    throw new Error('无效的文件格式');
+                }
+
+                const filesData = localStorage.getItem('controllerFiles');
+                const files = filesData ? JSON.parse(filesData) : [];
+
+                // 递归生成新的 ID
+                function regenerateIds(items) {
+                    return items.map(item => {
+                        const newItem = { ...item, id: generateUUID() };
+                        if (item.type === 'folder' && Array.isArray(item.files)) {
+                            newItem.files = regenerateIds(item.files);
+                        }
+                        return newItem;
+                    });
+                }
+
+                // 递归保存文件内容
+                function saveFileContents(items) {
+                    items.forEach(item => {
+                        if (item.type !== 'folder' && item.content) {
+                            localStorage.setItem(`file_${item.id}`, item.content);
+                        }
+                        if (item.type === 'folder' && Array.isArray(item.files)) {
+                            saveFileContents(item.files);
+                        }
+                    });
+                }
+
+                // 查找目标文件夹并添加导入的内容
+                function findAndAddToFolder(items) {
+                    for (let item of items) {
+                        if (item.id === targetFolderId) {
+                            if (!item.files) {
+                                item.files = [];
+                            }
+                            // 生成新的 ID 并保存文件内容
+                            const importedFiles = regenerateIds(importedData.files);
+                            saveFileContents(importedFiles);
+                            item.files.push(...importedFiles);
+                            return true;
+                        }
+                        if (item.type === 'folder' && item.files) {
+                            if (findAndAddToFolder(item.files)) return true;
+                        }
+                    }
+                    return false;
+                }
+
+                if (findAndAddToFolder(files)) {
+                    localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    loadFileList();
+                    showNotification('导入成功', 'success');
+                }
+
+            } catch (error) {
+                console.error('导入错误:', error);
+                showNotification('导入失败: ' + error.message, 'error');
+            }
+            document.body.removeChild(fileInput);
+        };
+
+        reader.onerror = function () {
+            showNotification('读取文件失败', 'error');
+            document.body.removeChild(fileInput);
+        };
+
+        reader.readAsText(file);
+    };
+
+    fileInput.click();
 }
 
