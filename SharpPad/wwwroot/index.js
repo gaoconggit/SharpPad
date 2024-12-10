@@ -1427,12 +1427,6 @@ async function addPackageReference() {
     const file = getCurrentFile();
     if (!file) return;
 
-    // 检查是否是代码文件
-    if (!file.name.endsWith('.cs')) {
-        showNotification('只能为 C# 代码文件配置 NuGet 包引用', true);
-        return;
-    }
-
     // Initialize nugetConfig if it doesn't exist
     if (!file.nugetConfig) {
         file.nugetConfig = {

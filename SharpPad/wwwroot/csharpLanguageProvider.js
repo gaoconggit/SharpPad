@@ -9,7 +9,22 @@
         case 'run': endPoint = '/completion/run'; break;
         case 'addPackages': endPoint = '/completion/addPackages'; break;
     }
-    return await axios.post(endPoint, JSON.stringify(request))
+    
+    // 显示加载中样式
+    const notification = document.getElementById('notification');
+    notification.textContent = '处理中...';
+    notification.style.backgroundColor = 'rgba(33, 150, 243, 0.9)';
+    notification.style.display = 'block';
+    
+    try {
+        const response = await axios.post(endPoint, JSON.stringify(request));
+        notification.style.display = 'none';
+        return response;
+    } catch (error) {
+        notification.textContent = '请求失败: ' + error.message;
+        notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+        throw error;
+    }
 }
 
 function registerCsharpProvider() {

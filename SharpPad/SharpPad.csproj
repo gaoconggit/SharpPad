@@ -50,4 +50,8 @@
 	  </None>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="NugetPackages\packages\" />
+	</ItemGroup>
+
 </Project>
