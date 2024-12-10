@@ -303,8 +303,13 @@ function appendOutput(message, type = 'info') {
         pre.style.whiteSpace = 'pre-wrap';
         outputLine.appendChild(pre);
     } else {
-        // 如果不是 JSON，直接输出文本
-        outputLine.textContent = message;
+        // 如果不是 JSON，也使用 pre 元素来保持格式
+        const pre = document.createElement('pre');
+        pre.textContent = message;
+        pre.style.margin = '0';
+        pre.style.fontFamily = 'Consolas, monospace';
+        pre.style.whiteSpace = 'pre-wrap';
+        outputLine.appendChild(pre);
     }
 
     outputContent.appendChild(outputLine);
@@ -337,18 +342,10 @@ async function runCode(code) {
     try {
         const response = await sendRequest("run", request);
         if (response.data.code === 0 && response.data.data.Output) {
-            response.data.data.Output.split('\n').forEach(line => {
-                if (line.trim()) {
-                    appendOutput(line, 'success');
-                }
-            });
+            appendOutput(response.data.data.Output, 'success');
         }
         if (response.data.code === 0 && response.data.data.Error) {
-            response.data.data.Error.split('\n').forEach(line => {
-                if (line.trim()) {
-                    appendOutput(line, 'error');
-                }
-            });
+            appendOutput(response.data.data.Error, 'error');
         }
     } catch (error) {
         appendOutput('运行请求失败: ' + error.message, 'error');
