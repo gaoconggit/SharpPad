@@ -592,7 +592,7 @@ function addFolder() {
     if (!folderName) return;
 
     const newFolder = {
-        id: 'folder_' + Date.now(),
+        id: generateUUID(),
         name: folderName,
         type: 'folder',
         files: []
@@ -671,7 +671,7 @@ function addFile() {
 
     // 创建新文件
     const newFile = {
-        id: Date.now().toString(), // 临使用时间戳作为ID
+        id: generateUUID(),
         name: fileName,
         content: `using System;
 using System.Net.Http;
@@ -1148,7 +1148,7 @@ function addFileToFolder(folderId) {
     if (!fileName) return;
 
     const newFile = {
-        id: 'file_' + Date.now(),
+        id: generateUUID(),
         name: fileName,
         content: `using System;
 using System.Net.Http;
@@ -1222,7 +1222,7 @@ function addFolderToFolder(parentFolderId) {
     if (!folderName) return;
 
     const newFolder = {
-        id: 'folder_' + Date.now(),
+        id: generateUUID(),
         name: folderName,
         type: 'folder',
         files: []
@@ -1650,5 +1650,72 @@ function duplicateFile() {
 
     // 显示通知
     showNotification('文件已复制', 'success');
+}
+
+function duplicateFolder() {
+    const menu = document.getElementById('folderContextMenu');
+    const folderId = menu.getAttribute('data-folder-id');
+    menu.style.display = 'none';
+
+    if (!folderId) return;
+
+    const filesData = localStorage.getItem('controllerFiles');
+    const files = filesData ? JSON.parse(filesData) : [];
+
+    // 递归查找并复制文件夹
+    function findAndDuplicateFolder(items) {
+        for (let item of items) {
+            if (item.id === folderId) {
+                // 深度复制文件夹及其内容
+                const duplicatedFolder = JSON.parse(JSON.stringify(item));
+
+                // 为复制的文件夹及其所有子文件生成新的ID
+                function generateNewIds(folder) {
+                    folder.id = generateUUID();
+                    if (folder.files) {
+                        folder.files.forEach(file => {
+                            if (file.type === 'folder') {
+                                generateNewIds(file);
+                            } else {
+                                const oldId = file.id;
+                                file.id = generateUUID();
+                                // 复制文件内容
+                                const fileContent = localStorage.getItem(`file_${oldId}`);
+                                if (fileContent) {
+                                    localStorage.setItem(`file_${file.id}`, fileContent);
+                                }
+                            }
+                        });
+                    }
+                }
+
+                generateNewIds(duplicatedFolder);
+                duplicatedFolder.name = `${item.name} (副本)`;
+
+                // 将复制的文件夹添加到同级目录
+                const parentArray = items;
+                const index = parentArray.findIndex(i => i.id === folderId);
+                parentArray.splice(index + 1, 0, duplicatedFolder);
+
+                // 保存更新后的文件列表
+                localStorage.setItem('controllerFiles', JSON.stringify(files));
+
+                // 刷新文件列表并展开复制的文件夹
+                const expandedFolders = saveExpandedFolders();
+                expandedFolders.push(duplicatedFolder.id);
+                loadFileList();
+                restoreExpandedFolders(expandedFolders);
+
+                showNotification('文件夹已复制', 'success');
+                return true;
+            }
+            if (item.type === 'folder' && item.files) {
+                if (findAndDuplicateFolder(item.files)) return true;
+            }
+        }
+        return false;
+    }
+
+    findAndDuplicateFolder(files);
 }
 
