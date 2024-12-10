@@ -4,8 +4,8 @@
 ![image](https://github.com/user-attachments/assets/86302f6f-7a0c-4e75-913d-2c725b3dc1c8)
 
 快速开始:
- 1. `进入wwwroot 目录安装 monaco-editor
-      npm i --registry=https://registry.npm.taobao.org`
+ 1. 进入wwwroot 目录安装 monaco-editor
+       `npm i --registry=https://registry.npm.taobao.org`
     
  2. vs 启动 SharpPad项目 
 
