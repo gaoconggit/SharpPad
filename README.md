@@ -15,6 +15,9 @@
 - ctrl + enter 运行代码
 
 - alt + c 清空输出信息
+- ctrl + j 触发代码提示
+- ctrl + k + ctrl + d 格式化代码
+- ctrl + s 保存代码
 
 特性:
 - 代码智能提示
