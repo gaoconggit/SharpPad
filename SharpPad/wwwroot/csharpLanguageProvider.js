@@ -10,19 +10,25 @@
         case 'addPackages': endPoint = '/completion/addPackages'; break;
     }
     
-    // 显示加载中样式
+    // 延迟超过1秒后才显示加载中样式
     const notification = document.getElementById('notification');
-    notification.textContent = '处理中...';
-    notification.style.backgroundColor = 'rgba(33, 150, 243, 0.9)';
-    notification.style.display = 'block';
+    const showNotificationDelay = 1000; // 1 second
+    let showNotificationTimer = setTimeout(() => {
+        notification.textContent = '处理中...';
+        notification.style.backgroundColor = 'rgba(33, 150, 243, 0.9)';
+        notification.style.display = 'block';
+    }, showNotificationDelay);
     
     try {
         const response = await axios.post(endPoint, JSON.stringify(request));
+        clearTimeout(showNotificationTimer);
         notification.style.display = 'none';
         return response;
     } catch (error) {
+        clearTimeout(showNotificationTimer);
         notification.textContent = '请求失败: ' + error.message;
         notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+        notification.style.display = 'block';
         throw error;
     }
 }

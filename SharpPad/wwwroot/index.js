@@ -616,6 +616,15 @@ function saveCode(code) {
 
         // 保存到 localStorage
         localStorage.setItem(`file_${fileId}`, code);
+        // 保存到文件列表
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+        files.forEach(file => {
+            if (file.id === fileId) {
+                file.content = code;
+            }
+        });
+        localStorage.setItem('controllerFiles', JSON.stringify(files));
         showNotification('保存成功', 'success');
     } catch (error) {
         console.error('Error saving to localStorage:', error);
@@ -679,7 +688,7 @@ class Program
 }`
     };
 
-    // 获��现有文件列表
+    // 获现有文件列表
     const filesData = localStorage.getItem('controllerFiles');
     const files = filesData ? JSON.parse(filesData) : [];
 
@@ -1083,7 +1092,7 @@ function reorderFiles(draggedId, targetId, position) {
     const draggedItem = findAndRemoveItem(files);
     if (draggedItem) {
         if (!findAndInsertItem(files, draggedItem)) {
-            // 果没找到目标位置，将项目添加到末尾
+            // 果没找到目标位置，项目添加到末尾
             files.push(draggedItem);
         }
         localStorage.setItem('controllerFiles', JSON.stringify(files));
@@ -1596,5 +1605,50 @@ function getCurrentFile() {
     }
 
     return findFile(files);
+}
+
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0,
+            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function duplicateFile() {
+    const fileId = document.getElementById('fileContextMenu').getAttribute('data-target-file-id');
+    const files = GetCurrentFiles();
+    const originalFile = files.find(f => f.id === fileId);
+
+    if (!originalFile) return;
+
+    // 创建新文件对象
+    const newFile = {
+        id: generateUUID(),
+        name: `${originalFile.name} (副本)`,
+        content: originalFile.content,
+        nugetConfig: originalFile.nugetConfig || { packages: [] }
+    };
+
+    // 将新文件添加到文件列表中
+    files.push(newFile);
+
+    // 保存文件内容
+    localStorage.setItem(`file_${newFile.id}`, newFile.content);
+
+    // 保存文件列表
+    localStorage.setItem('controllerFiles', JSON.stringify(files));
+
+    // 刷新文件列表显示
+    loadFileList();
+
+    // 关闭上下文菜单
+    const contextMenus = document.querySelectorAll('.context-menu');
+    contextMenus.forEach(menu => {
+        menu.style.display = 'none';
+    });
+
+    // 显示通知
+    showNotification('文件已复制', 'success');
 }
 
