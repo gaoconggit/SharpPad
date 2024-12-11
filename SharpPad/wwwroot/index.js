@@ -610,7 +610,29 @@ function saveCode(code) {
     try {
         const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
         if (!fileId) {
-            showNotification('请先选择一个文件', 'error');
+            const newFileId = generateUUID();
+            const fileName = prompt('请输入文件名称：', 'New File');
+            if (!fileName) return;
+            const newFile = {
+                id: newFileId,
+                name: fileName,
+                type: 'file',
+                content: code
+            };
+            const filesData = localStorage.getItem('controllerFiles');
+            const files = filesData ? JSON.parse(filesData) : [];
+            files.push(newFile);
+            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            // 保存到 file localStorage
+            localStorage.setItem(`file_${newFileId}`, code);
+            loadFileList();
+
+            // 选中这个新文件
+            const fileListItems = document.getElementById('fileListItems');
+            const newFileElement = fileListItems.querySelector(`[data-file-id="${newFileId}"]`);
+            if (newFileElement) {
+                newFileElement.classList.add('selected');
+            }
             return;
         }
 
