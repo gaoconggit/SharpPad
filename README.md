@@ -3,14 +3,19 @@
 
 ![SharpPad](https://github.com/user-attachments/assets/86302f6f-7a0c-4e75-913d-2c725b3dc1c8)
 
-## 快速开始
-
-1. 进入 `wwwroot` 目录安装 monaco-editor：
+## 快速体验
+1. 下载 release 包
+2. 解压后,找到 SharpPad.exe 双击运行
+3. 浏览器打开控制台显示的ip:port
+   
+## 开发向导
+1. git clone 代理仓库 
+2. 进入 `wwwroot` 目录安装 monaco-editor：
     ```bash
     npm i --registry=https://registry.npm.taobao.org
     ```
-2. 在 Visual Studio 中启动 SharpPad 项目。
-3. 使用 `Ctrl + Enter` 运行 "Hello World"。
+3. 在 Visual Studio 中启动 SharpPad 项目。
+4. 使用 `Ctrl + Enter` 运行 "Hello World"。
 
 ## 快捷键
 
