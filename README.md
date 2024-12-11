@@ -9,6 +9,7 @@
 3. 浏览器打开控制台显示的ip:port
    
 ## 开发向导
+ #### 开发环境 建议 vs 2022 + net8.0
 1. git clone 代理仓库 
 2. 进入 `wwwroot` 目录安装 monaco-editor：
     ```bash
