@@ -36,6 +36,9 @@
 	  <None Update="Dll\FreeSql.dll">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
+	  <None Update="Dll\Microsoft.Extensions.Hosting.dll">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	  <None Update="Dll\RestSharp.dll">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>

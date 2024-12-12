@@ -18,6 +18,9 @@ namespace MonacoRoslynCompletionProvider
     public static class CompletitionRequestHandler
     {
         private static readonly string[] s_assemblies = [
+            .. AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .Select(a => a.Location).ToArray(),
             ".\\Dll\\System.Text.Json.dll",
             ".\\Dll\\FreeSql.dll",
             ".\\Dll\\CSRedisCore.dll",

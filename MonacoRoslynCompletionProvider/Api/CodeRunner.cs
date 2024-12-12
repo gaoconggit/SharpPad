@@ -81,7 +81,16 @@ namespace MonacoRoslynCompletionProvider.Api
 
                             if (entryPoint != null)
                             {
-                                entryPoint.Invoke(null, null);
+                                var parameters = entryPoint.GetParameters();
+                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
+                                {
+                                    // 兼容 Main(string[] args)
+                                    entryPoint.Invoke(null, [new string[] { "sharpPad" }]);
+                                }
+                                else
+                                {
+                                    entryPoint.Invoke(null, null);
+                                }
                             }
                             else
                             {
