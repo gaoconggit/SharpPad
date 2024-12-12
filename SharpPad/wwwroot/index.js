@@ -1947,3 +1947,44 @@ function importFolder() {
     fileInput.click();
 }
 
+function moveOutOfFolder() {
+    // 获取要移动的文件ID
+    const menu = document.getElementById('fileContextMenu');
+    const fileId = menu.getAttribute('data-target-file-id');
+    menu.style.display = 'none';
+
+    // 获取存储的文件列表
+    let files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+
+    // 递归查找文件和其父文件夹
+    function findFileAndParentFolder(items, parentFolder = null) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.id === fileId) {
+                return { file: item, parent: parentFolder, parentArray: items, index: i };
+            }
+            if (item.type === 'folder' && Array.isArray(item.files)) {
+                const result = findFileAndParentFolder(item.files, item);
+                if (result) return result;
+            }
+        }
+        return null;
+    }
+
+    // 查找文件和父文件夹
+    const result = findFileAndParentFolder(files);
+    if (result) {
+        // 从原文件夹中移除
+        result.parentArray.splice(result.index, 1);
+        // 添加到根目录
+        files.push(result.file);
+        // 保存更新后的文件列表
+        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        // 重新加载文件列表
+        loadFileList();
+        showNotification('文件已移出文件夹', 'success');
+    }
+}
+
+
+
