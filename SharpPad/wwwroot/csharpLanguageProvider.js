@@ -20,10 +20,26 @@
     }, showNotificationDelay);
     
     try {
-        const response = await axios.post(endPoint, JSON.stringify(request));
-        clearTimeout(showNotificationTimer);
-        notification.style.display = 'none';
-        return response;
+        if (type === 'run') {
+            // 使用 POST 请求发送代码和包信息
+            const response = await fetch(endPoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request)
+            });
+
+            return {
+                reader: response.body.getReader(),
+                showNotificationTimer
+            };
+        } else {
+            const response = await axios.post(endPoint, JSON.stringify(request));
+            clearTimeout(showNotificationTimer);
+            notification.style.display = 'none';
+            return response;
+        }
     } catch (error) {
         clearTimeout(showNotificationTimer);
         notification.textContent = '请求失败: ' + error.message;

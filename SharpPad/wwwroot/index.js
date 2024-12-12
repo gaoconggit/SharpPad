@@ -339,16 +339,49 @@ async function runCode(code) {
         }))
     };
 
+    const notification = document.getElementById('notification');
+    const outputContent = document.getElementById('outputContent');
+
+    // 清空输出区域
+    outputContent.innerHTML = '';
+
     try {
-        const response = await sendRequest("run", request);
-        if (response.data.code === 0 && response.data.data.Output) {
-            appendOutput(response.data.data.Output, 'success');
-        }
-        if (response.data.code === 0 && response.data.data.Error) {
-            appendOutput(response.data.data.Error, 'error');
+        const { reader, showNotificationTimer } = await sendRequest('run', request);
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            // 将 Uint8Array 转换为字符串
+            const text = new TextDecoder("utf-8").decode(value);
+            // 处理每一行数据
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                if (!line.startsWith('data: ')) continue;
+                
+                const data = JSON.parse(line.substring(6));
+                switch (data.type) {
+                    case 'output':
+                        appendOutput(data.content, 'success');
+                        break;
+                    case 'error':
+                        appendOutput(data.content, 'error');
+                        notification.textContent = '运行出错';
+                        notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+                        notification.style.display = 'block';
+                        break;
+                    case 'completed':
+                        clearTimeout(showNotificationTimer); // 清除显示通知的定时器
+                        notification.style.display = 'none';
+                        return;
+                }
+            }
         }
     } catch (error) {
         appendOutput('运行请求失败: ' + error.message, 'error');
+        notification.textContent = '运行失败';
+        notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
     }
 }
 function showNotification(message, type) {

@@ -54,12 +54,34 @@ app.MapPost("/completion/{0}", async (e) =>
         {
             var codeRunRequest = JsonSerializer.Deserialize<CodeRunRequest>(text);
             string nugetPackages = string.Join(" ", codeRunRequest?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var codeCheckResults = CodeRunner.RunProgramCode(codeRunRequest?.SourceCode, nugetPackages);
-            await JsonSerializer.SerializeAsync(e.Response.Body, new
+
+            // 设置响应头，允许流式输出
+            e.Response.Headers.TryAdd("Content-Type", "text/event-stream");
+            e.Response.Headers.TryAdd("Cache-Control", "no-cache");
+            e.Response.Headers.TryAdd("Connection", "keep-alive");
+
+            // 创建输出和错误回调
+            async void OnOutput(string output)
             {
-                code = 0,
-                data = codeCheckResults
-            });
+                await e.Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n");
+                await e.Response.Body.FlushAsync();
+            }
+
+            async void OnError(string error)
+            {
+                await e.Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n");
+                await e.Response.Body.FlushAsync();
+            }
+
+            var result = await CodeRunner.RunProgramCodeAsync(
+                codeRunRequest?.SourceCode,
+                nugetPackages,
+                OnOutput,
+                OnError
+            );
+
+            await e.Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "completed", result })}\n\n");
+            await e.Response.Body.FlushAsync();
             return;
         }
         else if (e.Request.Path.Value?.EndsWith("addPackages") == true)
