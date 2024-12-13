@@ -318,13 +318,28 @@ function appendOutput(message, type = 'info') {
 
 // 流式输出
 function streamOutput(message, type = 'info') {
+    const md = markdownit({
+        highlight: function (str, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                try {
+                    return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+                } catch (_) {
+                    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`;
+                }
+            } else {
+                // 如果语言不存在或者无法识别，使用自动检测
+                return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
+            }
+        }
+    });
+
     const outputDiv = document.getElementById('outputContent');
     outputDiv.classList.add("result-streaming");
     const cursor = document.createElement("p");
     outputDiv.appendChild(cursor);
 
     message = message.replace(/\r\n/g, '\n\r\n');
-    outputDiv.innerHTML = marked.parse(message);
+    outputDiv.innerHTML = md.render(message);
 }
 
 async function runCode(code) {

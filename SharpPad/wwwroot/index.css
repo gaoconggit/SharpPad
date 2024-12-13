@@ -583,20 +583,25 @@ a:hover {
 .dragging {
     opacity: 0.5;
 }
+
 .drag-over-top {
     border-top: 2px solid #2979ff;
 }
+
 .drag-over-bottom {
     border-bottom: 2px solid #2979ff;
 }
+
 #fileListItems li {
     transition: border-color 0.2s;
 }
+
 .file-container {
     display: flex;
     align-items: center;
     padding: 2px 0;
 }
+
 .sort-buttons {
     display: flex;
     gap: 2px;
@@ -604,10 +609,12 @@ a:hover {
     opacity: 0.3;
     transition: opacity 0.2s;
 }
+
 .file-container:hover .sort-buttons,
 .folder-header:hover .sort-buttons {
     opacity: 1;
 }
+
 .sort-button {
     background: none;
     border: none;
@@ -617,9 +624,11 @@ a:hover {
     font-size: 14px;
     line-height: 1;
 }
+
 .sort-button:hover {
     color: #2979ff;
 }
+
 .folder-header {
     display: flex;
     align-items: center;
@@ -962,7 +971,8 @@ a:hover {
 
 @keyframes cursor-blink {
 
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
     }
 
@@ -971,10 +981,10 @@ a:hover {
     }
 }
 
-.cursor > :not(ol):not(ul):not(pre):last-child:after,
-.result-streaming > ol:last-child li:last-child:after,
-.result-streaming > pre:last-child code:after,
-.result-streaming > ul:last-child li:last-child:after {
+.cursor> :not(ol):not(ul):not(pre):last-child:after,
+.result-streaming>ol:last-child li:last-child:after,
+.result-streaming>pre:last-child code:after,
+.result-streaming>ul:last-child li:last-child:after {
     content: "▋";
     display: inline-block;
     background-color: #000;
@@ -983,14 +993,26 @@ a:hover {
     animation: cursor-blink 1s infinite;
 }
 
-.result-streaming > :not(ol):not(ul):not(pre):last-child:after,
-.result-streaming > ol:last-child li:last-child:after,
-.result-streaming > pre:last-child code:after,
-.result-streaming > ul:last-child li:last-child:after {
+.result-streaming> :not(ol):not(ul):not(pre):last-child:after,
+.result-streaming>ol:last-child li:last-child:after,
+.result-streaming>pre:last-child code:after,
+.result-streaming>ul:last-child li:last-child:after {
     -webkit-animation: blink 1s steps(5, start) infinite;
     /*animation: blink 1s steps(5,start) infinite;*/
     animation: cursor-blink 1s infinite;
     content: "▋";
     margin-left: .25rem;
     vertical-align: baseline
+}
+
+#outputContent {
+    padding: 10px;
+    border-radius: 5px;
+}
+
+pre {
+    background: #4f4f4f;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
 }

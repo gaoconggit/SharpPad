@@ -39,8 +39,12 @@
     </div>
     <div class="notification" id="notification"></div>
     <div id="fileContextMenu" class="context-menu" style="display: none;">
-        <div class="context-menu-item" onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移</div>
-        <div class="context-menu-item" onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">下移</div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移
+        </div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">
+            下移</div>
         <div class="context-menu-item" onclick="renameFile()">重命名</div>
         <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
         <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
@@ -48,11 +52,19 @@
         <div class="context-menu-item delete" onclick="deleteFile()">删除</div>
     </div>
     <div id="folderContextMenu" class="context-menu" style="display: none;">
-        <div class="context-menu-item" onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件</div>
-        <div class="context-menu-item" onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件夹</div>
+        <div class="context-menu-item"
+            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件
+        </div>
+        <div class="context-menu-item"
+            onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">
+            新建文件夹</div>
         <div class="context-menu-separator"></div>
-        <div class="context-menu-item" onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'up')">上移</div>
-        <div class="context-menu-item" onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'down')">下移</div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'up')">上移
+        </div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'down')">下移
+        </div>
         <div class="context-menu-item" onclick="renameFolder()">重命名</div>
         <div class="context-menu-item" onclick="duplicateFolder()">复制</div>
         <div class="context-menu-item" onclick="exportFolder()">导出</div>
@@ -83,7 +95,13 @@
         </div>
     </div>
 
-    <script src="marked.min.js"></script>
+    <!-- 引入 markdown-it -->
+    <script src="./markdown/markdown-it.min.js"></script>
+    <!-- 引入 highlight.js 的 CSS 样式 -->
+    <link rel="stylesheet" href="./markdown/default.min.css">
+    <!-- 引入 highlight.js 的 JavaScript -->
+    <script src="./markdown/highlight.min.js"></script>
+
     <script src="csharpLanguageProvider.js"></script>
     <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
     <script src="index.js"></script>
