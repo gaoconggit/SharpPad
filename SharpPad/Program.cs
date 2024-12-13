@@ -1,8 +1,15 @@
 using MonacoRoslynCompletionProvider;
 using MonacoRoslynCompletionProvider.Api;
 using System.Text.Json;
+using Swashbuckle.AspNetCore.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+// 添加Swagger服务
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
 app.MapPost("/completion/{0}", async (e) =>
@@ -114,5 +121,11 @@ app.MapPost("/completion/{0}", async (e) =>
 });
 
 app.UseFileServer();
+// 使用Swagger中间件
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+});
 
 app.Run();
