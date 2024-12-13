@@ -60,4 +60,10 @@
 	  <Folder Include="NugetPackages\packages\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Content Update="wwwroot\marked.min.js">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
 </Project>

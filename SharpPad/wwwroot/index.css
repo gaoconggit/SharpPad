@@ -959,3 +959,38 @@ a:hover {
 #outputContent::-webkit-scrollbar-thumb:hover {
     background: #4f4f4f;
 }
+
+@keyframes cursor-blink {
+
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.cursor > :not(ol):not(ul):not(pre):last-child:after,
+.result-streaming > ol:last-child li:last-child:after,
+.result-streaming > pre:last-child code:after,
+.result-streaming > ul:last-child li:last-child:after {
+    content: "▋";
+    display: inline-block;
+    background-color: #000;
+    width: 2px;
+    height: 1em;
+    animation: cursor-blink 1s infinite;
+}
+
+.result-streaming > :not(ol):not(ul):not(pre):last-child:after,
+.result-streaming > ol:last-child li:last-child:after,
+.result-streaming > pre:last-child code:after,
+.result-streaming > ul:last-child li:last-child:after {
+    -webkit-animation: blink 1s steps(5, start) infinite;
+    /*animation: blink 1s steps(5,start) infinite;*/
+    animation: cursor-blink 1s infinite;
+    content: "▋";
+    margin-left: .25rem;
+    vertical-align: baseline
+}

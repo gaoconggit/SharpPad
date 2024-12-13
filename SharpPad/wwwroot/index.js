@@ -316,6 +316,17 @@ function appendOutput(message, type = 'info') {
     outputContent.scrollTop = outputContent.scrollHeight;
 }
 
+// 流式输出
+function streamOutput(message, type = 'info') {
+    const outputDiv = document.getElementById('outputContent');
+    outputDiv.classList.add("result-streaming");
+    const cursor = document.createElement("p");
+    outputDiv.appendChild(cursor);
+
+    message = message.replace(/\r\n/g, '\n\r\n');
+    outputDiv.innerHTML = marked.parse(message);
+}
+
 async function runCode(code) {
     if (!code) return;
 
@@ -346,24 +357,26 @@ async function runCode(code) {
     outputContent.innerHTML = '';
 
     try {
+        let result = "";
         const { reader, showNotificationTimer } = await sendRequest('run', request);
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-            
+
             // 将 Uint8Array 转换为字符串
             const text = new TextDecoder("utf-8").decode(value);
             // 处理每一行数据
             const lines = text.split('\n');
-            
+
             for (const line of lines) {
                 if (!line.trim()) continue;
                 if (!line.startsWith('data: ')) continue;
-                
+
                 const data = JSON.parse(line.substring(6));
                 switch (data.type) {
                     case 'output':
-                        appendOutput(data.content, 'success');
+                        result += data.content;
+                        streamOutput(result, 'success');
                         break;
                     case 'error':
                         appendOutput(data.content, 'error');
@@ -374,6 +387,7 @@ async function runCode(code) {
                     case 'completed':
                         clearTimeout(showNotificationTimer); // 清除显示通知的定时器
                         notification.style.display = 'none';
+                        outputContent.classList.remove("result-streaming");
                         return;
                 }
             }
