@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host;
 using System;
 using System.Collections.Generic;
+using monacoEditorCSharp.DataHelpers;
 
 namespace MonacoRoslynCompletionProvider
 {
@@ -26,30 +27,39 @@ namespace MonacoRoslynCompletionProvider
             ".\\Dll\\CSRedisCore.dll",
             ".\\Dll\\RestSharp.dll",
         ];
-        public async static Task<TabCompletionResult[]> Handle(TabCompletionRequest tabCompletionRequest)
+        public async static Task<TabCompletionResult[]> Handle(TabCompletionRequest tabCompletionRequest, string nuget)
         {
-            var workspace = CompletionWorkspace.Create(tabCompletionRequest.Assemblies = s_assemblies);
+            // 加载 NuGet 包
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
             var document = await workspace.CreateDocument(tabCompletionRequest.Code);
             return await document.GetTabCompletion(tabCompletionRequest.Position, CancellationToken.None);
         }
 
-        public async static Task<HoverInfoResult> Handle(HoverInfoRequest hoverInfoRequest)
+        public async static Task<HoverInfoResult> Handle(HoverInfoRequest hoverInfoRequest, string nuget)
         {
-            var workspace = CompletionWorkspace.Create(hoverInfoRequest.Assemblies = s_assemblies);
+            // 加载 NuGet 包
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+
+            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
             var document = await workspace.CreateDocument(hoverInfoRequest.Code);
             return await document.GetHoverInformation(hoverInfoRequest.Position, CancellationToken.None);
         }
 
-        public async static Task<CodeCheckResult[]> Handle(CodeCheckRequest codeCheckRequest)
+        public async static Task<CodeCheckResult[]> Handle(CodeCheckRequest codeCheckRequest, string nuget)
         {
-            var workspace = CompletionWorkspace.Create(codeCheckRequest.Assemblies = s_assemblies);
+            // 加载 NuGet 包
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+
+            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
             var document = await workspace.CreateDocument(codeCheckRequest.Code);
             return await document.GetCodeCheckResults(CancellationToken.None);
         }
 
-        public async static Task<SignatureHelpResult> Handle(SignatureHelpRequest signatureHelpRequest)
+        public async static Task<SignatureHelpResult> Handle(SignatureHelpRequest signatureHelpRequest, string nuget)
         {
-            var workspace = CompletionWorkspace.Create(signatureHelpRequest.Assemblies = s_assemblies);
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
             var document = await workspace.CreateDocument(signatureHelpRequest.Code);
             return await document.GetSignatureHelp(signatureHelpRequest.Position, CancellationToken.None);
         }
@@ -57,7 +67,6 @@ namespace MonacoRoslynCompletionProvider
         //格式化代码
         public static string FormatCode(string sourceCode)
         {
-
             var assemblies = new[]
             {
                 Assembly.Load("Microsoft.CodeAnalysis"),

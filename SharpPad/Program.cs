@@ -21,28 +21,32 @@ app.MapPost("/completion/{0}", async (e) =>
         if (e.Request.Path.Value?.EndsWith("complete") == true)
         {
             var tabCompletionRequest = JsonSerializer.Deserialize<TabCompletionRequest>(text);
-            var tabCompletionResults = await CompletitionRequestHandler.Handle(tabCompletionRequest);
+            string nugetPackages = string.Join(" ", tabCompletionRequest?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var tabCompletionResults = await CompletitionRequestHandler.Handle(tabCompletionRequest, nugetPackages);
             await JsonSerializer.SerializeAsync(e.Response.Body, tabCompletionResults);
             return;
         }
         else if (e.Request.Path.Value?.EndsWith("signature") == true)
         {
             var signatureHelpRequest = JsonSerializer.Deserialize<SignatureHelpRequest>(text);
-            var signatureHelpResult = await CompletitionRequestHandler.Handle(signatureHelpRequest);
+            string nugetPackages = string.Join(" ", signatureHelpRequest?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var signatureHelpResult = await CompletitionRequestHandler.Handle(signatureHelpRequest, nugetPackages);
             await JsonSerializer.SerializeAsync(e.Response.Body, signatureHelpResult);
             return;
         }
         else if (e.Request.Path.Value?.EndsWith("hover") == true)
         {
             var hoverInfoRequest = JsonSerializer.Deserialize<HoverInfoRequest>(text);
-            var hoverInfoResult = await CompletitionRequestHandler.Handle(hoverInfoRequest);
+            string nugetPackages = string.Join(" ", hoverInfoRequest?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var hoverInfoResult = await CompletitionRequestHandler.Handle(hoverInfoRequest, nugetPackages);
             await JsonSerializer.SerializeAsync(e.Response.Body, hoverInfoResult);
             return;
         }
         else if (e.Request.Path.Value?.EndsWith("codeCheck") == true)
         {
             var codeCheckRequest = JsonSerializer.Deserialize<CodeCheckRequest>(text);
-            var codeCheckResults = await CompletitionRequestHandler.Handle(codeCheckRequest);
+            string nugetPackages = string.Join(" ", codeCheckRequest?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var codeCheckResults = await CompletitionRequestHandler.Handle(codeCheckRequest, nugetPackages);
             await JsonSerializer.SerializeAsync(e.Response.Body, codeCheckResults);
             return;
         }

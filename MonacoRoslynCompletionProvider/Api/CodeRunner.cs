@@ -30,7 +30,7 @@ namespace MonacoRoslynCompletionProvider.Api
 
                 try
                 {
-                    // 下载 NuGet 包
+                    // 加载 NuGet 包
                     var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
 
                     // 解析代码

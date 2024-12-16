@@ -46,7 +46,10 @@ namespace monacoEditorCSharp.DataHelpers
                     {
                         try
                         {
-                            if (file.EndsWith(@$"net8.0\{downloadItem}.dll") || file.Contains(@$"netstandard2.0\{downloadItem}.dll"))
+                            var fileName = Path.GetFileName(file);
+                            if (file.EndsWith(@$"net8.0\{fileName}") ||
+                                file.Contains(@$"netstandard2.0\{fileName}") ||
+                                file.Contains(@$"netstandard2.1\{fileName}"))
                             {
                                 var assembly = Assembly.LoadFrom(file);
                                 assemblies.Add(assembly);
@@ -62,7 +65,7 @@ namespace monacoEditorCSharp.DataHelpers
             }
             return assemblies;
         }
-        
+
         public static void DownloadAllPackages(string packages)
         {
             if (!String.IsNullOrWhiteSpace(packages))

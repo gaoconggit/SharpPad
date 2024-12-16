@@ -9,7 +9,7 @@
         case 'run': endPoint = '/completion/run'; break;
         case 'addPackages': endPoint = '/completion/addPackages'; break;
     }
-    
+
     // 延迟超过1秒后才显示加载中样式
     const notification = document.getElementById('notification');
     const showNotificationDelay = 1000; // 1 second
@@ -18,7 +18,7 @@
         notification.style.backgroundColor = 'rgba(33, 150, 243, 0.9)';
         notification.style.display = 'block';
     }, showNotificationDelay);
-    
+
     try {
         if (type === 'run') {
             // 使用 POST 请求发送代码和包信息
@@ -51,18 +51,21 @@
 
 function registerCsharpProvider() {
 
-    var assemblies = [
-    ];
-
     monaco.languages.registerCompletionItemProvider('csharp', {
         triggerCharacters: [".", " "],
         provideCompletionItems: async (model, position) => {
             let suggestions = [];
 
+            const file = getCurrentFile();
+            const packages = file?.nugetConfig?.packages || [];
+
             let request = {
                 Code: model.getValue(),
                 Position: model.getOffsetAt(position),
-                Assemblies: assemblies
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                }))
             }
 
             let resultQ = await sendRequest("complete", request);
@@ -88,10 +91,16 @@ function registerCsharpProvider() {
 
         provideSignatureHelp: async (model, position, token, context) => {
 
+            const file = getCurrentFile();
+            const packages = file?.nugetConfig?.packages || [];
+
             let request = {
                 Code: model.getValue(),
                 Position: model.getOffsetAt(position),
-                Assemblies: assemblies
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                }))
             }
 
             let resultQ = await sendRequest("signature", request);
@@ -130,10 +139,16 @@ function registerCsharpProvider() {
     monaco.languages.registerHoverProvider('csharp', {
         provideHover: async function (model, position) {
 
+            const file = getCurrentFile();
+            const packages = file?.nugetConfig?.packages || [];
+
             let request = {
                 Code: model.getValue(),
                 Position: model.getOffsetAt(position),
-                Assemblies: assemblies
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                }))
             }
 
             let resultQ = await sendRequest("hover", request);
@@ -157,9 +172,15 @@ function registerCsharpProvider() {
     monaco.editor.onDidCreateModel(function (model) {
         async function validate() {
 
+            const file = getCurrentFile();
+            const packages = file?.nugetConfig?.packages || [];
+
             let request = {
                 Code: model.getValue(),
-                Assemblies: assemblies
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                }))
             }
 
             let resultQ = await sendRequest("codeCheck", request)
