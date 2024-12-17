@@ -2,11 +2,13 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -36,6 +38,8 @@ namespace MonacoRoslynCompletionProvider
                 MetadataReference.CreateFromFile(typeof(Microsoft.AspNetCore.Mvc.HttpPostAttribute).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Microsoft.AspNetCore.Http.HttpRequest).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Microsoft.AspNetCore.Http.IHeaderDictionary).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(JwtSecurityTokenHandler).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(SecurityTokenHandler).Assembly.Location),
                 MetadataReference.CreateFromFile(Assembly.Load("Microsoft.Extensions.Primitives").Location),
                 MetadataReference.CreateFromFile(Assembly.Load("System.ComponentModel").Location),
                 MetadataReference.CreateFromFile(Assembly.Load("Microsoft.AspNetCore.Mvc.Abstractions").Location),
