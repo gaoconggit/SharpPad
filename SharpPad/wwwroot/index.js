@@ -70,6 +70,16 @@ class Program
         document.getElementById('outputContent').innerHTML = '';
     });
 
+    document.getElementById('copyOutput').addEventListener('click', () => {
+        const outputContent = document.getElementById('outputContent');
+        const text = outputContent.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('已复制到剪贴板');
+        }).catch(err => {
+            console.error('复制失败:', err);
+        });
+    });
+
     document.getElementById('formatOutput').addEventListener('click', () => {
         const outputContent = document.getElementById('outputContent');
         const lines = Array.from(outputContent.children);

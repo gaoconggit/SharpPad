@@ -306,6 +306,21 @@ a:hover {
     opacity: 1;
 }
 
+#copyOutput {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+#copyOutput:hover {
+    opacity: 1;
+}
+
 #outputContent {
     flex: 1;
     padding: 12px;
