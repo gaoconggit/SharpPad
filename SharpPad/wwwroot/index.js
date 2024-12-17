@@ -358,7 +358,6 @@ async function runCode(code) {
 
     const request = {
         SourceCode: code,
-        Assemblies: [],
         Packages: packages.map(p => ({
             Id: p.id,
             Version: p.version
@@ -668,7 +667,6 @@ function addFolder() {
 }
 
 function saveCode(code) {
-
     try {
         const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
         if (!fileId) {
@@ -703,11 +701,18 @@ function saveCode(code) {
         // 保存到文件列表
         const filesData = localStorage.getItem('controllerFiles');
         const files = filesData ? JSON.parse(filesData) : [];
-        files.forEach(file => {
-            if (file.id === fileId) {
-                file.content = code;
+        const updateFileContent = (files, targetId, newCode) => {
+            for (const file of files) {
+                if (file.id === targetId) {
+                    file.content = newCode;
+                    return;
+                }
+                if (file.type === 'folder' && file.files) {
+                    updateFileContent(file.files, targetId, newCode);
+                }
             }
-        });
+        };
+        updateFileContent(files, fileId, code);
         localStorage.setItem('controllerFiles', JSON.stringify(files));
         showNotification('保存成功', 'success');
     } catch (error) {
