@@ -322,13 +322,15 @@ function streamOutput(message, type = 'info') {
         highlight: function (str, lang) {
             if (lang && hljs.getLanguage(lang)) {
                 try {
-                    return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+                    const highlighted = hljs.highlight(str, { language: lang }).value;
+                    return `<pre class="hljs"><code>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 } catch (_) {
-                    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`;
+                    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 }
             } else {
                 // 如果语言不存在或者无法识别，使用自动检测
-                return `<pre class="hljs"><code>${hljs.highlightAuto(str).value}</code></pre>`;
+                const highlighted = hljs.highlightAuto(str).value;
+                return `<pre class="hljs"><code>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
             }
         }
     });
@@ -340,6 +342,44 @@ function streamOutput(message, type = 'info') {
 
     message = message.replace(/\r\n/g, '\n\r\n');
     outputDiv.innerHTML = md.render(message);
+
+    // 添加复制功能的样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .hljs {
+            position: relative;
+        }
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 4px 8px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .copy-button:hover {
+            background: #e0e0e0;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function copyCode(button) {
+    const codeBlock = button.previousElementSibling;
+    const code = codeBlock.textContent;
+    
+    navigator.clipboard.writeText(code).then(() => {
+        const originalText = button.textContent;
+        button.textContent = '已复制!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+    });
 }
 
 async function runCode(code) {
