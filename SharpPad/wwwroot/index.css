@@ -21,8 +21,9 @@ body {
     top: 0;
     height: calc(100vh - 200px);
     z-index: 100;
-    transition: all 0.3s ease-in-out;
+    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-right: 1px solid #3c3c3c;
+    will-change: height;
 }
 
 #fileList:hover {
@@ -40,7 +41,8 @@ body {
     top: 0;
     height: calc(100vh - 200px);
     right: 0;
-    transition: all 0.3s ease-in-out;
+    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: height;
 }
 
 .button-container {
@@ -251,7 +253,8 @@ a:hover {
     flex-direction: column;
     z-index: 1000;
     overflow: hidden;
-    transition: all 0.3s ease-in-out;
+    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: height;
 }
 
 .resize-handle {
@@ -288,6 +291,7 @@ a:hover {
     user-select: none;
     position: relative;
     z-index: 1000;
+    transition: padding 0.2s;
 }
 
 #toggleOutput {
@@ -1093,4 +1097,15 @@ pre {
 
 #fileList::-webkit-scrollbar-thumb:hover {
     background: #4f4f4f;
+}
+
+/* 调整大小时禁用过渡效果 */
+#outputPanel.resizing,
+#outputPanel.resizing ~ #fileList,
+#outputPanel.resizing ~ #container {
+    transition: none !important;
+}
+
+#outputPanel.collapsed .output-header {
+    padding: 4px 14px;
 }

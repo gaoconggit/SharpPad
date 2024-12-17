@@ -120,6 +120,7 @@ class Program
     let isResizing = false;
     let startY;
     let startHeight;
+    let rafId = null;
 
     resizeHandle.addEventListener('mousedown', function (e) {
         const outputPanel = document.getElementById('outputPanel');
@@ -134,32 +135,55 @@ class Program
 
         document.documentElement.style.cursor = 'ns-resize';
         e.preventDefault(); // 防止文本选择
+        
+        // 添加正在调整大小的类
+        outputPanel.classList.add('resizing');
     });
 
     document.addEventListener('mousemove', function (e) {
         if (!isResizing) return;
 
-        const delta = e.clientY - startY;
-        const newHeight = Math.min(Math.max(startHeight - delta, 100), window.innerHeight * 0.8);
-        outputPanel.style.height = `${newHeight}px`;
-
-        // 同步调整文件列表和编辑器的高度
-        const fileList = document.getElementById('fileList');
-        const container = document.getElementById('container');
-        
-        fileList.style.height = `calc(100vh - ${newHeight}px)`;
-        container.style.height = `calc(100vh - ${newHeight}px)`;
-
-        // 调整编辑器大小以适应新的高度
-        if (window.x_editor) {
-            window.x_editor.layout();
+        // 如果存在上一帧的动画，取消它
+        if (rafId) {
+            cancelAnimationFrame(rafId);
         }
+
+        // 使用 requestAnimationFrame 来优化性能
+        rafId = requestAnimationFrame(() => {
+            const delta = e.clientY - startY;
+            const newHeight = Math.min(Math.max(startHeight - delta, 100), window.innerHeight * 0.8);
+            
+            // 直接设置样式，避免触发不必要的布局计算
+            outputPanel.style.height = `${newHeight}px`;
+            
+            // 批量更新其��元素的高度
+            const fileList = document.getElementById('fileList');
+            const container = document.getElementById('container');
+            
+            const remainingHeight = `calc(100vh - ${newHeight}px)`;
+            fileList.style.height = remainingHeight;
+            container.style.height = remainingHeight;
+
+            // 只在真正需要时更新编辑器布局
+            if (window.x_editor) {
+                window.x_editor.layout();
+            }
+        });
     });
 
     document.addEventListener('mouseup', function () {
-        if (isResizing) {
-            isResizing = false;
-            document.documentElement.style.cursor = '';
+        if (!isResizing) return;
+        
+        isResizing = false;
+        document.documentElement.style.cursor = '';
+        
+        // 移除正在调整大小的类
+        outputPanel.classList.remove('resizing');
+        
+        // 取消任何待处理的动画帧
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
         }
     });
 
@@ -207,6 +231,10 @@ class Program
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
         
+        // 获取当前输出面板的高度
+        const currentHeight = parseInt(window.getComputedStyle(outputPanel).height);
+        const isCollapsing = !outputPanel.classList.contains('collapsed');
+        
         outputPanel.classList.toggle('collapsed');
         toggleButton.classList.toggle('collapsed');
         
@@ -214,12 +242,15 @@ class Program
         void outputPanel.offsetWidth;
         
         // 根据输出面板的状态调整高度
-        if (outputPanel.classList.contains('collapsed')) {
+        if (isCollapsing) {
+            // 收起时设置为最小高度
             fileList.style.height = 'calc(100vh - 32px)';
             container.style.height = 'calc(100vh - 32px)';
         } else {
+            // 展开时恢复到默认高度 200px
             fileList.style.height = 'calc(100vh - 200px)';
             container.style.height = 'calc(100vh - 200px)';
+            outputPanel.style.height = '200px';
         }
         
         // Update editor layout after transition
@@ -494,7 +525,7 @@ async function runCode(code) {
                         notification.style.display = 'block';
                         break;
                     case 'completed':
-                        clearTimeout(showNotificationTimer); // 清除显示通知的定时器
+                        clearTimeout(showNotificationTimer); // 除显示通知的定时器
                         notification.style.display = 'none';
                         outputContent.classList.remove("result-streaming");
                         return;
@@ -1011,7 +1042,7 @@ function moveFileToFolder(fileId, folderId) {
     let itemToMove = null;
     let sourceFolder = null;
 
-    // 递归查找要移动的项目（可以是文件或文件夹）和其源文件夹
+    // 递归查找要移动的项目（可以是文件或文件夹）和其文件夹
     function findItemAndSource(items, parent = null) {
         for (let i = 0; i < items.length; i++) {
             if (items[i].id === fileId) {
@@ -1155,7 +1186,7 @@ function deleteFolder() {
 
                 deleteFilesRecursively(items[i]);
 
-                // 从数组中移除文件夹
+                // 数组中移除文件夹
                 items.splice(i, 1);
                 localStorage.setItem('controllerFiles', JSON.stringify(files));
                 loadFileList();
@@ -1191,7 +1222,7 @@ function initializeFileListResize() {
         startWidth = parseInt(document.defaultView.getComputedStyle(fileList).width, 10);
         fileList.classList.add('resizing');
         document.documentElement.style.cursor = 'ew-resize';
-        e.preventDefault();  // 防止文本选择
+        e.preventDefault();  // 防止��本选择
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -1276,7 +1307,7 @@ function reorderFiles(draggedId, targetId, position) {
     const draggedItem = findAndRemoveItem(files);
     if (draggedItem) {
         if (!findAndInsertItem(files, draggedItem)) {
-            // 果没找到目标位置，项目添加到末尾
+            // 果没找到目标位置，项目加到末尾
             files.push(draggedItem);
         }
         localStorage.setItem('controllerFiles', JSON.stringify(files));
@@ -1479,7 +1510,7 @@ window.configureNuGet = function configureNuGet() {
     const filesData = localStorage.getItem('controllerFiles');
     const files = filesData ? JSON.parse(filesData) : [];
 
-    // 递归查找目标文件
+    // 递归查找目标���件
     function findFile(items) {
         for (let item of items) {
             if (item.id === fileId) {
@@ -1914,7 +1945,7 @@ function duplicateFolder() {
                 const index = parentArray.findIndex(i => i.id === folderId);
                 parentArray.splice(index + 1, 0, duplicatedFolder);
 
-                // 保存更新后的文件列表
+                // 保存��新后的文件列表
                 localStorage.setItem('controllerFiles', JSON.stringify(files));
 
                 // 刷新文件列表并展开复制的文件夹
@@ -1957,7 +1988,7 @@ function exportFolder() {
                     files: []
                 };
 
-                // 递归获取文件夹���的所有文件内容
+                // 递归获取文件夹的所有文件内容
                 function getFilesContent(folder, targetArray) {
                     if (folder.files) {
                         folder.files.forEach(file => {
