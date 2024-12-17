@@ -114,7 +114,7 @@ class Program
     // 在编辑器初始化完成后，设置焦点
     editor.focus();
 
-    // 初始化输出面板调整小功能
+    // 初始化输出面板调整大小功能
     const outputPanel = document.getElementById('outputPanel');
     const resizeHandle = outputPanel.querySelector('.resize-handle');
     let isResizing = false;
@@ -122,12 +122,18 @@ class Program
     let startHeight;
 
     resizeHandle.addEventListener('mousedown', function (e) {
+        const outputPanel = document.getElementById('outputPanel');
+        // 如果输出面板处于收起状态，不允许调整大小
+        if (outputPanel.classList.contains('collapsed')) {
+            return;
+        }
+        
         isResizing = true;
         startY = e.clientY;
         startHeight = parseInt(document.defaultView.getComputedStyle(outputPanel).height, 10);
 
         document.documentElement.style.cursor = 'ns-resize';
-        e.preventDefault(); // Prevent text selection
+        e.preventDefault(); // 防止文本选择
     });
 
     document.addEventListener('mousemove', function (e) {
@@ -137,8 +143,17 @@ class Program
         const newHeight = Math.min(Math.max(startHeight - delta, 100), window.innerHeight * 0.8);
         outputPanel.style.height = `${newHeight}px`;
 
-        // 调整编辑器大小以适应新的输出面板高度
-        editor.layout();
+        // 同步调整文件列表和编辑器的高度
+        const fileList = document.getElementById('fileList');
+        const container = document.getElementById('container');
+        
+        fileList.style.height = `calc(100vh - ${newHeight}px)`;
+        container.style.height = `calc(100vh - ${newHeight}px)`;
+
+        // 调整编辑器大小以适应新的高度
+        if (window.x_editor) {
+            window.x_editor.layout();
+        }
     });
 
     document.addEventListener('mouseup', function () {
@@ -182,8 +197,38 @@ class Program
         }
     }, true);
 
-    // 触发一次布局更新，确保编辑器正确渲染
+    // 触发一次布局更新，确保编辑器正确渲
     editor.layout();
+
+    // 初始化输出面板收起/展开功能
+    document.getElementById('toggleOutput').addEventListener('click', () => {
+        const outputPanel = document.getElementById('outputPanel');
+        const toggleButton = document.getElementById('toggleOutput');
+        const fileList = document.getElementById('fileList');
+        const container = document.getElementById('container');
+        
+        outputPanel.classList.toggle('collapsed');
+        toggleButton.classList.toggle('collapsed');
+        
+        // Force a reflow to ensure the transition works
+        void outputPanel.offsetWidth;
+        
+        // 根据输出面板的状态调整高度
+        if (outputPanel.classList.contains('collapsed')) {
+            fileList.style.height = 'calc(100vh - 32px)';
+            container.style.height = 'calc(100vh - 32px)';
+        } else {
+            fileList.style.height = 'calc(100vh - 200px)';
+            container.style.height = 'calc(100vh - 200px)';
+        }
+        
+        // Update editor layout after transition
+        setTimeout(() => {
+            if (window.x_editor) {
+                window.x_editor.layout();
+            }
+        }, 300);
+    });
 });
 
 function fullScreen(editor) {
@@ -1632,7 +1677,7 @@ async function addPackageReference() {
                 const name = packageNameInput.value.trim();
                 const version = packageVersionInput.value.trim();
                 if (!name || !version) {
-                    showNotification('包名和版��不能为空', true);
+                    showNotification('包名和版本不能为空', true);
                     return;
                 }
                 resolve({ name, version });
@@ -1677,7 +1722,7 @@ async function addPackageReference() {
         }
     } catch (err) {
         console.error('添加包引用错误:', err);
-        showNotification(`添加���引用失败: ${err.message}`, 'error');
+        showNotification(`添加包引用失败: ${err.message}`, 'error');
         return;
     }
 
@@ -1912,7 +1957,7 @@ function exportFolder() {
                     files: []
                 };
 
-                // 递归获取文件夹中的所有文件内容
+                // 递归获取文件夹���的所有文件内容
                 function getFilesContent(folder, targetArray) {
                     if (folder.files) {
                         folder.files.forEach(file => {
@@ -2073,7 +2118,7 @@ function moveOutOfFolder() {
     // 获取存储的文件列表
     let files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
 
-    // 递归查找文件和其父文件夹
+    // 递归查找文件和其文件夹
     function findFileAndParentFolder(items, parentFolder = null) {
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
@@ -2088,7 +2133,7 @@ function moveOutOfFolder() {
         return null;
     }
 
-    // 查找文件和父文件夹
+    // 查找文件和文件夹
     const result = findFileAndParentFolder(files);
     if (result) {
         // 从原文件夹中移除

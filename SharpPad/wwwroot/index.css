@@ -11,18 +11,18 @@ body {
     width: 290px;
     border-right: 4px solid #2d2d2d;
     overflow-y: auto;
-    padding: 10px;
     box-sizing: border-box;
     background-color: #252526;
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     height: calc(100vh - 200px);
     z-index: 100;
-    transition: border-color 0.2s;
+    transition: all 0.3s ease-in-out;
+    border-right: 1px solid #3c3c3c;
 }
 
 #fileList:hover {
@@ -36,11 +36,11 @@ body {
 #container {
     width: calc(100% - 290px);
     margin-left: 290px;
-    position: absolute;
+    position: fixed;
     top: 0;
     height: calc(100vh - 200px);
     right: 0;
-    transition: width 0.1s, margin-left 0.1s;
+    transition: all 0.3s ease-in-out;
 }
 
 .button-container {
@@ -243,7 +243,7 @@ a:hover {
     left: 0;
     width: 100%;
     height: 200px;
-    min-height: 100px;
+    min-height: 32px;
     max-height: 80vh;
     background-color: #1e1e1e;
     border-top: 1px solid #444;
@@ -251,10 +251,7 @@ a:hover {
     flex-direction: column;
     z-index: 1000;
     overflow: hidden;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    transition: all 0.3s ease-in-out;
 }
 
 .resize-handle {
@@ -267,11 +264,16 @@ a:hover {
     background-color: #2d2d2d;
     opacity: 0.5;
     z-index: 1001;
+    transition: opacity 0.3s;
 }
 
 .resize-handle:hover {
     opacity: 1;
     background-color: #444;
+}
+
+#outputPanel.collapsed .resize-handle {
+    display: none;
 }
 
 .output-header {
@@ -286,6 +288,50 @@ a:hover {
     user-select: none;
     position: relative;
     z-index: 1000;
+}
+
+#toggleOutput {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    height: 26px;
+    min-width: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#toggleOutput:hover {
+    opacity: 1;
+    background-color: #505050;
+}
+
+#toggleOutput::before {
+    content: "▼";
+    font-size: 10px;
+    transition: transform 0.3s;
+}
+
+#toggleOutput.collapsed::before {
+    transform: rotate(-90deg);
+}
+
+#outputPanel.collapsed {
+    height: 32px !important;
+}
+
+#outputPanel.collapsed ~ #fileList {
+    height: calc(100vh - 32px) !important;
+}
+
+#outputPanel.collapsed ~ #container {
+    height: calc(100vh - 32px) !important;
 }
 
 #clearOutput {
@@ -1030,4 +1076,21 @@ pre {
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
+}
+
+#fileList::-webkit-scrollbar {
+    width: 10px;
+}
+
+#fileList::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+#fileList::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 0;
+}
+
+#fileList::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
 }
