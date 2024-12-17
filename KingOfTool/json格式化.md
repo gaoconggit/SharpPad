@@ -11,36 +11,7 @@ class Program
     {
         var jsonStr =
         """
-            {
-            "messages": [
-
-                {
-
-                "content": "现在时间是:2024-12-10 14:21:24\n你是一个插件助手，会各种插件的能力，讲话通俗易懂",
-
-                "role": "system"
-
-                },
-
-                {
-
-                "content": "你是什么模型",
-
-                "role": "user"
-
-                }
-            ],
-
-            "temperature": 0.6,
-
-            "top_p": 0.5,
-
-            "n": 1,
-
-            "stream": true,
-
-            "model": "gemini-exp-1206"
-        }
+            {"messages":[{"content":"现在时间是:2024-12-10 14:21:24\n你是一个插件助手，会各种插件的能力，讲话通俗易懂","role":"system"},{"content":"你是什么模型","role":"user"}],"temperature":0.6,"top_p":0.5,"n":1,"stream":true,"model":"gemini-exp-1206"}
           
         """;
 
