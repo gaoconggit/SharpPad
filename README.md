@@ -18,6 +18,10 @@
 3. 在 Visual Studio 中启动 SharpPad 项目。
 4. 使用 `Ctrl + Enter` 运行 "Hello World"。
 
+
+## 示例代码参考
+  https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
+
 ## 快捷键
 
 - `Ctrl + Enter` 运行代码
