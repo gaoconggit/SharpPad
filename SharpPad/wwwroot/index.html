@@ -8,6 +8,7 @@
     <title>Sharp Pad</title>
     <script src="axios.min.js"></script>
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 
 <body onload="loadFileList()">
@@ -30,7 +31,7 @@
                 <button id="toggleOutput" title="收起/展开"></button>
                 <span>输出</span>
             </div>
-            <div class="output-buttons">
+            <div class="output-toolbar">
                 <button id="formatOutput" title="格式化">{ }</button>
                 <button id="copyOutput" title="复制">复制</button>
                 <button id="clearOutput" title="清除">清除</button>
@@ -49,7 +50,7 @@
         <div class="context-menu-item"
             onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">
             下移</div>
-        <div class="context-menu-item" onclick="renameFile()">重命名</div>
+        <div class="context-menu-item" onclick="renameFile()">重���名</div>
         <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
         <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
         <div class="context-menu-item" onclick="moveOutOfFolder()">移出文件夹</div>
@@ -57,7 +58,7 @@
     </div>
     <div id="folderContextMenu" class="context-menu" style="display: none;">
         <div class="context-menu-item"
-            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件
+            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">��建文件
         </div>
         <div class="context-menu-item"
             onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">
@@ -76,7 +77,7 @@
         <div class="context-menu-item delete" onclick="deleteFolder()">删除</div>
     </div>
     <div id="rootContextMenu" class="context-menu" style="display: none;">
-        <div class="context-menu-item" onclick="addFile()">新���文件</div>
+        <div class="context-menu-item" onclick="addFile()">新建文件</div>
         <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
     </div>
 
@@ -93,7 +94,7 @@
                     <div class="package-references" id="packageReferences">
                         <!-- Package references will be listed here -->
                     </div>
-                    <button onclick="addPackageReference()" class="add-package-button">添加包引用</button>
+                    <button onclick="addPackageReference()" class="add-package-button">添��包引用</button>
                 </div>
             </div>
         </div>
@@ -109,6 +110,12 @@
     <script src="csharpLanguageProvider.js"></script>
     <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
     <script src="index.js"></script>
+
+    <div class="minimized-output-button">
+        <button class="icon-button restore-output" title="恢复输出窗口">
+            <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+        </button>
+    </div>
 </body>
 
 </html>

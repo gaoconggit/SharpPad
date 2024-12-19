@@ -327,16 +327,16 @@ a {
     }
 
 #outputPanel.collapsed {
-    height: 32px !important;
+    display: none !important;
 }
 
-    #outputPanel.collapsed ~ #fileList {
-        height: calc(100vh - 32px) !important;
-    }
+#outputPanel.collapsed ~ #fileList {
+    height: 100vh !important;
+}
 
-    #outputPanel.collapsed ~ #container {
-        height: calc(100vh - 32px) !important;
-    }
+#outputPanel.collapsed ~ #container {
+    height: 100vh !important;
+}
 
 #clearOutput {
     background-color: #444;
@@ -489,7 +489,7 @@ a {
     }
 
         .context-menu-item.delete::before {
-            content: "🗑";
+            content: "��";
             position: absolute;
             left: 12px;
             opacity: 0.9;
@@ -1057,7 +1057,7 @@ a {
     display: inline-block;
 }
 
-/* 代码块的光标 */
+/* 代块的光标 */
 .result-streaming > pre:last-child code::after {
     content: "▋";
     margin-left: .25rem;
@@ -1130,4 +1130,43 @@ pre {
 
 #outputPanel.collapsed .output-header {
     padding: 4px 14px;
+}
+
+.minimized-output-button {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: none;
+}
+
+#outputPanel.collapsed ~ .minimized-output-button {
+    display: block;
+}
+
+.minimized-output-button .icon-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.minimized-output-button .icon-button:hover {
+    background: #404040;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.minimized-output-button .icon-button:active {
+    transform: translateY(0);
 }
