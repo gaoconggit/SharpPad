@@ -409,14 +409,15 @@ function streamOutput(message, type = 'info') {
             if (lang && hljs.getLanguage(lang)) {
                 try {
                     const highlighted = hljs.highlight(str, { language: lang }).value;
-                    return `<pre class="hljs"><code>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 } catch (_) {
-                    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 }
             } else {
                 // 如果语言不存在或者无法识别，使用自动检测
-                const highlighted = hljs.highlightAuto(str).value;
-                return `<pre class="hljs"><code>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                const detected = hljs.highlightAuto(str);
+                const lang = detected.language || 'text';
+                return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
             }
         }
     });
@@ -434,20 +435,36 @@ function streamOutput(message, type = 'info') {
     style.textContent = `
         .hljs {
             position: relative;
+            padding-top: 25px;
+        }
+        .lang-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 2px 8px;
+            font-size: 12px;
+            color: #001080;
+            background: #ffffff;
+            border-bottom: 1px solid #d4d4d4;
+            border-right: 1px solid #d4d4d4;
+            border-radius: 0 0 4px 0;
         }
         .copy-button {
             position: absolute;
             top: 5px;
             right: 5px;
             padding: 4px 8px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
+            background: #ffffff;
+            border: 1px solid #d4d4d4;
             border-radius: 3px;
             cursor: pointer;
             opacity: 1;
+            color: #001080;
+            font-family: Consolas, monospace;
         }
         .copy-button:hover {
-            background: #e0e0e0;
+            background: #f0f0f0;
+            border-color: #007acc;
         }
     `;
     document.head.appendChild(style);
