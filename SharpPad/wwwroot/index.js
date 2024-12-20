@@ -128,14 +128,14 @@ class Program
         if (outputPanel.classList.contains('collapsed')) {
             return;
         }
-        
+
         isResizing = true;
         startY = e.clientY;
         startHeight = parseInt(document.defaultView.getComputedStyle(outputPanel).height, 10);
 
         document.documentElement.style.cursor = 'ns-resize';
         e.preventDefault(); // 防止文本选择
-        
+
         // 添加正在调整大小的类
         outputPanel.classList.add('resizing');
     });
@@ -152,34 +152,32 @@ class Program
         rafId = requestAnimationFrame(() => {
             const delta = e.clientY - startY;
             const newHeight = Math.min(Math.max(startHeight - delta, 100), window.innerHeight * 0.8);
-            
+
             // 直接设置样式，避免触发不必要的布局计算
             outputPanel.style.height = `${newHeight}px`;
-            
+
             // 批量更新其他元素的高度
             const fileList = document.getElementById('fileList');
             const container = document.getElementById('container');
-            
+
             const remainingHeight = `calc(100vh - ${newHeight}px)`;
             fileList.style.height = remainingHeight;
             container.style.height = remainingHeight;
 
             // 只在真正需要时更新编辑器布局
-            if (window.x_editor) {
-                window.x_editor.layout();
-            }
+            layoutEditor();
         });
     });
 
     document.addEventListener('mouseup', function () {
         if (!isResizing) return;
-        
+
         isResizing = false;
         document.documentElement.style.cursor = '';
-        
+
         // 移除正在调整大小的类
         outputPanel.classList.remove('resizing');
-        
+
         // 取消任何待处理的动画帧
         if (rafId) {
             cancelAnimationFrame(rafId);
@@ -230,17 +228,17 @@ class Program
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
-        
+
         // 获取当前输出面板的高度
         const currentHeight = parseInt(window.getComputedStyle(outputPanel).height);
         const isCollapsing = !outputPanel.classList.contains('collapsed');
-        
+
         outputPanel.classList.toggle('collapsed');
         toggleButton.classList.toggle('collapsed');
-        
+
         // Force a reflow to ensure the transition works
         void outputPanel.offsetWidth;
-        
+
         // 根据输出面板的状态调整高度
         if (isCollapsing) {
             // 收起时设置为全屏高度
@@ -252,11 +250,9 @@ class Program
             container.style.height = 'calc(100vh - 200px)';
             outputPanel.style.height = '200px';
         }
-        
+
         // 更新编辑器布局
-        if (window.x_editor) {
-            window.x_editor.layout();
-        }
+        layoutEditor();
     });
 
     // 添加恢复输出窗口的功能
@@ -265,23 +261,21 @@ class Program
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
-        
+
         // 移除收起状态
         outputPanel.classList.remove('collapsed');
         toggleButton.classList.remove('collapsed');
-        
+
         // Force a reflow to ensure the transition works
         void outputPanel.offsetWidth;
-        
+
         // 恢复到默认高度 200px
         fileList.style.height = 'calc(100vh - 200px)';
         container.style.height = 'calc(100vh - 200px)';
         outputPanel.style.height = '200px';
-        
+
         // 更新编辑器布局
-        if (window.x_editor) {
-            window.x_editor.layout();
-        }
+        layoutEditor();
     }
 
     // 添加恢复按钮的点击事件监听器
@@ -382,9 +376,7 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             fullscreenButton.innerHTML = '⛶';
             fullscreenButton.title = '全屏';
         }
-        setTimeout(function () {
-            editor.layout();
-        }, 100);
+        layoutEditor();
     });
 
     document.addEventListener('keydown', (e) => {
@@ -394,7 +386,7 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             editorContainer.classList.remove('fullscreen-editor');
             fullscreenButton.innerHTML = '⛶';
             fullscreenButton.title = '全屏';
-            editor.layout();
+            layoutEditor();
         }
     });
 }
@@ -499,7 +491,7 @@ function streamOutput(message, type = 'info') {
 function copyCode(button) {
     const codeBlock = button.previousElementSibling;
     const code = codeBlock.textContent;
-    
+
     navigator.clipboard.writeText(code).then(() => {
         const originalText = button.textContent;
         button.textContent = '已复制!';
@@ -1276,9 +1268,7 @@ function initializeFileListResize() {
             fileList.style.width = `${width}px`;
             container.style.marginLeft = `${width}px`;
             container.style.width = `calc(100% - ${width}px)`;
-            if (window.x_editor) {
-                window.x_editor.layout();
-            }
+            layoutEditor();
         }
     });
 
@@ -2230,25 +2220,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
-        
+
         // 移除收起状态
         outputPanel.classList.remove('collapsed');
         toggleButton.classList.remove('collapsed');
-        
+
         // Force a reflow to ensure the transition works
         void outputPanel.offsetWidth;
-        
+
         // 恢复到默认高度 200px
         fileList.style.height = 'calc(100vh - 200px)';
         container.style.height = 'calc(100vh - 200px)';
         outputPanel.style.height = '200px';
-        
+
         // 更新编辑器布局
-        if (window.x_editor) {
-            window.x_editor.layout();
-        }
+        layoutEditor();
     });
 });
+
+function layoutEditor() {
+    if (window.x_editor) {
+        setTimeout(() => {
+            window.x_editor.layout();
+        }, 200);
+    }
+}
+
 
 
 
