@@ -981,7 +981,7 @@ function renameFile() {
 
     if (!fileId) return;
 
-    // 获取当���文件列表
+    // 获取当前文件列表
     const filesData = localStorage.getItem('controllerFiles');
     const files = filesData ? JSON.parse(filesData) : [];
 
@@ -1212,7 +1212,7 @@ function deleteFolder() {
     function findAndDeleteFolder(items) {
         for (let i = 0; i < items.length; i++) {
             if (items[i].id === folderId) {
-                if (!confirm(`确定要删除文件夹 "${items[i].name}" 及��中的所有文件？`)) return;
+                if (!confirm(`确定要删除文件夹 "${items[i].name}" 及其中的所有文件？`)) return;
 
                 // 递归删除文件夹中的所有文件内容
                 function deleteFilesRecursively(folder) {
@@ -1803,7 +1803,7 @@ async function addPackageReference() {
     // 更新文件的 nugetConfig
     file.nugetConfig.packages.push({ id: name, version: version });
 
-    // 从 localStorage 获取最��的文件列表
+    // 从 localStorage 获取最新的文件列表
     const files = GetCurrentFiles();
 
     // 递归更新文件列表中的文件
@@ -2057,7 +2057,7 @@ function exportFolder() {
 
                 getFilesContent(item, folderData.files);
 
-                // 创建并下载 JSON ���件
+                // 创建并下载 JSON 文件
                 const jsonContent = JSON.stringify(folderData, null, 2);
                 const blob = new Blob([jsonContent], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);

@@ -50,7 +50,7 @@
         <div class="context-menu-item"
             onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">
             下移</div>
-        <div class="context-menu-item" onclick="renameFile()">重���名</div>
+        <div class="context-menu-item" onclick="renameFile()">重命名</div>
         <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
         <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
         <div class="context-menu-item" onclick="moveOutOfFolder()">移出文件夹</div>
@@ -58,7 +58,7 @@
     </div>
     <div id="folderContextMenu" class="context-menu" style="display: none;">
         <div class="context-menu-item"
-            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">��建文件
+            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件
         </div>
         <div class="context-menu-item"
             onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">
@@ -94,7 +94,7 @@
                     <div class="package-references" id="packageReferences">
                         <!-- Package references will be listed here -->
                     </div>
-                    <button onclick="addPackageReference()" class="add-package-button">添��包引用</button>
+                    <button onclick="addPackageReference()" class="add-package-button">添加包引用</button>
                 </div>
             </div>
         </div>
