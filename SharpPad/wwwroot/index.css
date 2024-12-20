@@ -21,9 +21,9 @@ body {
     top: 0;
     height: calc(100vh - 200px);
     z-index: 100;
-    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-right: 1px solid #3c3c3c;
-    will-change: height;
+    will-change: width, height;
 }
 
     #fileList:hover {
@@ -41,8 +41,8 @@ body {
     top: 0;
     height: calc(100vh - 200px);
     right: 0;
-    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: height;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, margin-left, height;
 }
 
 .button-container {
@@ -581,12 +581,13 @@ a {
 .file-list-resize-handle {
     position: absolute;
     top: 0;
-    right: 0;
+    right: -2px;
     width: 4px;
     height: 100%;
     cursor: ew-resize;
     background-color: transparent;
     transition: background-color 0.2s;
+    z-index: 1001;
 }
 
     .file-list-resize-handle:hover,
@@ -601,7 +602,8 @@ a {
     top: 0;
     height: calc(100vh - 200px);
     right: 0;
-    transition: width 0.1s, margin-left 0.1s;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, margin-left, height;
 }
 
 #fullscreenButton {
@@ -1170,3 +1172,32 @@ pre {
     .minimized-output-button .icon-button:active {
         transform: translateY(0);
     }
+
+/* 调整大小时禁用过渡效果 */
+#fileList.resizing,
+#fileList.resizing ~ #container {
+    transition: none !important;
+}
+
+/* 调整大小手柄的样式优化 */
+.file-list-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 4px;
+    height: 100%;
+    cursor: ew-resize;
+    background-color: transparent;
+    transition: background-color 0.2s;
+    z-index: 1001;
+}
+
+.file-list-resize-handle:hover,
+.file-list-resize-handle.resizing {
+    background-color: #2979ff;
+}
+
+/* 调整时的边框高亮 */
+#fileList.resizing {
+    border-right: 1px solid #2979ff;
+}
