@@ -489,8 +489,19 @@ function streamOutput(message, type = 'info') {
 }
 
 function copyCode(button) {
+    // 获取代码块内容
     const codeBlock = button.previousElementSibling;
-    const code = codeBlock.textContent;
+    
+    // 创建临时元素来获取纯文本
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = codeBlock.innerHTML;
+    // 移除语言标签和复制按钮
+    const langLabel = tempDiv.querySelector('.lang-label');
+    if (langLabel) langLabel.remove();
+    const copyBtn = tempDiv.querySelector('.copy-button'); 
+    if (copyBtn) copyBtn.remove();
+    // 获取处理后的纯代码文本
+    const code = tempDiv.textContent.trim();
 
     navigator.clipboard.writeText(code).then(() => {
         const originalText = button.textContent;
