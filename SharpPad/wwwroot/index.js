@@ -1443,7 +1443,7 @@ class Program
     loadFileList();
     restoreExpandedFolders(expandedFolders);
 
-    // ���中新建的文件
+    // 中新建的文件
     setTimeout(() => {
         const newFileElement = document.querySelector(`[data-file-id="${newFile.id}"]`);
         if (newFileElement) {
@@ -2198,44 +2198,6 @@ function moveOutOfFolder() {
     }
 }
 
-// 将恢复按钮的事件监听器移到外部
-document.addEventListener('DOMContentLoaded', () => {
-    initializeChatPanel();
-    initializeModels();
-
-    // Close dialog when clicking outside
-    document.getElementById('nugetConfigDialog')?.addEventListener('click', (e) => {
-        if (e.target === document.getElementById('nugetConfigDialog')) {
-            closeNuGetConfigDialog();
-        }
-    });
-
-    // 添加恢复按钮的点击事件监听器
-    document.querySelector('.restore-output')?.addEventListener('click', () => {
-        const outputPanel = document.getElementById('outputPanel');
-        const toggleButton = document.getElementById('toggleOutput');
-        const fileList = document.getElementById('fileList');
-        const container = document.getElementById('container');
-        const chatPanel = document.getElementById('chatPanel'); // 添加这行
-
-        // 移除收起状态
-        outputPanel.classList.remove('collapsed');
-        toggleButton.classList.remove('collapsed');
-
-        // Force a reflow to ensure the transition works
-        void outputPanel.offsetWidth;
-
-        // 恢复到默认高度 200px
-        fileList.style.height = 'calc(100vh - 200px)';
-        container.style.height = 'calc(100vh - 200px)';
-        chatPanel.style.height = 'calc(100vh - 200px)'; // 添加这行
-        outputPanel.style.height = '200px';
-
-        // 更新编辑器布局
-        layoutEditor();
-    });
-});
-
 function layoutEditor() {
     if (window.x_editor) {
         setTimeout(() => {
@@ -2244,17 +2206,19 @@ function layoutEditor() {
     }
 }
 
+// 模型设置相关
+let modelSettingsBtn, modelSettingsModal, addModelModal, addModelBtn, modelSelect;
+
 // 聊天窗口相关
 const chatPanel = document.getElementById('chatPanel');
 const toggleChat = document.getElementById('toggleChat');
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
-const sendMessage = document.getElementById('sendMessage');
 const clearChat = document.getElementById('clearChat');
 const minimizedChatButton = document.querySelector('.minimized-chat-button');
 
 // 初始化聊天窗口
-function initializeChatPanel() {
+async function initializeChatPanel() {
     const chatPanel = document.getElementById('chatPanel');
     const container = document.getElementById('container');
     let isResizing = false;
@@ -2333,15 +2297,13 @@ function initializeChatPanel() {
     });
 
     // 发送消息
-    const sendMessage = document.getElementById('sendMessage');
     const chatInput = document.getElementById('chatInput');
     const chatMessages = document.getElementById('chatMessages');
 
-    sendMessage.addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', (e) => {
+    chatInput.addEventListener('keypress', async (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendChatMessage();
+            await sendChatMessage();
         }
     });
 
@@ -2349,6 +2311,17 @@ function initializeChatPanel() {
     const clearChat = document.getElementById('clearChat');
     clearChat.addEventListener('click', () => {
         chatMessages.innerHTML = '';
+    });
+
+    //初始化模型选择下拉框,从localStorage中获取模型配置
+    const modelConfigs = JSON.parse(localStorage.getItem('modelConfigs') || '[]');
+    const modelSelect = document.getElementById('modelSelect');
+    modelSelect.innerHTML = '';
+    modelConfigs.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        modelSelect.appendChild(option);
     });
 }
 
@@ -2361,11 +2334,97 @@ async function sendChatMessage() {
     addMessageToChat('user', message);
     chatInput.value = '';
 
-    // 这里添加与 AI 服务器通信的代码
     try {
-        // 模拟 AI 响应
-        const response = await simulateAIResponse(message);
-        addMessageToChat('assistant', response);
+        // 创建一个新的消息div用于流式输出
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message assistant-message';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'result-streaming';
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        const { reader } = await simulateAIResponse(message);
+        let result = "";
+
+        // 配置 markdown-it
+        const md = markdownit({
+            highlight: function (str, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = hljs.highlight(str, { language: lang }).value;
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code></pre>`;
+                    } catch (_) {
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    }
+                } else {
+                    const detected = hljs.highlightAuto(str);
+                    const lang = detected.language || 'text';
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                }
+            }
+        });
+
+        // 添加延时函数
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        let lastRenderTime = Date.now();
+        const MIN_RENDER_INTERVAL = 1; // 最小渲染间隔（毫秒）
+        let buffer = ''; // 用于存储未完成的数据
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+                contentDiv.classList.remove('result-streaming');
+                break;
+            }
+
+            // 将 Uint8Array 转换为字符串
+            const text = new TextDecoder("utf-8").decode(value);
+            buffer += text;
+
+            // 尝试按行处理数据
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, newlineIndex);
+                buffer = buffer.slice(newlineIndex + 1);
+
+                if (!line.trim() || !line.startsWith('data: ')) continue;
+                if (line === 'data: [DONE]') {
+                    contentDiv.classList.remove('result-streaming');
+                    return;
+                }
+
+                try {
+                    const data = JSON.parse(line.substring(6));
+                    if (data.choices && data.choices[0]) {
+                        const delta = data.choices[0].delta;
+                        if (delta && delta.content) {
+                            result += delta.content;
+
+                            // 检查是否需要延时
+                            const now = Date.now();
+                            const timeSinceLastRender = now - lastRenderTime;
+                            if (timeSinceLastRender < MIN_RENDER_INTERVAL) {
+                                await delay(MIN_RENDER_INTERVAL - timeSinceLastRender);
+                            }
+
+                            // 使用配置的markdown-it渲染
+                            contentDiv.innerHTML = md.render(result);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            lastRenderTime = Date.now();
+                        }
+                    } else if (data.error) {
+                        contentDiv.innerHTML = `<span class="error">${data.error.message || '发生错误'}</span>`;
+                        contentDiv.classList.remove('result-streaming');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Error parsing SSE message:', err, line);
+                    continue;
+                }
+            }
+        }
+      
     } catch (error) {
         addMessageToChat('assistant', '抱歉，发生了错误，请稍后重试。');
     }
@@ -2375,16 +2434,78 @@ async function sendChatMessage() {
 function addMessageToChat(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${role}-message`;
-    messageDiv.textContent = content;
+    // 如果是用户消息，直接显示文本，如果是助手消息，使用配置的markdown-it解析
+    if (role === 'user') {
+        messageDiv.textContent = content;
+    } else {
+        const md = markdownit({
+            highlight: function (str, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = hljs.highlight(str, { language: lang }).value;
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    } catch (_) {
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    }
+                } else {
+                    const detected = hljs.highlightAuto(str);
+                    const lang = detected.language || 'text';
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                }
+            }
+        });
+        messageDiv.innerHTML = md.render(content);
+    }
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 模拟 AI 响应（实际项目中替换为真实的 API 调用）
+// AI响应（使用流式响应）
 async function simulateAIResponse(message) {
-    // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return `这是对 "${message}" 的模拟回复。在实际项目中，这里应该调用真实的 AI API。`;
+    const modelSelect = document.getElementById('modelSelect');
+    const selectedModel = modelSelect.value;
+
+    const modelConfigs = JSON.parse(localStorage.getItem('chatModels') || '[]');
+    const modelConfig = modelConfigs.find(m => m.id === selectedModel);
+
+    if (!modelConfig) {
+        return new Response(JSON.stringify({
+            type: 'error',
+            content: '请先配置模型'
+        }));
+    }
+
+    try {
+        const response = await fetch(modelConfig.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${modelConfig.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: modelConfig.id,
+                messages: [{
+                    role: 'user',
+                    content: message
+                }],
+                stream: true
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return {
+            reader: response.body.getReader()
+        };
+    } catch (error) {
+        console.error('调用AI API失败:', error);
+        return new Response(JSON.stringify({
+            type: 'error',
+            content: '抱歉，调用AI服务失败，请检查网络连接或API配置。'
+        }));
+    }
 }
 
 // 在窗口大小改变时调整布局
@@ -2464,24 +2585,11 @@ function initializeOutputPanel() {
     });
 }
 
-// 模型设置相关
-let modelSettingsBtn, modelSettingsModal, addModelModal, addModelBtn, modelSelect;
+
 
 // 初始化模型列表
 function initializeModels() {
     const defaultModels = [
-        {
-            name: 'GPT-3.5',
-            id: 'gpt-3.5-turbo',
-            endpoint: 'https://api.openai.com/v1/chat/completions',
-            apiKey: ''
-        },
-        {
-            name: 'GPT-4',
-            id: 'gpt-4',
-            endpoint: 'https://api.openai.com/v1/chat/completions',
-            apiKey: ''
-        }
     ];
 
     const savedModels = localStorage.getItem('chatModels');
@@ -2601,7 +2709,7 @@ function deleteModel(modelId, showConfirm = true) {
 }
 
 // 在页面加载完成后初始化事件监听和模型
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     modelSettingsBtn = document.getElementById('modelSettingsBtn');
     modelSettingsModal = document.getElementById('modelSettingsModal');
     addModelModal = document.getElementById('addModelModal');
@@ -2626,6 +2734,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === addModelModal) {
             closeAddModel();
         }
+    });
+
+    await initializeChatPanel();
+    initializeModels();
+
+    // Close dialog when clicking outside
+    document.getElementById('nugetConfigDialog')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('nugetConfigDialog')) {
+            closeNuGetConfigDialog();
+        }
+    });
+
+    // 添加恢复按钮的点击事件监听器
+    document.querySelector('.restore-output')?.addEventListener('click', () => {
+        const outputPanel = document.getElementById('outputPanel');
+        const toggleButton = document.getElementById('toggleOutput');
+        const fileList = document.getElementById('fileList');
+        const container = document.getElementById('container');
+        const chatPanel = document.getElementById('chatPanel'); // 添加这行
+
+        // 移除收起状态
+        outputPanel.classList.remove('collapsed');
+        toggleButton.classList.remove('collapsed');
+
+        // Force a reflow to ensure the transition works
+        void outputPanel.offsetWidth;
+
+        // 恢复到默认高度 200px
+        fileList.style.height = 'calc(100vh - 200px)';
+        container.style.height = 'calc(100vh - 200px)';
+        chatPanel.style.height = 'calc(100vh - 200px)'; // 添加这行
+        outputPanel.style.height = '200px';
+
+        // 更新编辑器布局
+        layoutEditor();
     });
 });
 

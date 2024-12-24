@@ -8,7 +8,7 @@
     <title>Sharp Pad</title>
     <script src="axios.min.js"></script>
     <link rel="stylesheet" href="index.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="all.min.css">
 </head>
 
 <body onload="loadFileList()">
@@ -52,8 +52,6 @@
             </div>
             <div class="chat-toolbar">
                 <select id="modelSelect">
-                    <option value="gpt-3.5-turbo">GPT-3.5</option>
-                    <option value="gpt-4">GPT-4</option>
                 </select>
                 <button id="modelSettingsBtn" title="模型设置">⚙️</button>
                 <button id="clearChat" title="清除">清除</button>
@@ -127,16 +125,7 @@
         </div>
     </div>
 
-    <!-- 引入 markdown-it -->
-    <script src="./markdown/markdown-it.min.js"></script>
-    <!-- 引入 highlight.js 的 CSS 样式 -->
-    <link rel="stylesheet" href="./markdown/default.min.css">
-    <!-- 引入 highlight.js 的 JavaScript -->
-    <script src="./markdown/highlight.min.js"></script>
 
-    <script src="csharpLanguageProvider.js"></script>
-    <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
-    <script src="index.js"></script>
 
     <div class="minimized-output-button">
         <button class="icon-button restore-output" title="恢复输出窗口">
@@ -198,6 +187,16 @@
             </div>
         </div>
     </div>
-</body>
 
+    <!-- 引入 markdown-it -->
+    <script src="./markdown/markdown-it.min.js"></script>
+    <!-- 引入 highlight.js 的 CSS 样式 -->
+    <link rel="stylesheet" href="./markdown/default.min.css">
+    <!-- 引入 highlight.js 的 JavaScript -->
+    <script src="./markdown/highlight.min.js"></script>
+
+    <script src="csharpLanguageProvider.js"></script>
+    <script src="node_modules/monaco-editor/min/vs/loader.js"></script>
+    <script src="index.js"></script>
+</body>
 </html>
