@@ -78,7 +78,7 @@
         <div class="context-menu-item" onclick="renameFile()">重命名</div>
         <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
         <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
-        <div class="context-menu-item" onclick="moveOutOfFolder()">移出文件夹</div>
+        <div class="context-menu-item" onclick="moveOutOfFolder()">���出文件夹</div>
         <div class="context-menu-item delete" onclick="deleteFile()">删除</div>
     </div>
     <div id="folderContextMenu" class="context-menu" style="display: none;">
@@ -158,31 +158,65 @@
     <div id="addModelModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>添加模型</h2>
+                <h2>添加新模型</h2>
                 <button class="close-button" onclick="closeAddModel()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="modelName">显示名称</label>
-                    <input type="text" id="modelName" placeholder="例如: GPT-4">
+                    <label for="addModelName">显示名称</label>
+                    <input type="text" id="addModelName" placeholder="例如: GPT-4">
                 </div>
                 <div class="form-group">
-                    <label for="modelId">模型ID</label>
-                    <input type="text" id="modelId" placeholder="例如: gpt-4">
+                    <label for="addModelId">模型ID</label>
+                    <input type="text" id="addModelId" placeholder="例如: gpt-4">
                 </div>
                 <div class="form-group">
-                    <label for="modelEndpoint">Endpoint</label>
-                    <input type="text" id="modelEndpoint" placeholder="API endpoint地址">
+                    <label for="addModelEndpoint">Endpoint</label>
+                    <input type="text" id="addModelEndpoint" placeholder="API endpoint地址">
                 </div>
                 <div class="form-group">
-                    <label for="apiKey">API Key</label>
+                    <label for="addApiKey">API Key</label>
                     <div class="api-key-input">
-                        <input type="password" id="apiKey" placeholder="输入API Key">
+                        <input type="password" id="addApiKey" placeholder="输入API Key">
                         <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
                     </div>
                 </div>
                 <div class="form-actions">
                     <button onclick="saveNewModel()" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模型对话框 -->
+    <div id="editModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑模型</h2>
+                <button class="close-button" onclick="closeEditModel()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="editModelName">显示名称</label>
+                    <input type="text" id="editModelName" placeholder="例如: GPT-4">
+                </div>
+                <div class="form-group">
+                    <label for="editModelId">模型ID</label>
+                    <input type="text" id="editModelId" placeholder="例如: gpt-4" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editModelEndpoint">Endpoint</label>
+                    <input type="text" id="editModelEndpoint" placeholder="API endpoint地址">
+                </div>
+                <div class="form-group">
+                    <label for="editApiKey">API Key</label>
+                    <div class="api-key-input">
+                        <input type="password" id="editApiKey" placeholder="输入API Key">
+                        <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveEditModel()" class="save-button">保存</button>
                 </div>
             </div>
         </div>

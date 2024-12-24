@@ -2616,7 +2616,7 @@ function updateModelSelect() {
     });
 }
 
-// 更新模型设置列表
+// 更新模���设置列表
 function updateModelList() {
     const modelList = document.getElementById('modelList');
     const models = JSON.parse(localStorage.getItem('chatModels'));
@@ -2647,26 +2647,33 @@ function closeModelSettings() {
 
 // 关闭添加模型对话框
 function closeAddModel() {
-    addModelModal.style.display = 'none';
-    document.getElementById('modelName').value = '';
-    document.getElementById('modelId').value = '';
-    document.getElementById('modelEndpoint').value = '';
-    document.getElementById('apiKey').value = '';
+    document.getElementById('addModelModal').style.display = 'none';
+    document.getElementById('addModelName').value = '';
+    document.getElementById('addModelId').value = '';
+    document.getElementById('addModelEndpoint').value = '';
+    document.getElementById('addApiKey').value = '';
 }
 
 // 保存新模型
 function saveNewModel() {
-    const name = document.getElementById('modelName').value.trim();
-    const id = document.getElementById('modelId').value.trim();
-    const endpoint = document.getElementById('modelEndpoint').value.trim();
-    const apiKey = document.getElementById('apiKey').value.trim();
+    const name = document.getElementById('addModelName').value.trim();
+    const id = document.getElementById('addModelId').value.trim();
+    const endpoint = document.getElementById('addModelEndpoint').value.trim();
+    const apiKey = document.getElementById('addApiKey').value.trim();
 
     if (!name || !id || !endpoint) {
         alert('请填写所有必填字段');
         return;
     }
 
-    const models = JSON.parse(localStorage.getItem('chatModels'));
+    const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
+    
+    // 检查是否已存在相同ID的模型
+    if (models.some(m => m.id === id)) {
+        alert('已存在相同ID的模型');
+        return;
+    }
+    
     models.push({ name, id, endpoint, apiKey });
     localStorage.setItem('chatModels', JSON.stringify(models));
 
@@ -2681,17 +2688,48 @@ function editModel(modelId) {
     const model = models.find(m => m.id === modelId);
 
     if (model) {
-        document.getElementById('modelName').value = model.name;
-        document.getElementById('modelId').value = model.id;
-        document.getElementById('modelEndpoint').value = model.endpoint;
-        document.getElementById('apiKey').value = model.apiKey || '';
+        document.getElementById('editModelName').value = model.name;
+        document.getElementById('editModelId').value = model.id;
+        document.getElementById('editModelEndpoint').value = model.endpoint;
+        document.getElementById('editApiKey').value = model.apiKey || '';
 
-        // 删除旧模型
-        deleteModel(modelId, false);
-
-        // 打开添加模型对话框
-        addModelModal.style.display = 'block';
+        // 打开编辑模型对话框
+        document.getElementById('editModelModal').style.display = 'block';
     }
+}
+
+// 保存编辑的模型
+function saveEditModel() {
+    const name = document.getElementById('editModelName').value.trim();
+    const id = document.getElementById('editModelId').value.trim();
+    const endpoint = document.getElementById('editModelEndpoint').value.trim();
+    const apiKey = document.getElementById('editApiKey').value.trim();
+
+    if (!name || !id || !endpoint) {
+        alert('请填写所有必填字段');
+        return;
+    }
+
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+    const index = models.findIndex(m => m.id === id);
+    
+    if (index !== -1) {
+        models[index] = { name, id, endpoint, apiKey };
+        localStorage.setItem('chatModels', JSON.stringify(models));
+        
+        updateModelList();
+        updateModelSelect();
+        closeEditModel();
+    }
+}
+
+// 关闭编辑模型对话框
+function closeEditModel() {
+    document.getElementById('editModelModal').style.display = 'none';
+    document.getElementById('editModelName').value = '';
+    document.getElementById('editModelId').value = '';
+    document.getElementById('editModelEndpoint').value = '';
+    document.getElementById('editApiKey').value = '';
 }
 
 // 删除模型
@@ -2713,6 +2751,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     modelSettingsBtn = document.getElementById('modelSettingsBtn');
     modelSettingsModal = document.getElementById('modelSettingsModal');
     addModelModal = document.getElementById('addModelModal');
+    editModelModal = document.getElementById('editModelModal');
     addModelBtn = document.getElementById('addModelBtn');
     modelSelect = document.getElementById('modelSelect');
 
@@ -2733,6 +2772,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (e.target === addModelModal) {
             closeAddModel();
+        }
+        if (e.target === editModelModal) {
+            closeEditModel();
         }
     });
 
