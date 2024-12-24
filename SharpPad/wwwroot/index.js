@@ -143,28 +143,26 @@ class Program
     document.addEventListener('mousemove', function (e) {
         if (!isResizing) return;
 
-        // 如果存在上一帧的动画，取消它
         if (rafId) {
             cancelAnimationFrame(rafId);
         }
 
-        // 使用 requestAnimationFrame 来优化性能
         rafId = requestAnimationFrame(() => {
             const delta = e.clientY - startY;
             const newHeight = Math.min(Math.max(startHeight - delta, 100), window.innerHeight * 0.8);
 
-            // 直接设置样式，避免触发不必要的布局计算
             outputPanel.style.height = `${newHeight}px`;
 
             // 批量更新其他元素的高度
             const fileList = document.getElementById('fileList');
             const container = document.getElementById('container');
+            const chatPanel = document.getElementById('chatPanel'); // 添加这行
 
             const remainingHeight = `calc(100vh - ${newHeight}px)`;
             fileList.style.height = remainingHeight;
             container.style.height = remainingHeight;
+            chatPanel.style.height = remainingHeight; // 添加这行
 
-            // 只在真正需要时更新编辑器布局
             layoutEditor();
         });
     });
@@ -228,30 +226,25 @@ class Program
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
+        const chatPanel = document.getElementById('chatPanel'); // 添加这行
 
-        // 获取当前输出面板的高度
-        const currentHeight = parseInt(window.getComputedStyle(outputPanel).height);
         const isCollapsing = !outputPanel.classList.contains('collapsed');
-
         outputPanel.classList.toggle('collapsed');
         toggleButton.classList.toggle('collapsed');
 
-        // Force a reflow to ensure the transition works
         void outputPanel.offsetWidth;
 
-        // 根据输出面板的状态调整高度
         if (isCollapsing) {
-            // 收起时设置为全屏高度
             fileList.style.height = '100vh';
             container.style.height = '100vh';
+            chatPanel.style.height = '100vh'; // 添加这行
         } else {
-            // 展开时恢复到默认高度 200px
             fileList.style.height = 'calc(100vh - 200px)';
             container.style.height = 'calc(100vh - 200px)';
+            chatPanel.style.height = 'calc(100vh - 200px)'; // 添加这行
             outputPanel.style.height = '200px';
         }
 
-        // 更新编辑器布局
         layoutEditor();
     });
 
@@ -261,20 +254,18 @@ class Program
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
+        const chatPanel = document.getElementById('chatPanel'); // 添加这行
 
-        // 移除收起状态
         outputPanel.classList.remove('collapsed');
         toggleButton.classList.remove('collapsed');
 
-        // Force a reflow to ensure the transition works
         void outputPanel.offsetWidth;
 
-        // 恢复到默认高度 200px
         fileList.style.height = 'calc(100vh - 200px)';
         container.style.height = 'calc(100vh - 200px)';
+        chatPanel.style.height = 'calc(100vh - 200px)'; // 添加这行
         outputPanel.style.height = '200px';
 
-        // 更新编辑器布局
         layoutEditor();
     }
 
@@ -285,75 +276,67 @@ class Program
 function fullScreen(editor) {
     const style = document.createElement('style');
     style.textContent = `
-.fullscreen-editor {
-position: fixed !important;
-top: 0 !important;
-left: 0 !important;
-width: 100vw !important;
-height: 100vh !important;
-z-index: 9999 !important;
-padding: 0 !important;
-margin: 0 !important;
-}
+        .fullscreen-editor {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
 
-.fullscreen-editor #container {
-position: fixed !important;
-top: 0 !important;
-left: 0 !important;
-width: 100vw !important;
-height: 100vh !important;
-margin: 0 !important;
-padding: 0 !important;
-z-index: 9999 !important;
-transform: none !important;
-}
+        .fullscreen-editor #container {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            z-index: 9999 !important;
+            transform: none !important;
+        }
 
-.fullscreen-editor .monaco-editor {
-width: 100% !important;
-height: 100% !important;
-margin: 0 !important;
-padding: 0 !important;
-}
+        .fullscreen-editor .monaco-editor {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
-.fullscreen-editor .monaco-editor .overflow-guard {
-width: 100% !important;
-height: 100% !important;
-}
+        .fullscreen-editor .monaco-editor .overflow-guard {
+            width: 100% !important;
+            height: 100% !important;
+        }
 
-.fullscreen-button {
-position: fixed;
-top: 12px;
-right: 15px;
-z-index: 10000;
-width: 36px;
-height: 36px;
-padding: 0;
-border: none;
-border-radius: 4px;
-background-color: #333;
-color: #fff;
-font-size: 20px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-opacity: 0.6;
-transition: all 0.2s ease;
-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
+        .fullscreen-button {
+            position: absolute !important;
+            top: 10px !important;
+            right: 10px !important;
+            z-index: 10000;
+            width: 32px !important;
+            height: 32px !important;
+            padding: 0 !important;
+            border: none !important;
+            border-radius: 4px !important;
+            background-color: #2d2d2d !important;
+            color: #fff !important;
+            font-size: 18px !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            opacity: 0.7 !important;
+            transition: all 0.2s ease !important;
+        }
 
-.fullscreen-button:hover {
-opacity: 1;
-background-color: #444;
-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-transform: translateY(-1px);
-}
-
-.fullscreen-button:active {
-transform: translateY(1px);
-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-`;
+        .fullscreen-button:hover {
+            opacity: 1 !important;
+            background-color: #404040 !important;
+        }
+    `;
     document.head.appendChild(style);
 
     const fullscreenButton = document.createElement('button');
@@ -361,7 +344,9 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     fullscreenButton.innerHTML = '⛶';
     fullscreenButton.title = '全屏';
 
-    document.body.appendChild(fullscreenButton);
+    // 将全屏按钮添加到编辑器容器中
+    const container = editor.getDomNode().parentElement;
+    container.appendChild(fullscreenButton);
 
     let isFullscreen = false;
     fullscreenButton.addEventListener('click', () => {
@@ -491,14 +476,14 @@ function streamOutput(message, type = 'info') {
 function copyCode(button) {
     // 获取代码块内容
     const codeBlock = button.previousElementSibling;
-    
+
     // 创建临时元素来获取纯文本
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = codeBlock.innerHTML;
     // 移除语言标签和复制按钮
     const langLabel = tempDiv.querySelector('.lang-label');
     if (langLabel) langLabel.remove();
-    const copyBtn = tempDiv.querySelector('.copy-button'); 
+    const copyBtn = tempDiv.querySelector('.copy-button');
     if (copyBtn) copyBtn.remove();
     // 获取处理后的纯代码文本
     const code = tempDiv.textContent.trim();
@@ -904,7 +889,7 @@ window.addEventListener('keydown', (e) => {
 
 function formatJSON(text) {
     try {
-        // 尝试解析文本为 JSON
+        // 尝试解析文��为 JSON
         let jsonStart = text.indexOf('{');
         let jsonEnd = text.lastIndexOf('}');
         if (jsonStart === -1 || jsonEnd === -1) {
@@ -965,7 +950,7 @@ class Program
     // 刷新文件列表
     loadFileList();
 
-    // 选中并加载新文件
+    // 选中并加载新��件
     x_editor.setValue(newFile.content);
     document.querySelector(`[data-file-id="${newFile.id}"]`)?.classList.add('selected');
 }
@@ -1458,7 +1443,7 @@ class Program
     loadFileList();
     restoreExpandedFolders(expandedFolders);
 
-    // 选中新建的文件
+    // ���中新建的文件
     setTimeout(() => {
         const newFileElement = document.querySelector(`[data-file-id="${newFile.id}"]`);
         if (newFileElement) {
@@ -1675,16 +1660,6 @@ function removePackageReference(packageId) {
         showNotification(`移除包引用 ${packageId} 失败: ${error.message}`, 'error');
     }
 }
-
-// Initialize NuGet dialog event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Close dialog when clicking outside
-    document.getElementById('nugetConfigDialog')?.addEventListener('click', (e) => {
-        if (e.target === document.getElementById('nugetConfigDialog')) {
-            closeNuGetConfigDialog();
-        }
-    });
-});
 
 // Add this function to handle adding new packages
 async function addPackageReference() {
@@ -2225,12 +2200,23 @@ function moveOutOfFolder() {
 
 // 将恢复按钮的事件监听器移到外部
 document.addEventListener('DOMContentLoaded', () => {
+    initializeChatPanel();
+    initializeModels();
+
+    // Close dialog when clicking outside
+    document.getElementById('nugetConfigDialog')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('nugetConfigDialog')) {
+            closeNuGetConfigDialog();
+        }
+    });
+
     // 添加恢复按钮的点击事件监听器
     document.querySelector('.restore-output')?.addEventListener('click', () => {
         const outputPanel = document.getElementById('outputPanel');
         const toggleButton = document.getElementById('toggleOutput');
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
+        const chatPanel = document.getElementById('chatPanel'); // 添加这行
 
         // 移除收起状态
         outputPanel.classList.remove('collapsed');
@@ -2242,6 +2228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 恢复到默认高度 200px
         fileList.style.height = 'calc(100vh - 200px)';
         container.style.height = 'calc(100vh - 200px)';
+        chatPanel.style.height = 'calc(100vh - 200px)'; // 添加这行
         outputPanel.style.height = '200px';
 
         // 更新编辑器布局
@@ -2254,6 +2241,403 @@ function layoutEditor() {
         setTimeout(() => {
             window.x_editor.layout();
         }, 200);
+    }
+}
+
+// 聊天窗口相关
+const chatPanel = document.getElementById('chatPanel');
+const toggleChat = document.getElementById('toggleChat');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendMessage = document.getElementById('sendMessage');
+const clearChat = document.getElementById('clearChat');
+const minimizedChatButton = document.querySelector('.minimized-chat-button');
+
+// 初始化聊天窗口
+function initializeChatPanel() {
+    const chatPanel = document.getElementById('chatPanel');
+    const container = document.getElementById('container');
+    let isResizing = false;
+    let startX;
+    let startWidth;
+
+    chatPanel.addEventListener('mousedown', (e) => {
+        // 只在左边框附近 10px 范围内触发
+        const leftEdge = chatPanel.getBoundingClientRect().left;
+        if (Math.abs(e.clientX - leftEdge) > 10) return;
+
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = parseInt(document.defaultView.getComputedStyle(chatPanel).width, 10);
+        chatPanel.classList.add('resizing');
+        document.documentElement.style.cursor = 'ew-resize';
+        e.preventDefault();  // 防止文本选择
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const width = startWidth - (e.clientX - startX);
+        if (width >= 450 && width <= window.innerWidth * 0.6) {  // 从300改为450
+            chatPanel.style.width = `${width}px`;
+            container.style.marginRight = `${width}px`;
+            container.style.width = `calc(100% - 290px - ${width}px)`;
+            layoutEditor();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            chatPanel.classList.remove('resizing');
+            document.documentElement.style.cursor = '';
+        }
+    });
+
+    // 当鼠标移动到左边框附近时改变光标
+    chatPanel.addEventListener('mousemove', (e) => {
+        const leftEdge = chatPanel.getBoundingClientRect().left;
+        if (Math.abs(e.clientX - leftEdge) <= 10) {
+            chatPanel.style.cursor = 'ew-resize';
+        } else {
+            chatPanel.style.cursor = 'default';
+        }
+    });
+
+    chatPanel.addEventListener('mouseleave', () => {
+        if (!isResizing) {
+            chatPanel.style.cursor = 'default';
+        }
+    });
+
+    // 切换聊天窗口显示/隐藏
+    const toggleChat = document.getElementById('toggleChat');
+    const minimizedChatButton = document.querySelector('.minimized-chat-button');
+
+    toggleChat.addEventListener('click', () => {
+        chatPanel.style.display = 'none';
+        minimizedChatButton.style.display = 'block';
+        container.style.marginRight = '0';
+        container.style.width = `calc(100% - 290px)`;
+        layoutEditor();
+    });
+
+    // 恢复聊天窗口
+    minimizedChatButton.querySelector('.restore-chat').addEventListener('click', () => {
+        chatPanel.style.display = 'flex';
+        minimizedChatButton.style.display = 'none';
+        const width = parseInt(getComputedStyle(chatPanel).width, 10);
+        container.style.marginRight = `${width}px`;
+        container.style.width = `calc(100% - 290px - ${width}px)`;
+        layoutEditor();
+    });
+
+    // 发送消息
+    const sendMessage = document.getElementById('sendMessage');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessages = document.getElementById('chatMessages');
+
+    sendMessage.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    });
+
+    // 清除聊天记录
+    const clearChat = document.getElementById('clearChat');
+    clearChat.addEventListener('click', () => {
+        chatMessages.innerHTML = '';
+    });
+}
+
+// 发送消息
+async function sendChatMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    // 添加用户消息
+    addMessageToChat('user', message);
+    chatInput.value = '';
+
+    // 这里添加与 AI 服务器通信的代码
+    try {
+        // 模拟 AI 响应
+        const response = await simulateAIResponse(message);
+        addMessageToChat('assistant', response);
+    } catch (error) {
+        addMessageToChat('assistant', '抱歉，发生了错误，请稍后重试。');
+    }
+}
+
+// 添加消息到聊天窗口
+function addMessageToChat(role, content) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${role}-message`;
+    messageDiv.textContent = content;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 模拟 AI 响应（实际项目中替换为真实的 API 调用）
+async function simulateAIResponse(message) {
+    // 模拟网络延迟
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return `这是对 "${message}" 的模拟回复。在实际项目中，这里应该调用真实的 AI API。`;
+}
+
+// 在窗口大小改变时调整布局
+window.addEventListener('resize', () => {
+    const chatPanel = document.getElementById('chatPanel');
+    const container = document.getElementById('container');
+
+    // 确保聊天窗口宽度不超过最大限制
+    const maxWidth = window.innerWidth * 0.4;
+    const currentWidth = parseInt(getComputedStyle(chatPanel).width, 10);
+
+    if (currentWidth > maxWidth) {
+        const newWidth = maxWidth;
+        chatPanel.style.width = `${newWidth}px`;
+        container.style.marginRight = `${newWidth}px`;
+        container.style.width = `calc(100% - 290px - ${newWidth}px)`;
+        layoutEditor();
+    }
+});
+
+// 输出窗口相关
+function initializeOutputPanel() {
+    const outputPanel = document.getElementById('outputPanel');
+    const fileList = document.getElementById('fileList');
+    const container = document.getElementById('container');
+    let isResizing = false;
+    let startY;
+    let startHeight;
+
+    outputPanel.addEventListener('mousedown', (e) => {
+        // 只在顶部边框附近 10px 范围内触发
+        const topEdge = outputPanel.getBoundingClientRect().top;
+        if (Math.abs(e.clientY - topEdge) > 10) return;
+
+        isResizing = true;
+        startY = e.clientY;
+        startHeight = parseInt(document.defaultView.getComputedStyle(outputPanel).height, 10);
+        outputPanel.classList.add('resizing');
+        document.documentElement.style.cursor = 'ns-resize';
+        e.preventDefault();  // 防止文本选择
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const height = startHeight + (startY - e.clientY);
+        if (height >= 100 && height <= window.innerHeight * 0.8) {
+            outputPanel.style.height = `${height}px`;
+            fileList.style.height = `calc(100vh - ${height}px)`;
+            container.style.height = `calc(100vh - ${height}px)`;
+            layoutEditor();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            outputPanel.classList.remove('resizing');
+            document.documentElement.style.cursor = '';
+        }
+    });
+
+    // 当鼠标移动到顶部边框附近时改变光标
+    outputPanel.addEventListener('mousemove', (e) => {
+        const topEdge = outputPanel.getBoundingClientRect().top;
+        if (Math.abs(e.clientY - topEdge) <= 10) {
+            outputPanel.style.cursor = 'ns-resize';
+        } else {
+            outputPanel.style.cursor = 'default';
+        }
+    });
+
+    outputPanel.addEventListener('mouseleave', () => {
+        if (!isResizing) {
+            outputPanel.style.cursor = 'default';
+        }
+    });
+}
+
+// 模型设置相关
+let modelSettingsBtn, modelSettingsModal, addModelModal, addModelBtn, modelSelect;
+
+// 初始化模型列表
+function initializeModels() {
+    const defaultModels = [
+        {
+            name: 'GPT-3.5',
+            id: 'gpt-3.5-turbo',
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            apiKey: ''
+        },
+        {
+            name: 'GPT-4',
+            id: 'gpt-4',
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            apiKey: ''
+        }
+    ];
+
+    const savedModels = localStorage.getItem('chatModels');
+    const models = savedModels ? JSON.parse(savedModels) : defaultModels;
+
+    if (!savedModels) {
+        localStorage.setItem('chatModels', JSON.stringify(models));
+    }
+
+    updateModelList();
+    updateModelSelect();
+}
+
+// 更新模型下拉列表
+function updateModelSelect() {
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+    modelSelect.innerHTML = '';
+
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        modelSelect.appendChild(option);
+    });
+}
+
+// 更新模型设置列表
+function updateModelList() {
+    const modelList = document.getElementById('modelList');
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+
+    modelList.innerHTML = '';
+    models.forEach(model => {
+        const modelItem = document.createElement('div');
+        modelItem.className = 'model-item';
+        modelItem.innerHTML = `
+            <div class="model-info">
+                <div class="model-name">${model.name}</div>
+                <div class="model-endpoint">${model.endpoint}</div>
+                <div class="model-api-key">${model.apiKey ? '******' : '未设置API Key'}</div>
+            </div>
+            <div class="model-actions">
+                <button class="edit-model" onclick="editModel('${model.id}')">编辑</button>
+                <button class="delete-model" onclick="deleteModel('${model.id}')">删除</button>
+            </div>
+        `;
+        modelList.appendChild(modelItem);
+    });
+}
+
+// 关闭模型设置
+function closeModelSettings() {
+    modelSettingsModal.style.display = 'none';
+}
+
+// 关闭添加模型对话框
+function closeAddModel() {
+    addModelModal.style.display = 'none';
+    document.getElementById('modelName').value = '';
+    document.getElementById('modelId').value = '';
+    document.getElementById('modelEndpoint').value = '';
+    document.getElementById('apiKey').value = '';
+}
+
+// 保存新模型
+function saveNewModel() {
+    const name = document.getElementById('modelName').value.trim();
+    const id = document.getElementById('modelId').value.trim();
+    const endpoint = document.getElementById('modelEndpoint').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
+
+    if (!name || !id || !endpoint) {
+        alert('请填写所有必填字段');
+        return;
+    }
+
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+    models.push({ name, id, endpoint, apiKey });
+    localStorage.setItem('chatModels', JSON.stringify(models));
+
+    updateModelList();
+    updateModelSelect();
+    closeAddModel();
+}
+
+// 编辑模型
+function editModel(modelId) {
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+    const model = models.find(m => m.id === modelId);
+
+    if (model) {
+        document.getElementById('modelName').value = model.name;
+        document.getElementById('modelId').value = model.id;
+        document.getElementById('modelEndpoint').value = model.endpoint;
+        document.getElementById('apiKey').value = model.apiKey || '';
+
+        // 删除旧模型
+        deleteModel(modelId, false);
+
+        // 打开添加模型对话框
+        addModelModal.style.display = 'block';
+    }
+}
+
+// 删除模型
+function deleteModel(modelId, showConfirm = true) {
+    if (showConfirm && !confirm('确定要删除这个模型吗？')) {
+        return;
+    }
+
+    const models = JSON.parse(localStorage.getItem('chatModels'));
+    const filteredModels = models.filter(model => model.id !== modelId);
+    localStorage.setItem('chatModels', JSON.stringify(filteredModels));
+
+    updateModelList();
+    updateModelSelect();
+}
+
+// 在页面加载完成后初始化事件监听和模型
+document.addEventListener('DOMContentLoaded', () => {
+    modelSettingsBtn = document.getElementById('modelSettingsBtn');
+    modelSettingsModal = document.getElementById('modelSettingsModal');
+    addModelModal = document.getElementById('addModelModal');
+    addModelBtn = document.getElementById('addModelBtn');
+    modelSelect = document.getElementById('modelSelect');
+
+    // 打开模型设置
+    modelSettingsBtn.addEventListener('click', () => {
+        modelSettingsModal.style.display = 'block';
+    });
+
+    // 打开添加模型对话框
+    addModelBtn.addEventListener('click', () => {
+        addModelModal.style.display = 'block';
+    });
+
+    // 点击模态框外部关闭
+    window.addEventListener('click', (e) => {
+        if (e.target === modelSettingsModal) {
+            closeModelSettings();
+        }
+        if (e.target === addModelModal) {
+            closeAddModel();
+        }
+    });
+});
+
+// 切换API Key的可见性
+function toggleApiKeyVisibility(button) {
+    const input = button.previousElementSibling;
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🔒';
+    } else {
+        input.type = 'password';
+        button.textContent = '👁';
     }
 }
 

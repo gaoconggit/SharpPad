@@ -23,7 +23,11 @@
         <ul id="fileListItems">
         </ul>
     </div>
-    <div id="container"></div>
+    <div id="container">
+        <div class="button-container">
+            <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
+        </div>
+    </div>
     <div id="outputPanel">
         <div class="resize-handle"></div>
         <div class="output-header">
@@ -39,8 +43,31 @@
         </div>
         <div id="outputContent"></div>
     </div>
-    <div class="button-container">
-        <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
+    <div id="chatPanel">
+        <div class="resize-handle"></div>
+        <div class="chat-header">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="toggleChat" title="收起/展开"></button>
+                <span>Chat</span>
+            </div>
+            <div class="chat-toolbar">
+                <select id="modelSelect">
+                    <option value="gpt-3.5-turbo">GPT-3.5</option>
+                    <option value="gpt-4">GPT-4</option>
+                </select>
+                <button id="modelSettingsBtn" title="模型设置">⚙️</button>
+                <button id="clearChat" title="清除">清除</button>
+            </div>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-area">
+            <textarea id="chatInput" placeholder="输入消息...(按Enter发送/Ctrl+Enter换行)" rows="3"></textarea>
+        </div>
+    </div>
+    <div class="minimized-chat-button" style="display: none;">
+        <button class="icon-button restore-chat" title="恢复聊天窗口">
+            <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+        </button>
     </div>
     <div class="notification" id="notification"></div>
     <div id="fileContextMenu" class="context-menu" style="display: none;">
@@ -115,6 +142,61 @@
         <button class="icon-button restore-output" title="恢复输出窗口">
             <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
         </button>
+    </div>
+
+    <!-- 添加模型设置对话框 -->
+    <div id="modelSettingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>模型设置</h2>
+                <button class="close-button" onclick="closeModelSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="model-settings">
+                    <div class="model-list">
+                        <div class="model-list-header">
+                            <h3>模型列表</h3>
+                            <button id="addModelBtn" class="add-model-button">添加模型</button>
+                        </div>
+                        <div id="modelList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加新模型对话框 -->
+    <div id="addModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>添加模型</h2>
+                <button class="close-button" onclick="closeAddModel()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modelName">显示名称</label>
+                    <input type="text" id="modelName" placeholder="例如: GPT-4">
+                </div>
+                <div class="form-group">
+                    <label for="modelId">模型ID</label>
+                    <input type="text" id="modelId" placeholder="例如: gpt-4">
+                </div>
+                <div class="form-group">
+                    <label for="modelEndpoint">Endpoint</label>
+                    <input type="text" id="modelEndpoint" placeholder="API endpoint地址">
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <div class="api-key-input">
+                        <input type="password" id="apiKey" placeholder="输入API Key">
+                        <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveNewModel()" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 
