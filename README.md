@@ -1,7 +1,8 @@
 # SharpPad
 基于 Roslyn 和 monaco-editor 开发的快速验证 C# 代码片段的工具。
 
-![SharpPad](https://github.com/user-attachments/assets/86302f6f-7a0c-4e75-913d-2c725b3dc1c8)
+![image](https://github.com/user-attachments/assets/ab2d0f49-7974-4b3b-b7ce-c7455c485abf)
+
 
 ## 快速体验
 1. 下载 release 包
