@@ -36,8 +36,9 @@
 - 支持导入 NuGet 包
 - 多目录支持
 - 导入导出目录功能
+- ai chat
 
 ## 期待实现的功能
 
 - 进行中的任务
-  - ai chat
+  - ai auto completion
