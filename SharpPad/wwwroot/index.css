@@ -1182,7 +1182,7 @@ pre {
         transform: translateY(0);
     }
 
-/* 调整大���时禁用过渡效果 */
+/* 调整大小时禁用过渡效果 */
 #fileList.resizing,
 #fileList.resizing ~ #container {
     transition: none !important;
@@ -1605,7 +1605,7 @@ pre {
     right: -5px;
 }
 
-/* 聊天窗口的调整手柄更宽 */
+/* 聊天窗口的��整手柄更宽 */
 /* #chatPanel .resize-handle {
     left: -10px;
     width: 20px;

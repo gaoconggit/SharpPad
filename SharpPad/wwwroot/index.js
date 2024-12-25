@@ -1262,7 +1262,8 @@ function initializeFileListResize() {
         if (width >= 300 && width <= window.innerWidth * 0.3) {
             fileList.style.width = `${width}px`;
             container.style.marginLeft = `${width}px`;
-            container.style.width = `calc(100% - ${width}px - 500px)`;
+            const chatPanelWidth = parseInt(getComputedStyle(chatPanel).width, 10);
+            container.style.width = `calc(100% - ${width}px - ${chatPanelWidth}px)`;
             layoutEditor();
         }
     });
@@ -2244,7 +2245,8 @@ async function initializeChatPanel() {
         if (width >= 450 && width <= window.innerWidth * 0.6) {  // 从300改为450
             chatPanel.style.width = `${width}px`;
             container.style.marginRight = `${width}px`;
-            container.style.width = `calc(100% - 290px - ${width}px)`;
+            const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+            container.style.width = `calc(100% - ${fileListWidth}px - ${width}px)`;
             layoutEditor();
         }
     });
@@ -2433,7 +2435,7 @@ async function sendChatMessage() {
 function addMessageToChat(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${role}-message`;
-    // 如果是用户消息，直接显示文本，如果是助手消息，使用配置的markdown-it解析
+    // 如果是用户消息，直接显示文本，如果是��手消息，使用配置的markdown-it解析
     if (role === 'user') {
         messageDiv.textContent = content;
     } else {
@@ -2520,7 +2522,8 @@ window.addEventListener('resize', () => {
         const newWidth = maxWidth;
         chatPanel.style.width = `${newWidth}px`;
         container.style.marginRight = `${newWidth}px`;
-        container.style.width = `calc(100% - 290px - ${newWidth}px)`;
+        const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+        container.style.width = `calc(100% - ${fileListWidth}px - ${newWidth}px)`;
         layoutEditor();
     }
 });
