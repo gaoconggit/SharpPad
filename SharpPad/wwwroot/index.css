@@ -9,7 +9,7 @@ body {
 
 #fileList {
     width: 290px;
-    border-right: 4px solid #2d2d2d;
+    border-right: 1px solid #444;
     overflow-y: auto;
     box-sizing: border-box;
     background-color: #252526;
@@ -20,9 +20,7 @@ body {
     left: 0;
     top: 0;
     height: calc(100vh - 200px);
-    z-index: 100;
     transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-right: 1px solid #3c3c3c;
     will-change: width, height;
 }
 
@@ -31,7 +29,8 @@ body {
     }
 
     #fileList.resizing {
-        border-right-color: #2979ff;
+        transition: none !important;
+        border-right: 2px solid #0078d4;
     }
 
 #container {
@@ -128,6 +127,12 @@ a {
     gap: 10px;
     margin-bottom: 20px;
     align-items: center;
+    position: sticky;
+    top: 0;
+    background-color: #252526;
+    padding: 0 0 10px 0;
+    margin: 0 0 10px 0;
+    z-index: 1;
 }
 
 #fileFilter {
@@ -193,9 +198,8 @@ a {
     }
 
 #fileListItems {
-    list-style: none;
-    padding: 0;
-    margin-top: 10px;
+    position: relative;
+    padding-top: 10px;
 }
 
     #fileListItems li {
@@ -576,8 +580,8 @@ a {
 .file-list-resize-handle {
     position: absolute;
     top: 0;
-    right: -2px;
-    width: 4px;
+    right: -5px;
+    width: 10px;
     height: 100%;
     cursor: ew-resize;
     background-color: transparent;
@@ -587,7 +591,7 @@ a {
 
     .file-list-resize-handle:hover,
     .file-list-resize-handle.resizing {
-        background-color: #2979ff;
+        background-color: transparent;
     }
 
 #container {
@@ -1178,7 +1182,7 @@ pre {
         transform: translateY(0);
     }
 
-/* 调整大小时禁用过渡效果 */
+/* 调整大���时禁用过渡效果 */
 #fileList.resizing,
 #fileList.resizing ~ #container {
     transition: none !important;
@@ -1188,8 +1192,8 @@ pre {
 .file-list-resize-handle {
     position: absolute;
     top: 0;
-    right: -2px;
-    width: 4px;
+    right: -5px;
+    width: 10px;
     height: 100%;
     cursor: ew-resize;
     background-color: transparent;
@@ -1197,14 +1201,37 @@ pre {
     z-index: 1001;
 }
 
-.file-list-resize-handle:hover,
-.file-list-resize-handle.resizing {
-    background-color: #2979ff;
+/* 统一的调整大小手柄样式 */
+.file-list-resize-handle,
+#outputPanel .resize-handle,
+#chatPanel .resize-handle {
+    position: absolute;
+    background: transparent;
+}
+
+/* 水平调整手柄（文件列表和聊天面板） */
+.file-list-resize-handle,
+#chatPanel .resize-handle {
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+}
+
+.file-list-resize-handle {
+    right: -5px;
 }
 
 /* 调整时的边框高亮 */
 #fileList.resizing {
-    border-right: 1px solid #2979ff;
+    border-right: 2px solid #0078d4;
+    transition: none !important;
+}
+
+/* 调整时禁用过渡效果 */
+#fileList.resizing,
+#fileList.resizing ~ #container {
+    transition: none !important;
 }
 
 /* Chat Panel */
@@ -1563,7 +1590,6 @@ pre {
 #chatPanel .resize-handle {
     position: absolute;
     background: transparent;
-    z-index: 1001;
 }
 
 /* 水平调整手柄（文件列表和聊天面板） */

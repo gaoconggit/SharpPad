@@ -1238,7 +1238,6 @@ function deleteFolder() {
 function initializeFileListResize() {
     const fileList = document.getElementById('fileList');
     const container = document.getElementById('container');
-
     let isResizing = false;
     let startX;
     let startWidth;
@@ -1260,10 +1259,10 @@ function initializeFileListResize() {
         if (!isResizing) return;
 
         const width = startWidth + (e.clientX - startX);
-        if (width >= 300 && width <= 800) {
+        if (width >= 300 && width <= window.innerWidth * 0.3) {
             fileList.style.width = `${width}px`;
             container.style.marginLeft = `${width}px`;
-            container.style.width = `calc(100% - ${width}px)`;
+            container.style.width = `calc(100% - ${width}px - 500px)`;
             layoutEditor();
         }
     });
@@ -2668,7 +2667,7 @@ function saveNewModel() {
 
     const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
     
-    // 检查是否已存在相同ID的模型
+    // 检查是否已存在相同ID��模型
     if (models.some(m => m.id === id)) {
         alert('已存在相同ID的模型');
         return;
