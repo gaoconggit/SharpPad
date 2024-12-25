@@ -21,6 +21,8 @@
 
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
+  ![image](https://github.com/user-attachments/assets/898a124c-bde9-4e6e-89c3-8e8f9f39266b)
+
 
 ## 快捷键
 
