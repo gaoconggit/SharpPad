@@ -15,7 +15,7 @@
 1. git clone 代码仓库 
 2. 进入 `wwwroot` 目录安装 monaco-editor：
     ```bash
-    npm i --registry=https://registry.npm.taobao.org
+    npm i --registry=https://registry.npmmirror.com
     ```
 3. 在 Visual Studio 中启动 SharpPad 项目。
 4. 使用 `Ctrl + Enter` 运行 "Hello World"。
