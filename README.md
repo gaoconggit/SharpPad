@@ -23,7 +23,8 @@
 
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
-  ![image](https://github.com/user-attachments/assets/898a124c-bde9-4e6e-89c3-8e8f9f39266b)
+ ![image](https://github.com/user-attachments/assets/6df73f74-5f14-4f98-8842-3828b35e4580)
+
 
 
 ## 快捷键
