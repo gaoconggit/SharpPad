@@ -2672,7 +2672,7 @@ function saveNewModel() {
 
     const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
 
-    // 检查是否已存在相同ID��模型
+    // 检查是否已存在相同ID相同的模型
     if (models.some(m => m.id === id)) {
         alert('已存在相同ID的模型');
         return;
@@ -2769,28 +2769,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         addModelModal.style.display = 'block';
     });
 
-    // 点击模态框外部关闭
-    window.addEventListener('click', (e) => {
-        if (e.target === modelSettingsModal) {
-            closeModelSettings();
-        }
-        if (e.target === addModelModal) {
-            closeAddModel();
-        }
-        if (e.target === editModelModal) {
-            closeEditModel();
-        }
-    });
-
     await initializeChatPanel();
     initializeModels();
-
-    // Close dialog when clicking outside
-    document.getElementById('nugetConfigDialog')?.addEventListener('click', (e) => {
-        if (e.target === document.getElementById('nugetConfigDialog')) {
-            closeNuGetConfigDialog();
-        }
-    });
 
     // 添加恢复按钮的点击事件监听器
     document.querySelector('.restore-output')?.addEventListener('click', () => {
