@@ -181,6 +181,10 @@
                         <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label for="addSystemPrompt">系统提示词</label>
+                    <textarea id="addSystemPrompt" placeholder="输入系统提示词" rows="3"></textarea>
+                </div>
                 <div class="form-actions">
                     <button onclick="saveNewModel()" class="save-button">保存</button>
                 </div>
@@ -214,6 +218,10 @@
                         <input type="password" id="editApiKey" placeholder="输入API Key">
                         <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="editSystemPrompt">系统提示词</label>
+                    <textarea id="editSystemPrompt" placeholder="输入系统提示词" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
                     <button onclick="saveEditModel()" class="save-button">保存</button>

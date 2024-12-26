@@ -2479,6 +2479,14 @@ async function chatToLLM(messages) {
     }
 
     try {
+        var reqMessages = messages;
+        if (modelConfig.systemPrompt) {
+            reqMessages = [{
+                role: 'system',
+                content: modelConfig.systemPrompt
+            }, ...messages];
+        }
+        
         const response = await fetch(modelConfig.endpoint, {
             method: 'POST',
             headers: {
@@ -2487,10 +2495,7 @@ async function chatToLLM(messages) {
             },
             body: JSON.stringify({
                 model: modelConfig.id,
-                messages: messages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                })),
+                messages: reqMessages,
                 stream: true
             })
         });
@@ -2664,6 +2669,7 @@ function saveNewModel() {
     const id = document.getElementById('addModelId').value.trim();
     const endpoint = document.getElementById('addModelEndpoint').value.trim();
     const apiKey = document.getElementById('addApiKey').value.trim();
+    const systemPrompt = document.getElementById('addSystemPrompt').value.trim();
 
     if (!name || !id || !endpoint) {
         alert('请填写所有必填字段');
@@ -2678,7 +2684,7 @@ function saveNewModel() {
         return;
     }
 
-    models.push({ name, id, endpoint, apiKey });
+    models.push({ name, id, endpoint, apiKey, systemPrompt });
     localStorage.setItem('chatModels', JSON.stringify(models));
 
     updateModelList();
@@ -2696,7 +2702,7 @@ function editModel(modelId) {
         document.getElementById('editModelId').value = model.id;
         document.getElementById('editModelEndpoint').value = model.endpoint;
         document.getElementById('editApiKey').value = model.apiKey || '';
-
+        document.getElementById('editSystemPrompt').value = model.systemPrompt || '';
         // 打开编辑模型对话框
         document.getElementById('editModelModal').style.display = 'block';
     }
@@ -2708,6 +2714,7 @@ function saveEditModel() {
     const id = document.getElementById('editModelId').value.trim();
     const endpoint = document.getElementById('editModelEndpoint').value.trim();
     const apiKey = document.getElementById('editApiKey').value.trim();
+    const systemPrompt = document.getElementById('editSystemPrompt').value.trim();
 
     if (!name || !id || !endpoint) {
         alert('请填写所有必填字段');
@@ -2718,7 +2725,7 @@ function saveEditModel() {
     const index = models.findIndex(m => m.id === id);
 
     if (index !== -1) {
-        models[index] = { name, id, endpoint, apiKey };
+        models[index] = { name, id, endpoint, apiKey, systemPrompt };
         localStorage.setItem('chatModels', JSON.stringify(models));
 
         updateModelList();
@@ -2734,6 +2741,7 @@ function closeEditModel() {
     document.getElementById('editModelId').value = '';
     document.getElementById('editModelEndpoint').value = '';
     document.getElementById('editApiKey').value = '';
+    document.getElementById('editSystemPrompt').value = '';
 }
 
 // 删除模型
