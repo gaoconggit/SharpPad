@@ -1429,7 +1429,7 @@ class Program
 
     findFolder(files);
 
-    // 保存文件列表和文件内容
+    // ���存文件列表和文件内容
     localStorage.setItem('controllerFiles', JSON.stringify(files));
     localStorage.setItem(`file_${newFile.id}`, newFile.content);
 
@@ -2217,13 +2217,29 @@ const chatInput = document.getElementById('chatInput');
 const clearChat = document.getElementById('clearChat');
 const minimizedChatButton = document.querySelector('.minimized-chat-button');
 
-// 初始化聊天窗口
+// 添加消息历史记录存储功能
+function saveChatHistory(messages) {
+    localStorage.setItem('chatHistory', JSON.stringify(messages));
+}
+
+function loadChatHistory() {
+    const history = localStorage.getItem('chatHistory');
+    return history ? JSON.parse(history) : [];
+}
+
+// 修改 initializeChatPanel 函数
 async function initializeChatPanel() {
     const chatPanel = document.getElementById('chatPanel');
     const container = document.getElementById('container');
     let isResizing = false;
     let startX;
     let startWidth;
+
+    // 加载历史消息
+    const messages = loadChatHistory();
+    messages.forEach(msg => {
+        addMessageToChat(msg.role, msg.content);
+    });
 
     chatPanel.addEventListener('mousedown', (e) => {
         // 只在左边框附近 10px 范围内触发
@@ -2311,7 +2327,14 @@ async function initializeChatPanel() {
     // 清除聊天记录
     const clearChat = document.getElementById('clearChat');
     clearChat.addEventListener('click', () => {
-        chatMessages.innerHTML = '';
+        if (confirm('确定要清除所有聊天记录吗？此操作不可恢复。')) {
+            // 清除 DOM 中的消息
+            chatMessages.innerHTML = '';
+            // 清除存储的消息历史
+            saveChatHistory([]);
+            // 显示成功通知
+            showNotification('聊天记录已清除', 'success');
+        }
     });
 
     //初始化模型选择下拉框,从localStorage中获取模型配置
@@ -2326,12 +2349,16 @@ async function initializeChatPanel() {
     });
 }
 
-// 发送消息
+// 修改 sendChatMessage 函数
 async function sendChatMessage() {
     const message = chatInput.value.trim();
     if (!message) return;
 
+    // 获取当前消息历史
+    const messages = loadChatHistory();
     // 添加用户消息
+    messages.push({ role: 'user', content: message });
+    saveChatHistory(messages);
     addMessageToChat('user', message);
     chatInput.value = '';
 
@@ -2345,7 +2372,7 @@ async function sendChatMessage() {
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        const { reader } = await simulateAIResponse(message);
+        const { reader } = await chatToLLM(messages);
         let result = "";
 
         // 配置 markdown-it
@@ -2375,10 +2402,8 @@ async function sendChatMessage() {
         while (true) {
             const { value, done } = await reader.read();
             if (done) {
-                contentDiv.classList.remove('result-streaming');
                 break;
             }
-
             // 将 Uint8Array 转换为字符串
             const text = new TextDecoder("utf-8").decode(value);
             buffer += text;
@@ -2392,7 +2417,12 @@ async function sendChatMessage() {
                 if (!line.trim() || !line.startsWith('data: ')) continue;
                 if (line === 'data: [DONE]') {
                     contentDiv.classList.remove('result-streaming');
-                    return;
+                    // 保存助手回复
+                    if (result) {
+                        messages.push({ role: 'assistant', content: result });
+                        saveChatHistory(messages);
+                    }
+                    break;
                 }
 
                 try {
@@ -2425,44 +2455,16 @@ async function sendChatMessage() {
                 }
             }
         }
-      
+
     } catch (error) {
         addMessageToChat('assistant', '抱歉，发生了错误，请稍后重试。');
+        // 保存错误消息
+        messages.push({ role: 'assistant', content: '抱歉，发生了错误，请稍后重试。' });
+        saveChatHistory(messages);
     }
 }
 
-// 添加消息到聊天窗口
-function addMessageToChat(role, content) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${role}-message`;
-    // 如果是用户消息，直接显示文本，如果是��手消息，使用配置的markdown-it解析
-    if (role === 'user') {
-        messageDiv.textContent = content;
-    } else {
-        const md = markdownit({
-            highlight: function (str, lang) {
-                if (lang && hljs.getLanguage(lang)) {
-                    try {
-                        const highlighted = hljs.highlight(str, { language: lang }).value;
-                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                    } catch (_) {
-                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                    }
-                } else {
-                    const detected = hljs.highlightAuto(str);
-                    const lang = detected.language || 'text';
-                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                }
-            }
-        });
-        messageDiv.innerHTML = md.render(content);
-    }
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// AI响应（使用流式响应）
-async function simulateAIResponse(message) {
+async function chatToLLM(messages) {
     const modelSelect = document.getElementById('modelSelect');
     const selectedModel = modelSelect.value;
 
@@ -2485,10 +2487,10 @@ async function simulateAIResponse(message) {
             },
             body: JSON.stringify({
                 model: modelConfig.id,
-                messages: [{
-                    role: 'user',
-                    content: message
-                }],
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                })),
                 stream: true
             })
         });
@@ -2669,13 +2671,13 @@ function saveNewModel() {
     }
 
     const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
-    
+
     // 检查是否已存在相同ID��模型
     if (models.some(m => m.id === id)) {
         alert('已存在相同ID的模型');
         return;
     }
-    
+
     models.push({ name, id, endpoint, apiKey });
     localStorage.setItem('chatModels', JSON.stringify(models));
 
@@ -2714,11 +2716,11 @@ function saveEditModel() {
 
     const models = JSON.parse(localStorage.getItem('chatModels'));
     const index = models.findIndex(m => m.id === id);
-    
+
     if (index !== -1) {
         models[index] = { name, id, endpoint, apiKey };
         localStorage.setItem('chatModels', JSON.stringify(models));
-        
+
         updateModelList();
         updateModelSelect();
         closeEditModel();
@@ -2827,6 +2829,46 @@ function toggleApiKeyVisibility(button) {
         button.textContent = '👁';
     }
 }
+
+// 添加消息到聊天窗口
+function addMessageToChat(role, content) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${role}-message`;
+    // 如果是用户消息，直接显示文本，如果是助手消息，使用配置的markdown-it解析
+    if (role === 'user') {
+        messageDiv.textContent = content;
+    } else {
+        const md = markdownit({
+            highlight: function (str, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = hljs.highlight(str, { language: lang }).value;
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    } catch (_) {
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    }
+                } else {
+                    const detected = hljs.highlightAuto(str);
+                    const lang = detected.language || 'text';
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                }
+            }
+        });
+        messageDiv.innerHTML = md.render(content);
+    }
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 添加快捷键清除功能
+document.addEventListener('keydown', (e) => {
+    // Alt + L 清除聊天记录
+    if (e.altKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        const clearChat = document.getElementById('clearChat');
+        clearChat.click();
+    }
+});
 
 
 
