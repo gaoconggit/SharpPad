@@ -1,7 +1,8 @@
 # SharpPad
-基于 Roslyn 和 monaco-editor 开发的快速验证 C# 代码片段的工具。
+基于 Roslyn 和 monaco-editor 开发的快速验证 C# 代码片段的小玩意。类似 LinqPad
 
-![SharpPad](https://github.com/user-attachments/assets/86302f6f-7a0c-4e75-913d-2c725b3dc1c8)
+![image](https://github.com/user-attachments/assets/ab2d0f49-7974-4b3b-b7ce-c7455c485abf)
+
 
 ## 快速体验
 1. 下载 release 包
@@ -21,6 +22,8 @@
 
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
+  ![image](https://github.com/user-attachments/assets/898a124c-bde9-4e6e-89c3-8e8f9f39266b)
+
 
 ## 快捷键
 
@@ -36,8 +39,9 @@
 - 支持导入 NuGet 包
 - 多目录支持
 - 导入导出目录功能
+- ai chat
 
 ## 期待实现的功能
 
 - 进行中的任务
-  - ai chat
+  - ai auto completion
