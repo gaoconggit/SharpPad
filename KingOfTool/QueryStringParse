@@ -1,0 +1,51 @@
+```csharp
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Web;
+using System.Collections.Generic;
+
+class Program
+{
+    public static async Task Main()
+    {
+        string url = "http://qq.com?a=1&b=2";
+
+        int index = url.IndexOf('#');
+        if (index != -1)
+        {
+            // 用 '?' 替换第一个 '#'
+            url = url.Remove(index, 1).Insert(index, "?");
+        }
+        Uri uri = new Uri(url);
+        string queryString = uri.Query;
+
+        // 移除开头的 '?'
+        if (queryString.StartsWith("?"))
+        {
+            queryString = queryString.Substring(1);
+        }
+
+        // 解析 QueryString
+        Dictionary<string, string> queryParameters = new Dictionary<string, string>();
+        foreach (var kvp in queryString.Split('&'))
+        {
+            var keyValue = kvp.Split('=');
+            if (keyValue.Length == 2)
+            {
+                string key = Uri.UnescapeDataString(keyValue[0]);
+                string value = Uri.UnescapeDataString(keyValue[1]);  // 解码 URL 编码的值
+                queryParameters[key] = value;
+            }
+        }
+
+        // 输出
+        foreach (var kvp in queryParameters)
+        {
+            Console.WriteLine($"{kvp.Key}: {kvp.Value}");
+        }
+    }
+}
+```
