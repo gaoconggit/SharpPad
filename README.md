@@ -12,7 +12,8 @@
    
 ## 开发向导
  #### 开发环境 建议 vs 2022 + net8.0
-1. git clone 代码仓库 
+1. git clone 代码仓库
+2. 
 ~~2. 进入 `wwwroot` 目录安装 monaco-editor：~~
     ~~```bash~~
     ~~npm i --registry=https://registry.npmmirror.com~~
