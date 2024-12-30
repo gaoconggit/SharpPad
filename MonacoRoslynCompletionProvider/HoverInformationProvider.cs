@@ -15,47 +15,77 @@ namespace MonacoRoslynCompletionProvider
             TypeInfo typeInfo;
             var syntaxRoot = await document.GetSyntaxRootAsync();
 
+            if (syntaxRoot == null)
+            {
+                return null;
+            }
+
             var expressionNode = syntaxRoot.FindToken(position).Parent;
-            if (expressionNode is VariableDeclaratorSyntax)
+            Location location;
+            switch (expressionNode)
             {
-                SyntaxNode childNode = expressionNode.ChildNodes()?.FirstOrDefault()?.ChildNodes()?.FirstOrDefault();
-                typeInfo = semanticModel.GetTypeInfo(childNode);
-                var location = expressionNode.GetLocation();
-                return new HoverInfoResult() { Information = typeInfo.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
+                case VariableDeclaratorSyntax:
+                    {
+                        SyntaxNode childNode = expressionNode.ChildNodes()?.FirstOrDefault()?.ChildNodes()?.FirstOrDefault();
+                        typeInfo = semanticModel.GetTypeInfo(childNode!);
+                        location = expressionNode.GetLocation();
+                        if (typeInfo.Type != null)
+                        {
+                            return new HoverInfoResult()
+                            {
+                                Information = typeInfo.Type.ToString(),
+                                OffsetFrom = location.SourceSpan.Start,
+                                OffsetTo = location.SourceSpan.End
+                            };
+                        }
+
+                        break;
+                    }
+                case PropertyDeclarationSyntax prop:
+                    {
+                        location = expressionNode.GetLocation();
+                        return new HoverInfoResult() { Information = prop.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
+                    }
+                case ParameterSyntax p:
+                    {
+                        location = expressionNode.GetLocation();
+                        if (p.Type != null)
+                        {
+                            return new HoverInfoResult()
+                            {
+                                Information = p.Type.ToString(),
+                                OffsetFrom = location.SourceSpan.Start,
+                                OffsetTo = location.SourceSpan.End
+                            };
+                        }
+
+                        break;
+                    }
+                case IdentifierNameSyntax i:
+                    {
+                        location = expressionNode.GetLocation();
+                        typeInfo = semanticModel.GetTypeInfo(i);
+                        if (typeInfo.Type != null)
+                            return new HoverInfoResult() { Information = typeInfo.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
+                        break;
+                    }
             }
 
-            if (expressionNode is PropertyDeclarationSyntax prop)
+            var symbolInfo = semanticModel.GetSymbolInfo(expressionNode!);
+            if (symbolInfo.Symbol == null)
             {
-                var location = expressionNode.GetLocation();
-                return new HoverInfoResult() { Information = prop.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
+                return null;
             }
 
-            if (expressionNode is ParameterSyntax p)
-            {
-                var location = expressionNode.GetLocation();
-                return new HoverInfoResult() { Information = p.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
-            }
 
-            if (expressionNode is IdentifierNameSyntax i)
+            location = expressionNode.GetLocation();
+            return new HoverInfoResult()
             {
-                var location = expressionNode.GetLocation();
-                typeInfo = semanticModel.GetTypeInfo(i);
-                if (typeInfo.Type != null)
-                    return new HoverInfoResult() { Information = typeInfo.Type.ToString(), OffsetFrom = location.SourceSpan.Start, OffsetTo = location.SourceSpan.End };
-            }
+                Information = HoverInfoBuilder.Build(symbolInfo),
+                OffsetFrom = location.SourceSpan.Start,
+                OffsetTo = location.SourceSpan.End
+            };
 
-            var symbolInfo = semanticModel.GetSymbolInfo(expressionNode);
-            if (symbolInfo.Symbol != null)
-            {
-                var location = expressionNode.GetLocation();
-                return new HoverInfoResult()
-                {
-                    Information = HoverInfoBuilder.Build(symbolInfo),
-                    OffsetFrom = location.SourceSpan.Start,
-                    OffsetTo = location.SourceSpan.End
-                };
-            }
-            return null;
         }
     }
 }
