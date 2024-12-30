@@ -4,6 +4,7 @@
 ![image](https://github.com/user-attachments/assets/ab2d0f49-7974-4b3b-b7ce-c7455c485abf)
 
 
+
 ## 快速体验
 1. 下载 release 包
 2. 解压后,找到 SharpPad.exe 双击运行
@@ -14,7 +15,7 @@
 1. git clone 代码仓库 
 2. 进入 `wwwroot` 目录安装 monaco-editor：
     ```bash
-    npm i --registry=https://registry.npm.taobao.org
+    npm i --registry=https://registry.npmmirror.com
     ```
 3. 在 Visual Studio 中启动 SharpPad 项目。
 4. 使用 `Ctrl + Enter` 运行 "Hello World"。
@@ -22,7 +23,8 @@
 
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
-  ![image](https://github.com/user-attachments/assets/898a124c-bde9-4e6e-89c3-8e8f9f39266b)
+ ![image](https://github.com/user-attachments/assets/6df73f74-5f14-4f98-8842-3828b35e4580)
+
 
 
 ## 快捷键
@@ -32,6 +34,7 @@
 - `Ctrl + J` 代码提示
 - `Ctrl + K` `Ctrl + D` 格式化代码
 - `Ctrl + S` 保存代码
+- `Alt+L` 光标在聊天框时,清空聊天记录
 
 ## 特性
 
