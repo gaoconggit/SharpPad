@@ -48,3 +48,4 @@
 
 - 进行中的任务
   - ai auto completion
+  - ai 生成的代码应用到编辑器
