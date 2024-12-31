@@ -465,6 +465,68 @@ class Program
 
         console.log(filter);
     }
+
+    renameFile() {
+        const menu = document.getElementById('fileContextMenu');
+        const fileId = menu.getAttribute('data-target-file-id');
+        menu.style.display = 'none';
+
+        if (!fileId) return;
+
+        // 获取当前文件列表
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        // 递归查找并重命名文件
+        const findAndRenameFile = (items) => {
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].id === fileId) {
+                    const newFileName = prompt('请输入新的文件名：', items[i].name);
+                    if (!newFileName || newFileName === items[i].name) return;
+
+                    // 更新文件名
+                    items[i].name = newFileName;
+
+                    // 保存更新后的文件列表
+                    localStorage.setItem('controllerFiles', JSON.stringify(files));
+
+                    // 刷新文件列表
+                    this.loadFileList();
+
+                    // 选中重命名的文件
+                    setTimeout(() => {
+                        document.querySelector(`[data-file-id="${fileId}"]`)?.classList.add('selected');
+                    }, 0);
+
+                    this.showNotification('重命名成功', 'success');
+                    return true;
+                }
+                if (items[i].type === 'folder' && items[i].files) {
+                    if (findAndRenameFile(items[i].files)) return true;
+                }
+            }
+            return false;
+        };
+
+        findAndRenameFile(files);
+    }
+
+    initializeContextMenu() {
+        const menu = document.getElementById('fileContextMenu');
+        
+        // 绑定删除事件
+        menu.querySelector('.delete').addEventListener('click', () => this.deleteFile());
+        
+        // 绑定重命名事件
+        menu.querySelector('.rename').addEventListener('click', () => this.renameFile());
+
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    }
 }
 
 export { FileManager }; 

@@ -26,6 +26,7 @@ import { FileManager } from './fileSystem/fileManager.js';
 import { registerCsharpProvider } from './csharpLanguageProvider.js';
 import { CodeRunner } from './execution/runner.js';
 import { OutputPanel } from './execution/outputPanel.js';
+import { FileListResizer } from './fileSystem/fileListResizer.js';
 
 // 初始化应用
 async function initializeApp() {

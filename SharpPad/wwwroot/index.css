@@ -10,6 +10,7 @@ body {
 #fileList {
     width: 290px;
     border-right: 1px solid #444;
+    overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
     background-color: #252526;
@@ -113,15 +114,6 @@ a {
     z-index: 10000;
 }
 
-/* New styles for file list */
-#fileList {
-    background-color: #252526;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    border-right: 1px solid #3c3c3c;
-}
-
 .file-list-header {
     display: flex;
     gap: 10px;
@@ -132,7 +124,7 @@ a {
     background-color: #252526;
     padding: 0 0 10px 0;
     margin: 0 0 10px 0;
-    z-index: 1;
+    z-index: 999;
 }
 
 #fileFilter {
@@ -262,21 +254,21 @@ a {
     will-change: height;
 }
 
-#outputPanel .resize-handle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 10px;
-    cursor: ns-resize;
-    background: transparent;
-    z-index: 1001;
-}
+    #outputPanel .resize-handle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 10px;
+        cursor: ns-resize;
+        background: transparent;
+        z-index: 1001;
+    }
 
-#outputPanel.resizing {
-    transition: none !important;
-    border-top: 2px solid #0078d4;
-}
+    #outputPanel.resizing {
+        transition: none !important;
+        border-top: 2px solid #0078d4;
+    }
 
 .output-header {
     padding: 10px 14px;
@@ -573,9 +565,7 @@ a {
         pointer-events: none;
     }
 
-#fileList {
-    position: relative;
-}
+
 
 .file-list-resize-handle {
     position: absolute;
@@ -1228,11 +1218,11 @@ pre {
     transition: none !important;
 }
 
-/* 调整时禁用过渡效果 */
-#fileList.resizing,
-#fileList.resizing ~ #container {
-    transition: none !important;
-}
+    /* 调整时禁用过渡效果 */
+    #fileList.resizing,
+    #fileList.resizing ~ #container {
+        transition: none !important;
+    }
 
 /* Chat Panel */
 #chatPanel {
@@ -1245,7 +1235,7 @@ pre {
     border-left: 1px solid #444;
     display: flex;
     flex-direction: column;
-    z-index: 1000;
+    z-index: 999;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, height, width;
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
@@ -1280,10 +1270,10 @@ pre {
     transition: all 0.2s;
 }
 
-#modelSelect:hover {
-    border-color: #666;
-    background: #444;
-}
+    #modelSelect:hover {
+        border-color: #666;
+        background: #444;
+    }
 
 #clearChat {
     background-color: #444;
@@ -1300,10 +1290,10 @@ pre {
     gap: 4px;
 }
 
-#clearChat:hover {
-    opacity: 1;
-    background-color: #505050;
-}
+    #clearChat:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
 
 #toggleChat {
     background-color: #444;
@@ -1322,16 +1312,16 @@ pre {
     justify-content: center;
 }
 
-#toggleChat:hover {
-    opacity: 1;
-    background-color: #505050;
-}
+    #toggleChat:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
 
-#toggleChat::before {
-    content: "▼";
-    font-size: 10px;
-    transition: transform 0.3s;
-}
+    #toggleChat::before {
+        content: "▼";
+        font-size: 10px;
+        transition: transform 0.3s;
+    }
 
 .chat-messages {
     flex: 1;
@@ -1357,9 +1347,9 @@ pre {
     transition: transform 0.2s;
 }
 
-.chat-message:hover {
-    transform: translateY(-1px);
-}
+    .chat-message:hover {
+        transform: translateY(-1px);
+    }
 
 .user-message {
     background: linear-gradient(135deg, #2b579a, #1e3d6b);
@@ -1397,15 +1387,15 @@ pre {
     transition: all 0.2s;
 }
 
-#chatInput:hover {
-    border-color: #666;
-}
+    #chatInput:hover {
+        border-color: #666;
+    }
 
-#chatInput:focus {
-    outline: none;
-    border-color: #0078d4;
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-}
+    #chatInput:focus {
+        outline: none;
+        border-color: #0078d4;
+        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+    }
 
 #sendMessage {
     padding: 10px 20px;
@@ -1423,14 +1413,14 @@ pre {
     justify-content: center;
 }
 
-#sendMessage:hover {
-    background: linear-gradient(135deg, #0086ec, #0078d4);
-    transform: translateY(-1px);
-}
+    #sendMessage:hover {
+        background: linear-gradient(135deg, #0086ec, #0078d4);
+        transform: translateY(-1px);
+    }
 
-#sendMessage:active {
-    transform: translateY(0);
-}
+    #sendMessage:active {
+        transform: translateY(0);
+    }
 
 .minimized-chat-button {
     position: fixed;
@@ -1440,33 +1430,33 @@ pre {
     z-index: 1000;
 }
 
-.minimized-chat-button .icon-button {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px 0 0 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #2d2d2d;
-    border: 1px solid #444;
-    border-right: none;
-    cursor: pointer;
-    color: #fff;
-    font-size: 14px;
-    opacity: 0.8;
-    transition: all 0.2s;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
-}
+    .minimized-chat-button .icon-button {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px 0 0 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #2d2d2d;
+        border: 1px solid #444;
+        border-right: none;
+        cursor: pointer;
+        color: #fff;
+        font-size: 14px;
+        opacity: 0.8;
+        transition: all 0.2s;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+    }
 
-.minimized-chat-button .icon-button:hover {
-    background: #404040;
-    opacity: 1;
-    transform: translateX(-2px);
-}
+        .minimized-chat-button .icon-button:hover {
+            background: #404040;
+            opacity: 1;
+            transform: translateX(-2px);
+        }
 
-.minimized-chat-button .icon-button:active {
-    transform: translateX(0);
-}
+        .minimized-chat-button .icon-button:active {
+            transform: translateX(0);
+        }
 
 /* 调整 resize-handle 样式 */
 #chatPanel .resize-handle {
@@ -1480,29 +1470,29 @@ pre {
     z-index: 1001;
 }
 
-#chatPanel .resize-handle:hover {
-    background: rgba(0, 120, 212, 0.2);
-}
+    #chatPanel .resize-handle:hover {
+        background: rgba(0, 120, 212, 0.2);
+    }
 
 #chatPanel.resizing {
     transition: none !important;
     border-left: 2px solid #0078d4;
 }
 
-#chatPanel.resizing .resize-handle {
-    background: rgba(0, 120, 212, 0.3);
-}
+    #chatPanel.resizing .resize-handle {
+        background: rgba(0, 120, 212, 0.3);
+    }
 
-#chatPanel.resizing::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #0078d4;
-    z-index: 1002;
-}
+    #chatPanel.resizing::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #0078d4;
+        z-index: 1002;
+    }
 
 /* 调整编辑器容器的宽度计算 */
 #container {
@@ -1512,9 +1502,7 @@ pre {
     position: fixed;
     top: 0;
     height: calc(100vh - 200px);
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: width, margin-left, margin-right;
 }
 
@@ -1537,25 +1525,9 @@ pre {
     border-radius: 4px;
 }
 
-.chat-messages::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-#chatPanel {
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 500px;
-    height: calc(100vh - 200px);
-    background: #1e1e1e;
-    border-left: 1px solid #444;
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform, height, width;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
-}
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
 
 /* 调整编辑器容器的宽度计算 */
 #container {
@@ -1565,9 +1537,7 @@ pre {
     position: fixed;
     top: 0;
     height: calc(100vh - 200px);
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: width, margin-left, margin-right;
 }
 
@@ -1605,7 +1575,7 @@ pre {
     right: -5px;
 }
 
-/* 聊天窗口的��整手柄更宽 */
+/* 聊天窗口的调整手柄更宽 */
 /* #chatPanel .resize-handle {
     left: -10px;
     width: 20px;
@@ -1636,26 +1606,26 @@ pre {
     transition: none !important;
 }
 
-/* 调整时禁用过渡效果 */
-#fileList.resizing,
-#fileList.resizing ~ #container,
-#outputPanel.resizing,
-#outputPanel.resizing ~ #fileList,
-#outputPanel.resizing ~ #container,
-#chatPanel.resizing,
-#chatPanel.resizing ~ #container {
-    transition: none !important;
-}
+    /* 调整时禁用过渡效果 */
+    #fileList.resizing,
+    #fileList.resizing ~ #container,
+    #outputPanel.resizing,
+    #outputPanel.resizing ~ #fileList,
+    #outputPanel.resizing ~ #container,
+    #chatPanel.resizing,
+    #chatPanel.resizing ~ #container {
+        transition: none !important;
+    }
 
-/* 移除所有hover效果 */
-.file-list-resize-handle:hover,
-.file-list-resize-handle.resizing,
-#outputPanel .resize-handle:hover,
-#outputPanel.resizing .resize-handle,
-#chatPanel .resize-handle:hover,
-#chatPanel.resizing .resize-handle {
-    background: transparent;
-}
+        /* 移除所有hover效果 */
+        .file-list-resize-handle:hover,
+        .file-list-resize-handle.resizing,
+        #outputPanel .resize-handle:hover,
+        #outputPanel.resizing .resize-handle,
+        #chatPanel .resize-handle:hover,
+        #chatPanel.resizing .resize-handle {
+            background: transparent;
+        }
 
 /* 模型设置按钮 */
 #modelSettingsBtn {
@@ -1675,10 +1645,10 @@ pre {
     justify-content: center;
 }
 
-#modelSettingsBtn:hover {
-    opacity: 1;
-    background-color: #505050;
-}
+    #modelSettingsBtn:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
 
 /* 模型设置对话框 */
 .model-settings {
@@ -1689,11 +1659,11 @@ pre {
     margin-bottom: 16px;
 }
 
-.model-list-header h3 {
-    margin: 0;
-    color: #fff;
-    font-size: 16px;
-}
+    .model-list-header h3 {
+        margin: 0;
+        color: #fff;
+        font-size: 16px;
+    }
 
 .add-model-button {
     padding: 8px 16px;
@@ -1706,9 +1676,9 @@ pre {
     transition: background-color 0.2s;
 }
 
-.add-model-button:hover {
-    background-color: #106ebe;
-}
+    .add-model-button:hover {
+        background-color: #106ebe;
+    }
 
 #modelList {
     display: flex;
@@ -1760,45 +1730,45 @@ pre {
     color: #fff;
 }
 
-.edit-model:hover {
-    background-color: #106ebe;
-}
+    .edit-model:hover {
+        background-color: #106ebe;
+    }
 
 .delete-model {
     background-color: #d83b01;
     color: #fff;
 }
 
-.delete-model:hover {
-    background-color: #f03f03;
-}
+    .delete-model:hover {
+        background-color: #f03f03;
+    }
 
 /* 表单样式 */
 .form-group {
     margin-bottom: 16px;
 }
 
-.form-group:last-child {
-    margin-bottom: 0;
-}
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
 
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
-    color: #fff;
-    font-size: 13px;
-}
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #fff;
+        font-size: 13px;
+    }
 
-.form-group input {
-    width: 100%;
-    padding: 8px 12px;
-    background-color: #3c3c3c;
-    border: 1px solid #555;
-    border-radius: 4px;
-    color: #fff;
-    font-size: 13px;
-    box-sizing: border-box;
-}
+    .form-group input {
+        width: 100%;
+        padding: 8px 12px;
+        background-color: #3c3c3c;
+        border: 1px solid #555;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 13px;
+        box-sizing: border-box;
+    }
 
 .form-actions {
     margin-top: 20px;
@@ -1826,11 +1796,11 @@ pre {
     align-items: center;
 }
 
-.modal-header h2 {
-    margin: 0;
-    color: #fff;
-    font-size: 18px;
-}
+    .modal-header h2 {
+        margin: 0;
+        color: #fff;
+        font-size: 18px;
+    }
 
 .modal-body {
     padding: 20px;
@@ -1845,10 +1815,10 @@ pre {
     align-items: center;
 }
 
-.api-key-input input {
-    flex: 1;
-    padding-right: 40px;
-}
+    .api-key-input input {
+        flex: 1;
+        padding-right: 40px;
+    }
 
 .toggle-password {
     position: absolute;
@@ -1862,9 +1832,9 @@ pre {
     transition: color 0.2s;
 }
 
-.toggle-password:hover {
-    color: #fff;
-}
+    .toggle-password:hover {
+        color: #fff;
+    }
 
 /* 修改模型列表中显示API Key的样式 */
 .model-info {
@@ -1898,6 +1868,23 @@ pre {
     border-radius: 4px;
 }
 
-.modal-body::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+.context-menu-item.rename {
+    position: relative;
+    padding-left: 35px;
 }
+
+    .context-menu-item.rename::before {
+        content: "✏️";
+        position: absolute;
+        left: 12px;
+        opacity: 0.9;
+    }
+
+    .context-menu-item.rename:hover {
+        background-color: #094771;
+        color: #ffffff;
+    }

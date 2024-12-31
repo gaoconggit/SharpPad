@@ -14,15 +14,19 @@ export class OutputPanel {
         this.isResizing = false;
         this.startY = 0;
         this.startHeight = 0;
+        this.rafId = null;
 
         this.initializeEventListeners();
     }
 
     initializeEventListeners() {
         // 调整大小事件
-        this.outputPanel.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        const resizeHandle = this.outputPanel.querySelector('.resize-handle');
+        resizeHandle.addEventListener('mousedown', this.handleMouseDown.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        // 防止调整大小时选择文本
+        document.addEventListener('selectstart', this.handleSelectStart.bind(this));
 
         // 工具栏按钮事件
         this.toggleOutput.addEventListener('click', () => {
@@ -50,6 +54,11 @@ export class OutputPanel {
 
     handleMouseDown(e) {
         if (!e.target.classList.contains('resize-handle')) return;
+        
+        // 如果输出面板处于收起状态，不允许调整大小
+        if (this.outputPanel.classList.contains('collapsed')) {
+            return;
+        }
 
         this.isResizing = true;
         this.startY = e.clientY;
@@ -62,19 +71,47 @@ export class OutputPanel {
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
-        const height = this.startHeight - (e.clientY - this.startY);
-        if (height >= 100 && height <= window.innerHeight * 0.6) {
-            this.outputPanel.style.height = `${height}px`;
-            this.container.style.marginBottom = `${height}px`;
-            layoutEditor();
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
         }
+
+        this.rafId = requestAnimationFrame(() => {
+            const delta = e.clientY - this.startY;
+            const newHeight = Math.min(Math.max(this.startHeight - delta, 100), window.innerHeight * 0.8);
+
+            this.outputPanel.style.height = `${newHeight}px`;
+
+            // 批量更新其他元素的高度
+            const fileList = document.getElementById('fileList');
+            const container = document.getElementById('container');
+            const chatPanel = document.getElementById('chatPanel');
+
+            const remainingHeight = `calc(100vh - ${newHeight}px)`;
+            fileList.style.height = remainingHeight;
+            container.style.height = remainingHeight;
+            chatPanel.style.height = remainingHeight;
+
+            layoutEditor();
+        });
     }
 
     handleMouseUp() {
+        if (!this.isResizing) return;
+
+        this.isResizing = false;
+        this.outputPanel.classList.remove('resizing');
+        document.documentElement.style.cursor = '';
+
+        // 取消任何待处理的动画帧
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
+    }
+
+    handleSelectStart(e) {
         if (this.isResizing) {
-            this.isResizing = false;
-            this.outputPanel.classList.remove('resizing');
-            document.documentElement.style.cursor = '';
+            e.preventDefault();
         }
     }
 

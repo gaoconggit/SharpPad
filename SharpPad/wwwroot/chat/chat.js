@@ -1,4 +1,5 @@
 import { layoutEditor } from '../utils/common.js';
+import { fileListResizer } from '../fileSystem/fileListResizer.js';
 
 export class ChatManager {
     constructor() {
@@ -54,19 +55,14 @@ export class ChatManager {
         this.toggleChat.addEventListener('click', () => {
             this.chatPanel.style.display = 'none';
             this.minimizedChatButton.style.display = 'block';
-            this.container.style.marginRight = '0';
-            this.container.style.width = 'calc(100% - 290px)';
-            layoutEditor();
+            fileListResizer.updateContainerWidth();
         });
 
         // 恢复聊天窗口
         this.minimizedChatButton.querySelector('.restore-chat').addEventListener('click', () => {
             this.chatPanel.style.display = 'flex';
             this.minimizedChatButton.style.display = 'none';
-            const width = parseInt(getComputedStyle(this.chatPanel).width, 10);
-            this.container.style.marginRight = `${width}px`;
-            this.container.style.width = `calc(100% - 290px - ${width}px)`;
-            layoutEditor();
+            fileListResizer.updateContainerWidth();
         });
 
         //模型设置
