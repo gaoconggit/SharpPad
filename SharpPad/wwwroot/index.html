@@ -10,13 +10,13 @@
     <link rel="stylesheet" href="all.min.css">
 </head>
 
-<body onload="loadFileList()">
+<body>
     <div id="fileList" style="overflow: auto; max-width: 800px; width: 290px;">
         <div class="file-list-header">
-            <input type="text" id="fileFilter" placeholder="搜索文件..." onkeyup="filterFiles(this.value)">
+            <input type="text" id="fileFilter" placeholder="搜索文件...">
             <div style="display: flex; gap: 5px;">
-                <button onclick="addFolder()" id="addFolderBtn" title="新建文件夹">📁</button>
-                <button onclick="addFile()" id="addFileBtn" title="新建文件">+</button>
+                <button id="addFolderBtn" title="新建文件夹">📁</button>
+                <button id="addFileBtn" title="新建文件">+</button>
             </div>
         </div>
         <ul id="fileListItems">
@@ -237,9 +237,8 @@
     <!-- 引入 highlight.js 的 JavaScript -->
     <script src="./markdown/highlight.min.js"></script>
 
-    <script src="csharpLanguageProvider.js"></script>
-    <script src="monaco-editor/min/vs/loader.js"></script>
-    <script src="index.js"></script>
-    <script src="chat/chat.js"></script>
+    <script type="module" src="csharpLanguageProvider.js"></script>
+    <script type="module" src="index.js"></script>
+    <script type="module" src="chat/chat.js"></script>
 </body>
 </html>

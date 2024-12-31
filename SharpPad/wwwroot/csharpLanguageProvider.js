@@ -1,55 +1,8 @@
-﻿async function sendRequest(type, request) {
-    let endPoint;
-    switch (type) {
-        case 'complete': endPoint = '/completion/complete'; break;
-        case 'signature': endPoint = '/completion/signature'; break;
-        case 'hover': endPoint = '/completion/hover'; break;
-        case 'codeCheck': endPoint = '/completion/codeCheck'; break;
-        case 'format': endPoint = '/completion/format'; break;
-        case 'run': endPoint = '/completion/run'; break;
-        case 'addPackages': endPoint = '/completion/addPackages'; break;
-    }
+﻿import { getCurrentFile } from './utils/common.js';
+import { sendRequest } from './utils/apiService.js';
 
-    // 延迟超过1秒后才显示加载中样式
-    const notification = document.getElementById('notification');
-    const showNotificationDelay = 1000; // 1 second
-    let showNotificationTimer = setTimeout(() => {
-        notification.textContent = '处理中...';
-        notification.style.backgroundColor = 'rgba(33, 150, 243, 0.9)';
-        notification.style.display = 'block';
-    }, showNotificationDelay);
-
-    try {
-        if (type === 'run') {
-            // 使用 POST 请求发送代码和包信息
-            const response = await fetch(endPoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(request)
-            });
-
-            return {
-                reader: response.body.getReader(),
-                showNotificationTimer
-            };
-        } else {
-            const response = await axios.post(endPoint, JSON.stringify(request));
-            clearTimeout(showNotificationTimer);
-            notification.style.display = 'none';
-            return response;
-        }
-    } catch (error) {
-        clearTimeout(showNotificationTimer);
-        notification.textContent = '请求失败: ' + error.message;
-        notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
-        notification.style.display = 'block';
-        throw error;
-    }
-}
-
-function registerCsharpProvider() {
+export function registerCsharpProvider() {
+    monaco.languages.register({ id: 'csharp' });
 
     monaco.languages.registerCompletionItemProvider('csharp', {
         triggerCharacters: [".", " "],
@@ -68,29 +21,30 @@ function registerCsharpProvider() {
                 }))
             }
 
-            let resultQ = await sendRequest("complete", request);
-
-            for (let elem of resultQ.data) {
-                suggestions.push({
-                    label: {
-                        label: elem.Suggestion,
-                        description: elem.Description
-                    },
-                    kind: monaco.languages.CompletionItemKind.Function,
-                    insertText: elem.Suggestion
-                });
+            try {
+                const { data } = await sendRequest("complete", request);
+                for (let elem of data) {
+                    suggestions.push({
+                        label: {
+                            label: elem.Suggestion,
+                            description: elem.Description
+                        },
+                        kind: monaco.languages.CompletionItemKind.Function,
+                        insertText: elem.Suggestion
+                    });
+                }
+            } catch (error) {
+                console.error('Completion error:', error);
             }
 
-            return { suggestions: suggestions };
+            return { suggestions };
         }
     });
 
     monaco.languages.registerSignatureHelpProvider('csharp', {
         signatureHelpTriggerCharacters: ["("],
         signatureHelpRetriggerCharacters: [","],
-
-        provideSignatureHelp: async (model, position, token, context) => {
-
+        provideSignatureHelp: async (model, position) => {
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
 
@@ -103,42 +57,46 @@ function registerCsharpProvider() {
                 }))
             }
 
-            let resultQ = await sendRequest("signature", request);
-            if (!resultQ.data) return;
+            try {
+                const { data } = await sendRequest("signature", request);
+                if (!data) return;
 
-            let signatures = [];
-            for (let signature of resultQ.data.Signatures) {
-                let params = [];
-                for (let param of signature.Parameters) {
-                    params.push({
-                        label: param.Label,
-                        documentation: param.Documentation ?? ""
+                let signatures = [];
+                for (let signature of data.Signatures) {
+                    let params = [];
+                    for (let param of signature.Parameters) {
+                        params.push({
+                            label: param.Label,
+                            documentation: param.Documentation ?? ""
+                        });
+                    }
+
+                    signatures.push({
+                        label: signature.Label,
+                        documentation: signature.Documentation ?? "",
+                        parameters: params,
                     });
                 }
 
-                signatures.push({
-                    label: signature.Label,
-                    documentation: signature.Documentation ?? "",
-                    parameters: params,
-                });
+                let signatureHelp = {
+                    signatures,
+                    activeParameter: data.ActiveParameter,
+                    activeSignature: data.ActiveSignature
+                };
+
+                return {
+                    value: signatureHelp,
+                    dispose: () => { }
+                };
+            } catch (error) {
+                console.error('Signature help error:', error);
+                return null;
             }
-
-            let signatureHelp = {};
-            signatureHelp.signatures = signatures;
-            signatureHelp.activeParameter = resultQ.data.ActiveParameter;
-            signatureHelp.activeSignature = resultQ.data.ActiveSignature;
-
-            return {
-                value: signatureHelp,
-                dispose: () => { }
-            };
         }
     });
 
-
     monaco.languages.registerHoverProvider('csharp', {
         provideHover: async function (model, position) {
-
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
 
@@ -151,27 +109,28 @@ function registerCsharpProvider() {
                 }))
             }
 
-            let resultQ = await sendRequest("hover", request);
+            try {
+                const { data } = await sendRequest("hover", request);
+                if (!data) return null;
 
-            if (resultQ.data) {
-                posStart = model.getPositionAt(resultQ.data.OffsetFrom);
-                posEnd = model.getPositionAt(resultQ.data.OffsetTo);
+                const posStart = model.getPositionAt(data.OffsetFrom);
+                const posEnd = model.getPositionAt(data.OffsetTo);
 
                 return {
                     range: new monaco.Range(posStart.lineNumber, posStart.column, posEnd.lineNumber, posEnd.column),
                     contents: [
-                        { value: resultQ.data.Information }
+                        { value: data.Information }
                     ]
                 };
+            } catch (error) {
+                console.error('Hover error:', error);
+                return null;
             }
-
-            return null;
         }
     });
 
     monaco.editor.onDidCreateModel(function (model) {
         async function validate() {
-
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
 
@@ -183,28 +142,31 @@ function registerCsharpProvider() {
                 }))
             }
 
-            let resultQ = await sendRequest("codeCheck", request)
+            try {
+                const { data } = await sendRequest("codeCheck", request);
+                let markers = [];
 
-            let markers = [];
+                for (let elem of data) {
+                    const posStart = model.getPositionAt(elem.OffsetFrom);
+                    const posEnd = model.getPositionAt(elem.OffsetTo);
+                    markers.push({
+                        severity: elem.Severity,
+                        startLineNumber: posStart.lineNumber,
+                        startColumn: posStart.column,
+                        endLineNumber: posEnd.lineNumber,
+                        endColumn: posEnd.column,
+                        message: elem.Message,
+                        code: elem.Id
+                    });
+                }
 
-            for (let elem of resultQ.data) {
-                posStart = model.getPositionAt(elem.OffsetFrom);
-                posEnd = model.getPositionAt(elem.OffsetTo);
-                markers.push({
-                    severity: elem.Severity,
-                    startLineNumber: posStart.lineNumber,
-                    startColumn: posStart.column,
-                    endLineNumber: posEnd.lineNumber,
-                    endColumn: posEnd.column,
-                    message: elem.Message,
-                    code: elem.Id
-                });
+                monaco.editor.setModelMarkers(model, 'csharp', markers);
+            } catch (error) {
+                console.error('Validation error:', error);
             }
-
-            monaco.editor.setModelMarkers(model, 'csharp', markers);
         }
 
-        var handle = null;
+        let handle = null;
         model.onDidChangeContent(() => {
             monaco.editor.setModelMarkers(model, 'csharp', []);
             clearTimeout(handle);
@@ -214,69 +176,26 @@ function registerCsharpProvider() {
     });
 
     monaco.languages.registerDocumentFormattingEditProvider('csharp', {
-        provideDocumentFormattingEdits: async function (model, options, token) {
-            var sourceCode = model.getValue();
+        async provideDocumentFormattingEdits(model) {
+            try {
+                const sourceCode = model.getValue();
+                const { data } = await sendRequest('format', {
+                    Code: sourceCode
+                });
 
-            let request = {
-                SourceCode: sourceCode
+                return [{
+                    range: {
+                        startLineNumber: 1,
+                        startColumn: 1,
+                        endLineNumber: model.getLineCount(),
+                        endColumn: model.getLineMaxColumn(model.getLineCount())
+                    },
+                    text: data.data
+                }];
+            } catch (error) {
+                console.error('Format error:', error);
+                return [];
             }
-
-            let formated = await sendRequest("format", request)
-
-            //给出格式化后的代码
-            return [{
-                range: model.getFullModelRange(),
-                text: formated.data.data
-            }];
         }
     });
-
-    /*monaco.languages.registerInlayHintsProvider('csharp', {
-        displayName: 'test',
-        provideInlayHints(model, range, token) {
-            return {
-                hints: [
-                    {
-                        label: "Test",
-                        tooltip: "Tooltip",
-                        position: { lineNumber: 3, column: 2},
-                        kind: 2
-                    }
-                ],
-                dispose: () => { }
-            };
-        }
-
-    });*/
-
-    /*monaco.languages.registerCodeActionProvider("csharp", {
-        provideCodeActions: async (model, range, context, token) => {
-            const actions = context.markers.map(error => {
-                console.log(context, error);
-                return {
-                    title: `Example quick fix`,
-                    diagnostics: [error],
-                    kind: "quickfix",
-                    edit: {
-                        edits: [
-                            {
-                                resource: model.uri,
-                                edits: [
-                                    {
-                                        range: error,
-                                        text: "This text replaces the text with the error"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    isPreferred: true
-                };
-            });
-            return {
-                actions: actions,
-                dispose: () => { }
-            }
-        }
-    });*/
 }
