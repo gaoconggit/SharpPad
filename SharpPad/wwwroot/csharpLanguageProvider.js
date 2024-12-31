@@ -180,7 +180,7 @@ export function registerCsharpProvider() {
             try {
                 const sourceCode = model.getValue();
                 const { data } = await sendRequest('format', {
-                    Code: sourceCode
+                    SourceCode: sourceCode
                 });
 
                 return [{
