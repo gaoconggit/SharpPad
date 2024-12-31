@@ -25,26 +25,13 @@ body {
     will-change: width, height;
 }
 
-    #fileList:hover {
-        border-right-color: #444;
-    }
+#fileList:hover {
+    border-right-color: #444;
+}
 
-    #fileList.resizing {
-        transition: none !important;
-        border-right: 2px solid #0078d4;
-    }
-
-#container {
-    width: calc(100% - 290px - 500px);
-    margin-left: 290px;
-    margin-right: 500px;
-    position: fixed;
-    top: 0;
-    height: calc(100vh - 200px);
-    right: 0;
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: width, margin-left, height;
-    padding-top: 50px;
+#fileList.resizing {
+    transition: none !important;
+    border-right: 2px solid #0078d4;
 }
 
 .button-container {
@@ -56,30 +43,30 @@ body {
     z-index: 1000;
 }
 
-    .button-container button {
-        pointer-events: auto;
-        padding: 6px 16px;
-        font-size: 14px;
-        cursor: pointer;
-        border: none;
-        background-color: #2d2d2d;
-        color: white;
-        border-radius: 5px;
-        transition: background-color 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        height: 28px;
-    }
+.button-container button {
+    pointer-events: auto;
+    padding: 6px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    background-color: #2d2d2d;
+    color: white;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+}
 
-        .button-container button:hover {
-            background-color: #404040;
-        }
+.button-container button:hover {
+    background-color: #404040;
+}
 
-        .button-container button::before {
-            content: "▶";
-            font-size: 12px;
-        }
+.button-container button::before {
+    content: "▶";
+    font-size: 12px;
+}
 
 ul {
     list-style: none;
@@ -97,9 +84,9 @@ a {
     transition: color 0.3s;
 }
 
-    a:hover {
-        color: #0056b3;
-    }
+a:hover {
+    color: #0056b3;
+}
 
 .notification {
     position: fixed;
@@ -140,9 +127,9 @@ a {
     outline: none;
 }
 
-    #fileFilter:focus {
-        border-color: #007fd4;
-    }
+#fileFilter:focus {
+    border-color: #007fd4;
+}
 
 #addFileBtn {
     background-color: #444;
@@ -165,76 +152,76 @@ a {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-    #addFileBtn::before {
-        content: "";
-        display: block;
-        width: 14px;
-        height: 14px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
-        background-size: contain;
-        background-repeat: no-repeat;
-        opacity: 0.9;
-    }
+#addFileBtn::before {
+    content: "";
+    display: block;
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.9;
+}
 
-    #addFileBtn:hover {
-        opacity: 1;
-        background-image: linear-gradient(to bottom right, #2962ff, #1976d2);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
+#addFileBtn:hover {
+    opacity: 1;
+    background-image: linear-gradient(to bottom right, #2962ff, #1976d2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
 
-    #addFileBtn:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        background-image: linear-gradient(to bottom right, #1565c0, #0d47a1);
-    }
+#addFileBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background-image: linear-gradient(to bottom right, #1565c0, #0d47a1);
+}
 
 #fileListItems {
     position: relative;
     padding-top: 10px;
 }
 
-    #fileListItems li {
-        margin-bottom: 2px;
-    }
+#fileListItems li {
+    margin-bottom: 2px;
+}
 
-    #fileListItems a {
-        text-decoration: none;
-        color: #ffffff;
-        transition: all 0.2s;
-        display: block;
-        padding: 6px 10px;
-        border-radius: 3px;
-        background-color: transparent;
-        font-size: 13px;
-        position: relative;
-        opacity: 0.8;
-        cursor: move;
-    }
+#fileListItems a {
+    text-decoration: none;
+    color: #ffffff;
+    transition: all 0.2s;
+    display: block;
+    padding: 6px 10px;
+    border-radius: 3px;
+    background-color: transparent;
+    font-size: 13px;
+    position: relative;
+    opacity: 0.8;
+    cursor: move;
+}
 
-        #fileListItems a:hover {
-            color: #fff;
-            background-color: #37373d;
-            opacity: 1;
-        }
+#fileListItems a:hover {
+    color: #fff;
+    background-color: #37373d;
+    opacity: 1;
+}
 
-        #fileListItems a.selected {
-            background-color: #37373d;
-            color: #fff;
-            opacity: 1;
-            font-weight: 500;
-        }
+#fileListItems a.selected {
+    background-color: #37373d;
+    color: #fff;
+    opacity: 1;
+    font-weight: 500;
+}
 
-        #fileListItems a::before {
-            content: "📄";
-            margin-right: 5px;
-            opacity: 0.7;
-        }
+#fileListItems a::before {
+    content: "📄";
+    margin-right: 5px;
+    opacity: 0.7;
+}
 
-        #fileListItems a:hover::before,
-        #fileListItems a.selected::before {
-            opacity: 1;
-        }
+#fileListItems a:hover::before,
+#fileListItems a.selected::before {
+    opacity: 1;
+}
 
 #outputPanel {
     position: fixed;
@@ -254,21 +241,21 @@ a {
     will-change: height;
 }
 
-    #outputPanel .resize-handle {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 10px;
-        cursor: ns-resize;
-        background: transparent;
-        z-index: 1001;
-    }
+#outputPanel .resize-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    cursor: ns-resize;
+    background: transparent;
+    z-index: 1001;
+}
 
-    #outputPanel.resizing {
-        transition: none !important;
-        border-top: 2px solid #0078d4;
-    }
+#outputPanel.resizing {
+    transition: none !important;
+    border-top: 2px solid #0078d4;
+}
 
 .output-header {
     padding: 10px 14px;
@@ -302,32 +289,32 @@ a {
     justify-content: center;
 }
 
-    #toggleOutput:hover {
-        opacity: 1;
-        background-color: #505050;
-    }
+#toggleOutput:hover {
+    opacity: 1;
+    background-color: #505050;
+}
 
-    #toggleOutput::before {
-        content: "▼";
-        font-size: 10px;
-        transition: transform 0.3s;
-    }
+#toggleOutput::before {
+    content: "▼";
+    font-size: 10px;
+    transition: transform 0.3s;
+}
 
-    #toggleOutput.collapsed::before {
-        transform: rotate(-90deg);
-    }
+#toggleOutput.collapsed::before {
+    transform: rotate(-90deg);
+}
 
 #outputPanel.collapsed {
     display: none !important;
 }
 
-    #outputPanel.collapsed ~ #fileList {
-        height: 100vh !important;
-    }
+#outputPanel.collapsed~#fileList {
+    height: 100vh !important;
+}
 
-    #outputPanel.collapsed ~ #container {
-        height: 100vh !important;
-    }
+#outputPanel.collapsed~#container {
+    height: 100vh !important;
+}
 
 #clearOutput {
     background-color: #444;
@@ -343,9 +330,9 @@ a {
     min-width: 50px;
 }
 
-    #clearOutput:hover {
-        opacity: 1;
-    }
+#clearOutput:hover {
+    opacity: 1;
+}
 
 #copyOutput {
     background-color: #444;
@@ -358,9 +345,9 @@ a {
     opacity: 0.7;
 }
 
-    #copyOutput:hover {
-        opacity: 1;
-    }
+#copyOutput:hover {
+    opacity: 1;
+}
 
 #outputContent {
     flex: 1;
@@ -381,12 +368,12 @@ a {
     user-drag: none;
 }
 
-    #outputContent * {
-        -webkit-user-drag: none;
-        -moz-user-drag: none;
-        -ms-user-drag: none;
-        user-drag: none;
-    }
+#outputContent * {
+    -webkit-user-drag: none;
+    -moz-user-drag: none;
+    -ms-user-drag: none;
+    user-drag: none;
+}
 
 .output-success {
     color: #4caf50;
@@ -423,9 +410,9 @@ a {
     min-width: 50px;
 }
 
-    #formatOutput:hover {
-        opacity: 1;
-    }
+#formatOutput:hover {
+    opacity: 1;
+}
 
 .file-list-header {
     display: flex;
@@ -446,10 +433,10 @@ a {
     white-space: nowrap;
 }
 
-    #addFileBtn:hover {
-        opacity: 1;
-        background-color: #094771;
-    }
+#addFileBtn:hover {
+    opacity: 1;
+    background-color: #094771;
+}
 
 .context-menu {
     position: fixed;
@@ -469,27 +456,27 @@ a {
     font-size: 15px;
 }
 
-    .context-menu-item:hover {
-        background-color: #094771;
-    }
+.context-menu-item:hover {
+    background-color: #094771;
+}
 
-    .context-menu-item.delete {
-        color: #ff4444;
-        position: relative;
-        padding-left: 35px;
-    }
+.context-menu-item.delete {
+    color: #ff4444;
+    position: relative;
+    padding-left: 35px;
+}
 
-        .context-menu-item.delete::before {
-            content: "🗑";
-            position: absolute;
-            left: 12px;
-            opacity: 0.9;
-        }
+.context-menu-item.delete::before {
+    content: "🗑";
+    position: absolute;
+    left: 12px;
+    opacity: 0.9;
+}
 
-        .context-menu-item.delete:hover {
-            background-color: #ff44441f;
-            color: #ff6666;
-        }
+.context-menu-item.delete:hover {
+    background-color: #ff44441f;
+    color: #ff6666;
+}
 
 .folder {
     margin-bottom: 5px;
@@ -508,29 +495,29 @@ a {
     text-align: left;
 }
 
-    .folder-header:hover {
-        background-color: #37373d;
-        opacity: 1;
-    }
+.folder-header:hover {
+    background-color: #37373d;
+    opacity: 1;
+}
 
-    .folder-header::before {
-        content: "📁";
-        margin-right: 5px;
-        opacity: 0.7;
-    }
+.folder-header::before {
+    content: "📁";
+    margin-right: 5px;
+    opacity: 0.7;
+}
 
-    .folder-header.open::before {
-        content: "📂";
-    }
+.folder-header.open::before {
+    content: "📂";
+}
 
 .folder-content {
     margin-left: 20px;
     display: none;
 }
 
-    .folder-content.open {
-        display: block;
-    }
+.folder-content.open {
+    display: block;
+}
 
 #addFolderBtn {
     background-color: #444;
@@ -553,17 +540,17 @@ a {
     background-color: #094771;
 }
 
-    .folder-header.drag-over::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        border: 2px dashed #2979ff;
-        border-radius: 3px;
-        pointer-events: none;
-    }
+.folder-header.drag-over::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border: 2px dashed #2979ff;
+    border-radius: 3px;
+    pointer-events: none;
+}
 
 
 
@@ -579,70 +566,9 @@ a {
     z-index: 1001;
 }
 
-    .file-list-resize-handle:hover,
-    .file-list-resize-handle.resizing {
-        background-color: transparent;
-    }
-
-#container {
-    width: calc(100% - 290px);
-    margin-left: 290px;
-    position: absolute;
-    top: 0;
-    height: calc(100vh - 200px);
-    right: 0;
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: width, margin-left, height;
-}
-
-#fullscreenButton {
-    position: absolute !important;
-    top: 10px !important;
-    right: 10px !important;
-    z-index: 1000;
-    width: 32px !important;
-    height: 32px !important;
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 4px !important;
-    background-color: #2d2d2d !important;
-    color: #fff !important;
-    font-size: 18px !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    opacity: 0.7 !important;
-    transition: all 0.2s ease !important;
-}
-
-    #fullscreenButton::before {
-        content: none;
-        /* 移除运行按钮的箭头图标 */
-    }
-
-    #fullscreenButton.fullscreen-exit {
-        font-size: 24px;
-        color: white;
-        line-height: 1;
-    }
-
-        #fullscreenButton.fullscreen-exit::after {
-            content: '⮌';
-            display: inline-block;
-        }
-
-    #fullscreenButton::after {
-        content: '⛶';
-        display: inline-block;
-    }
-
-/* 修改全屏时 fileList 的样式 */
-.fullscreen-editor ~ #fileList {
-    display: none !important;
-    pointer-events: none !important;
-    position: fixed !important;
-    z-index: -1 !important;
+.file-list-resize-handle:hover,
+.file-list-resize-handle.resizing {
+    background-color: transparent;
 }
 
 .dragging {
@@ -690,9 +616,9 @@ a {
     line-height: 1;
 }
 
-    .sort-button:hover {
-        color: #2979ff;
-    }
+.sort-button:hover {
+    color: #2979ff;
+}
 
 .folder-header {
     display: flex;
@@ -740,11 +666,11 @@ a {
     align-items: center;
 }
 
-    .modal-header h2 {
-        margin: 0;
-        color: #fff;
-        font-size: 18px;
-    }
+.modal-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
 
 .close-button {
     background: none;
@@ -756,9 +682,9 @@ a {
     line-height: 1;
 }
 
-    .close-button:hover {
-        color: #fff;
-    }
+.close-button:hover {
+    color: #fff;
+}
 
 .modal-body {
     padding: 20px;
@@ -772,29 +698,29 @@ a {
     margin-bottom: 20px;
 }
 
-    .nuget-search input {
-        flex: 1;
-        padding: 8px 12px;
-        background-color: #3c3c3c;
-        border: 1px solid #555;
-        border-radius: 4px;
-        color: #fff;
-        font-size: 14px;
-    }
+.nuget-search input {
+    flex: 1;
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+}
 
-    .nuget-search button {
-        padding: 8px 16px;
-        background-color: #0078d4;
-        border: none;
-        border-radius: 4px;
-        color: #fff;
-        cursor: pointer;
-        font-size: 14px;
-    }
+.nuget-search button {
+    padding: 8px 16px;
+    background-color: #0078d4;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+}
 
-        .nuget-search button:hover {
-            background-color: #106ebe;
-        }
+.nuget-search button:hover {
+    background-color: #106ebe;
+}
 
 .nuget-results {
     margin-bottom: 20px;
@@ -808,22 +734,22 @@ a {
     background-color: #2d2d2d;
 }
 
-    .package-item h3 {
-        margin: 0 0 8px 0;
-        color: #fff;
-        font-size: 16px;
-    }
+.package-item h3 {
+    margin: 0 0 8px 0;
+    color: #fff;
+    font-size: 16px;
+}
 
-    .package-item p {
-        margin: 0 0 8px 0;
-        color: #ccc;
-        font-size: 14px;
-    }
+.package-item p {
+    margin: 0 0 8px 0;
+    color: #ccc;
+    font-size: 14px;
+}
 
-    .package-item .version {
-        color: #0078d4;
-        font-size: 13px;
-    }
+.package-item .version {
+    color: #0078d4;
+    font-size: 13px;
+}
 
 .package-actions {
     margin-top: 10px;
@@ -831,31 +757,31 @@ a {
     gap: 10px;
 }
 
-    .package-actions button {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 3px;
-        font-size: 13px;
-        cursor: pointer;
-    }
+.package-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+}
 
 .install-button {
     background-color: #13a10e;
     color: #fff;
 }
 
-    .install-button:hover {
-        background-color: #16c60c;
-    }
+.install-button:hover {
+    background-color: #16c60c;
+}
 
 .remove-button {
     background-color: #d83b01;
     color: #fff;
 }
 
-    .remove-button:hover {
-        background-color: #f03f03;
-    }
+.remove-button:hover {
+    background-color: #f03f03;
+}
 
 #nugetBtn {
     background-color: #444;
@@ -874,10 +800,10 @@ a {
     justify-content: center;
 }
 
-    #nugetBtn:hover {
-        opacity: 1;
-        background-color: #094771;
-    }
+#nugetBtn:hover {
+    opacity: 1;
+    background-color: #094771;
+}
 
 /* NuGet Configuration Styles */
 .nuget-config-section {
@@ -887,11 +813,11 @@ a {
     border-radius: 4px;
 }
 
-    .nuget-config-section h3 {
-        margin: 0 0 15px 0;
-        color: #fff;
-        font-size: 16px;
-    }
+.nuget-config-section h3 {
+    margin: 0 0 15px 0;
+    color: #fff;
+    font-size: 16px;
+}
 
 .package-references {
     margin-bottom: 15px;
@@ -943,9 +869,9 @@ a {
     transition: background-color 0.2s;
 }
 
-    .add-package-button:hover {
-        background-color: #16c60c;
-    }
+.add-package-button:hover {
+    background-color: #16c60c;
+}
 
 .config-form {
     display: flex;
@@ -959,27 +885,27 @@ a {
     gap: 8px;
 }
 
-    .form-group label {
-        color: #fff;
-        font-size: 14px;
-    }
+.form-group label {
+    color: #fff;
+    font-size: 14px;
+}
 
-    .form-group input,
-    .form-group select {
-        padding: 8px 12px;
-        background-color: #3c3c3c;
-        border: 1px solid #555;
-        border-radius: 4px;
-        color: #fff;
-        font-size: 14px;
-        width: 100%;
-    }
+.form-group input,
+.form-group select {
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+    width: 100%;
+}
 
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #0078d4;
-        }
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #0078d4;
+}
 
 .modal-footer {
     padding: 15px 20px;
@@ -1000,9 +926,9 @@ a {
     transition: background-color 0.2s;
 }
 
-    .save-button:hover {
-        background-color: #106ebe;
-    }
+.save-button:hover {
+    background-color: #106ebe;
+}
 
 .package-reference .remove-button {
     padding: 6px 12px;
@@ -1014,9 +940,9 @@ a {
     font-size: 13px;
 }
 
-    .package-reference .remove-button:hover {
-        background-color: #f03f03;
-    }
+.package-reference .remove-button:hover {
+    background-color: #f03f03;
+}
 
 #outputContent::-webkit-scrollbar {
     width: 10px;
@@ -1031,51 +957,51 @@ a {
     border-radius: 0;
 }
 
-    #outputContent::-webkit-scrollbar-thumb:hover {
-        background: #4f4f4f;
-    }
+#outputContent::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
+}
 
 
 .result-streaming {
     position: relative;
 }
 
-    .result-streaming p {
-        display: inline;
-    }
+.result-streaming p {
+    display: inline;
+}
 
-    /* 移除所有默认的光标 */
-    .result-streaming *::after {
-        display: none;
-    }
+/* 移除所有默认的光标 */
+.result-streaming *::after {
+    display: none;
+}
 
-    /* 只有当最后一个元素是纯文本时才在容器层面显示光标 */
-    .result-streaming:not(:has(pre:last-child, ul:last-child, ol:last-child))::after {
-        content: "▋";
-        margin-left: .25rem;
-        vertical-align: baseline;
-        animation: cursor-blink 1s infinite;
-        display: inline-block;
-    }
+/* 只有当最后一个元素是纯文本时才在容器层面显示光标 */
+.result-streaming:not(:has(pre:last-child, ul:last-child, ol:last-child))::after {
+    content: "▋";
+    margin-left: .25rem;
+    vertical-align: baseline;
+    animation: cursor-blink 1s infinite;
+    display: inline-block;
+}
 
-    /* 代块的光标 */
-    .result-streaming > pre:last-child code::after {
-        content: "▋";
-        margin-left: .25rem;
-        vertical-align: baseline;
-        animation: cursor-blink 1s infinite;
-        display: inline-block;
-    }
+/* 代块的光标 */
+.result-streaming>pre:last-child code::after {
+    content: "▋";
+    margin-left: .25rem;
+    vertical-align: baseline;
+    animation: cursor-blink 1s infinite;
+    display: inline-block;
+}
 
-    /* 列表的光标 */
-    .result-streaming > ul:last-child > li:last-child::after,
-    .result-streaming > ol:last-child > li:last-child::after {
-        content: "▋";
-        margin-left: .25rem;
-        vertical-align: baseline;
-        animation: cursor-blink 1s infinite;
-        display: inline-block;
-    }
+/* 列表的光标 */
+.result-streaming>ul:last-child>li:last-child::after,
+.result-streaming>ol:last-child>li:last-child::after {
+    content: "▋";
+    margin-left: .25rem;
+    vertical-align: baseline;
+    animation: cursor-blink 1s infinite;
+    display: inline-block;
+}
 
 @keyframes cursor-blink {
     0% {
@@ -1118,14 +1044,14 @@ pre {
     border-radius: 0;
 }
 
-    #fileList::-webkit-scrollbar-thumb:hover {
-        background: #4f4f4f;
-    }
+#fileList::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
+}
 
 /* 调整大小时禁用过渡效果 */
 #outputPanel.resizing,
-#outputPanel.resizing ~ #fileList,
-#outputPanel.resizing ~ #container {
+#outputPanel.resizing~#fileList,
+#outputPanel.resizing~#container {
     transition: none !important;
 }
 
@@ -1141,7 +1067,7 @@ pre {
     display: none;
 }
 
-#outputPanel.collapsed ~ .minimized-output-button {
+#outputPanel.collapsed~.minimized-output-button {
     display: block;
 }
 
@@ -1162,19 +1088,19 @@ pre {
     padding: 0;
 }
 
-    .minimized-output-button .icon-button:hover {
-        background: #404040;
-        opacity: 1;
-        transform: translateY(-1px);
-    }
+.minimized-output-button .icon-button:hover {
+    background: #404040;
+    opacity: 1;
+    transform: translateY(-1px);
+}
 
-    .minimized-output-button .icon-button:active {
-        transform: translateY(0);
-    }
+.minimized-output-button .icon-button:active {
+    transform: translateY(0);
+}
 
 /* 调整大小时禁用过渡效果 */
 #fileList.resizing,
-#fileList.resizing ~ #container {
+#fileList.resizing~#container {
     transition: none !important;
 }
 
@@ -1218,11 +1144,11 @@ pre {
     transition: none !important;
 }
 
-    /* 调整时禁用过渡效果 */
-    #fileList.resizing,
-    #fileList.resizing ~ #container {
-        transition: none !important;
-    }
+/* 调整时禁用过渡效果 */
+#fileList.resizing,
+#fileList.resizing~#container {
+    transition: none !important;
+}
 
 /* Chat Panel */
 #chatPanel {
@@ -1270,10 +1196,10 @@ pre {
     transition: all 0.2s;
 }
 
-    #modelSelect:hover {
-        border-color: #666;
-        background: #444;
-    }
+#modelSelect:hover {
+    border-color: #666;
+    background: #444;
+}
 
 #clearChat {
     background-color: #444;
@@ -1290,10 +1216,10 @@ pre {
     gap: 4px;
 }
 
-    #clearChat:hover {
-        opacity: 1;
-        background-color: #505050;
-    }
+#clearChat:hover {
+    opacity: 1;
+    background-color: #505050;
+}
 
 #toggleChat {
     background-color: #444;
@@ -1312,16 +1238,16 @@ pre {
     justify-content: center;
 }
 
-    #toggleChat:hover {
-        opacity: 1;
-        background-color: #505050;
-    }
+#toggleChat:hover {
+    opacity: 1;
+    background-color: #505050;
+}
 
-    #toggleChat::before {
-        content: "▼";
-        font-size: 10px;
-        transition: transform 0.3s;
-    }
+#toggleChat::before {
+    content: "▼";
+    font-size: 10px;
+    transition: transform 0.3s;
+}
 
 .chat-messages {
     flex: 1;
@@ -1347,9 +1273,9 @@ pre {
     transition: transform 0.2s;
 }
 
-    .chat-message:hover {
-        transform: translateY(-1px);
-    }
+.chat-message:hover {
+    transform: translateY(-1px);
+}
 
 .user-message {
     background: linear-gradient(135deg, #2b579a, #1e3d6b);
@@ -1387,15 +1313,15 @@ pre {
     transition: all 0.2s;
 }
 
-    #chatInput:hover {
-        border-color: #666;
-    }
+#chatInput:hover {
+    border-color: #666;
+}
 
-    #chatInput:focus {
-        outline: none;
-        border-color: #0078d4;
-        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-    }
+#chatInput:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
 
 #sendMessage {
     padding: 10px 20px;
@@ -1413,14 +1339,14 @@ pre {
     justify-content: center;
 }
 
-    #sendMessage:hover {
-        background: linear-gradient(135deg, #0086ec, #0078d4);
-        transform: translateY(-1px);
-    }
+#sendMessage:hover {
+    background: linear-gradient(135deg, #0086ec, #0078d4);
+    transform: translateY(-1px);
+}
 
-    #sendMessage:active {
-        transform: translateY(0);
-    }
+#sendMessage:active {
+    transform: translateY(0);
+}
 
 .minimized-chat-button {
     position: fixed;
@@ -1430,33 +1356,33 @@ pre {
     z-index: 1000;
 }
 
-    .minimized-chat-button .icon-button {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px 0 0 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #2d2d2d;
-        border: 1px solid #444;
-        border-right: none;
-        cursor: pointer;
-        color: #fff;
-        font-size: 14px;
-        opacity: 0.8;
-        transition: all 0.2s;
-        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
-    }
+.minimized-chat-button .icon-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px 0 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    border-right: none;
+    cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+}
 
-        .minimized-chat-button .icon-button:hover {
-            background: #404040;
-            opacity: 1;
-            transform: translateX(-2px);
-        }
+.minimized-chat-button .icon-button:hover {
+    background: #404040;
+    opacity: 1;
+    transform: translateX(-2px);
+}
 
-        .minimized-chat-button .icon-button:active {
-            transform: translateX(0);
-        }
+.minimized-chat-button .icon-button:active {
+    transform: translateX(0);
+}
 
 /* 调整 resize-handle 样式 */
 #chatPanel .resize-handle {
@@ -1470,35 +1396,35 @@ pre {
     z-index: 1001;
 }
 
-    #chatPanel .resize-handle:hover {
-        background: rgba(0, 120, 212, 0.2);
-    }
+#chatPanel .resize-handle:hover {
+    background: rgba(0, 120, 212, 0.2);
+}
 
 #chatPanel.resizing {
     transition: none !important;
     border-left: 2px solid #0078d4;
 }
 
-    #chatPanel.resizing .resize-handle {
-        background: rgba(0, 120, 212, 0.3);
-    }
+#chatPanel.resizing .resize-handle {
+    background: rgba(0, 120, 212, 0.3);
+}
 
-    #chatPanel.resizing::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #0078d4;
-        z-index: 1002;
-    }
+#chatPanel.resizing::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #0078d4;
+    z-index: 1002;
+}
 
 /* 调整编辑器容器的宽度计算 */
 #container {
-    width: calc(100% - 290px - 500px);
+    width: calc(100% - 290px - 520px);
     margin-left: 290px;
-    margin-right: 500px;
+    margin-right: 520px;
     position: fixed;
     top: 0;
     height: calc(100vh - 200px);
@@ -1507,7 +1433,7 @@ pre {
 }
 
 /* 调整大小时禁用过渡效果 */
-#chatPanel.resizing ~ #container {
+#chatPanel.resizing~#container {
     transition: none !important;
 }
 
@@ -1525,24 +1451,12 @@ pre {
     border-radius: 4px;
 }
 
-    .chat-messages::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
-/* 调整编辑器容器的宽度计算 */
-#container {
-    width: calc(100% - 290px - 500px);
-    margin-left: 290px;
-    margin-right: 500px;
-    position: fixed;
-    top: 0;
-    height: calc(100vh - 200px);
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: width, margin-left, margin-right;
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 /* 调整大小时禁用过渡效果 */
-#chatPanel.resizing ~ #container {
+#chatPanel.resizing~#container {
     transition: none !important;
 }
 
@@ -1606,26 +1520,26 @@ pre {
     transition: none !important;
 }
 
-    /* 调整时禁用过渡效果 */
-    #fileList.resizing,
-    #fileList.resizing ~ #container,
-    #outputPanel.resizing,
-    #outputPanel.resizing ~ #fileList,
-    #outputPanel.resizing ~ #container,
-    #chatPanel.resizing,
-    #chatPanel.resizing ~ #container {
-        transition: none !important;
-    }
+/* 调整时禁用过渡效果 */
+#fileList.resizing,
+#fileList.resizing~#container,
+#outputPanel.resizing,
+#outputPanel.resizing~#fileList,
+#outputPanel.resizing~#container,
+#chatPanel.resizing,
+#chatPanel.resizing~#container {
+    transition: none !important;
+}
 
-        /* 移除所有hover效果 */
-        .file-list-resize-handle:hover,
-        .file-list-resize-handle.resizing,
-        #outputPanel .resize-handle:hover,
-        #outputPanel.resizing .resize-handle,
-        #chatPanel .resize-handle:hover,
-        #chatPanel.resizing .resize-handle {
-            background: transparent;
-        }
+/* 移除所有hover效果 */
+.file-list-resize-handle:hover,
+.file-list-resize-handle.resizing,
+#outputPanel .resize-handle:hover,
+#outputPanel.resizing .resize-handle,
+#chatPanel .resize-handle:hover,
+#chatPanel.resizing .resize-handle {
+    background: transparent;
+}
 
 /* 模型设置按钮 */
 #modelSettingsBtn {
@@ -1645,10 +1559,10 @@ pre {
     justify-content: center;
 }
 
-    #modelSettingsBtn:hover {
-        opacity: 1;
-        background-color: #505050;
-    }
+#modelSettingsBtn:hover {
+    opacity: 1;
+    background-color: #505050;
+}
 
 /* 模型设置对话框 */
 .model-settings {
@@ -1659,11 +1573,11 @@ pre {
     margin-bottom: 16px;
 }
 
-    .model-list-header h3 {
-        margin: 0;
-        color: #fff;
-        font-size: 16px;
-    }
+.model-list-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 16px;
+}
 
 .add-model-button {
     padding: 8px 16px;
@@ -1676,9 +1590,9 @@ pre {
     transition: background-color 0.2s;
 }
 
-    .add-model-button:hover {
-        background-color: #106ebe;
-    }
+.add-model-button:hover {
+    background-color: #106ebe;
+}
 
 #modelList {
     display: flex;
@@ -1730,45 +1644,45 @@ pre {
     color: #fff;
 }
 
-    .edit-model:hover {
-        background-color: #106ebe;
-    }
+.edit-model:hover {
+    background-color: #106ebe;
+}
 
 .delete-model {
     background-color: #d83b01;
     color: #fff;
 }
 
-    .delete-model:hover {
-        background-color: #f03f03;
-    }
+.delete-model:hover {
+    background-color: #f03f03;
+}
 
 /* 表单样式 */
 .form-group {
     margin-bottom: 16px;
 }
 
-    .form-group:last-child {
-        margin-bottom: 0;
-    }
+.form-group:last-child {
+    margin-bottom: 0;
+}
 
-    .form-group label {
-        display: block;
-        margin-bottom: 6px;
-        color: #fff;
-        font-size: 13px;
-    }
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #fff;
+    font-size: 13px;
+}
 
-    .form-group input {
-        width: 100%;
-        padding: 8px 12px;
-        background-color: #3c3c3c;
-        border: 1px solid #555;
-        border-radius: 4px;
-        color: #fff;
-        font-size: 13px;
-        box-sizing: border-box;
-    }
+.form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    box-sizing: border-box;
+}
 
 .form-actions {
     margin-top: 20px;
@@ -1796,11 +1710,11 @@ pre {
     align-items: center;
 }
 
-    .modal-header h2 {
-        margin: 0;
-        color: #fff;
-        font-size: 18px;
-    }
+.modal-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
 
 .modal-body {
     padding: 20px;
@@ -1815,10 +1729,10 @@ pre {
     align-items: center;
 }
 
-    .api-key-input input {
-        flex: 1;
-        padding-right: 40px;
-    }
+.api-key-input input {
+    flex: 1;
+    padding-right: 40px;
+}
 
 .toggle-password {
     position: absolute;
@@ -1832,9 +1746,9 @@ pre {
     transition: color 0.2s;
 }
 
-    .toggle-password:hover {
-        color: #fff;
-    }
+.toggle-password:hover {
+    color: #fff;
+}
 
 /* 修改模型列表中显示API Key的样式 */
 .model-info {
@@ -1868,57 +1782,60 @@ pre {
     border-radius: 4px;
 }
 
-    .modal-body::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 
 .context-menu-item.rename {
     position: relative;
     padding-left: 35px;
 }
 
-    .context-menu-item.rename::before {
-        content: "✏️";
-        position: absolute;
-        left: 12px;
-        opacity: 0.9;
-    }
+.context-menu-item.rename::before {
+    content: "✏️";
+    position: absolute;
+    left: 12px;
+    opacity: 0.9;
+}
 
-    .context-menu-item.rename:hover {
-        background-color: #094771;
-        color: #ffffff;
-    }
+.context-menu-item.rename:hover {
+    background-color: #094771;
+    color: #ffffff;
+}
 
-    .hljs {
-        position: relative;
-        padding-top: 25px;
-    }
-    .lang-label {
-        position: absolute;
-        top: 0;
-        left: 0;
-        padding: 2px 8px;
-        font-size: 12px;
-        color: #001080;
-        background: #ffffff;
-        border-bottom: 1px solid #d4d4d4;
-        border-right: 1px solid #d4d4d4;
-        border-radius: 0 0 4px 0;
-    }
-    .copy-button {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        padding: 4px 8px;
-        background: #ffffff;
-        border: 1px solid #d4d4d4;
-        border-radius: 3px;
-        cursor: pointer;
-        opacity: 1;
-        color: #001080;
-        font-family: Consolas, monospace;
-    }
-    .copy-button:hover {
-        background: #f0f0f0;
-        border-color: #007acc;
-    }
+.hljs {
+    position: relative;
+    padding-top: 25px;
+}
+
+.lang-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: #001080;
+    background: #ffffff;
+    border-bottom: 1px solid #d4d4d4;
+    border-right: 1px solid #d4d4d4;
+    border-radius: 0 0 4px 0;
+}
+
+.copy-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 4px 8px;
+    background: #ffffff;
+    border: 1px solid #d4d4d4;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 1;
+    color: #001080;
+    font-family: Consolas, monospace;
+}
+
+.copy-button:hover {
+    background: #f0f0f0;
+    border-color: #007acc;
+}
