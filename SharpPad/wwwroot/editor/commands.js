@@ -16,6 +16,14 @@ export class EditorCommands {
             }
         );
 
+        // 保存代码 (Ctrl+S)
+        this.editor.addCommand(
+            monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+            () => {
+                window.fileManager.saveCode(this.editor.getValue());
+            }
+        );
+
         // 运行代码 (Ctrl+Enter)
         this.editor.addCommand(
             monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,

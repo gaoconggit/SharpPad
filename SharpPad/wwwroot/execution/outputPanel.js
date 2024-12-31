@@ -1,4 +1,4 @@
-import { layoutEditor } from '../utils/common.js';
+import { layoutEditor, showNotification } from '../utils/common.js';
 
 export class OutputPanel {
     constructor() {
@@ -139,25 +139,15 @@ export class OutputPanel {
     async copyOutputContent() {
         try {
             await navigator.clipboard.writeText(this.outputContent.textContent);
-            this.showNotification('已复制到剪贴板', 'success');
+            showNotification('已复制到剪贴板', 'success');
         } catch (error) {
             console.error('Copy error:', error);
-            this.showNotification('复制失败', 'error');
+            showNotification('复制失败', 'error');
         }
     }
 
     clearOutputContent() {
         this.outputContent.innerHTML = '';
         this.outputContent.className = '';
-    }
-
-    showNotification(message, type = 'info') {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.backgroundColor = type === 'success' ? 'rgba(76, 175, 80, 0.9)' : 'rgba(244, 67, 54, 0.9)';
-        notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 2000);
     }
 } 
