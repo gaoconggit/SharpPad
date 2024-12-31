@@ -65,4 +65,10 @@
 	  <Folder Include="wwwroot\markdown\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Content Update="wwwroot\favicon.ico">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
 </Project>
