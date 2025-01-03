@@ -1,6 +1,6 @@
 // Monaco Editor 配置
 const monacoConfig = {
-    paths: { 
+    paths: {
         'vs': 'monaco-editor/min/vs'
     }
 };
@@ -51,11 +51,11 @@ async function initializeApp() {
     window.addFolderToFolder = (parentFolderId) => fileManager.addFolderToFolder(parentFolderId);
     window.exportFolder = () => fileManager.exportFolder();
     window.importFolder = () => fileManager.importFolder();
-    
+
     // NuGet 相关的全局函数
     window.GetCurrentFiles = () => JSON.parse(localStorage.getItem('controllerFiles') || '[]');
     window.sendRequest = sendRequest;  // 暴露 sendRequest 到全局作用域
-    
+
     window.loadNuGetConfig = async (file) => {
         try {
             // Load package references
@@ -167,19 +167,19 @@ async function initializeApp() {
             showNotification('保存 NuGet 配置失败', 'error');
         }
     };
-    
+
     window.closeNuGetConfigDialog = () => {
         const dialog = document.getElementById('nugetConfigDialog');
         dialog.style.display = 'none';
         window.currentFileId = null;
     };
-    
+
     window.getCurrentFile = () => {
         const fileId = window.currentFileId;
         if (!fileId) return null;
-        
+
         const files = window.GetCurrentFiles();
-        
+
         function findFile(items) {
             for (let item of items) {
                 if (item.id === fileId) {
@@ -192,7 +192,7 @@ async function initializeApp() {
             }
             return null;
         }
-        
+
         return findFile(files);
     };
 
@@ -340,19 +340,45 @@ async function initializeApp() {
             window.loadNuGetConfig(file);
         }
     };
-    
+
+    window.copyCode = function copyCode(button) {
+        // 获取代码块内容
+        const codeBlock = button.previousElementSibling;
+
+        // 创建临时元素来获取纯文本
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = codeBlock.innerHTML;
+        // 移除语言标签和复制按钮
+        const langLabel = tempDiv.querySelector('.lang-label');
+        if (langLabel) langLabel.remove();
+        const copyBtn = tempDiv.querySelector('.copy-button');
+        if (copyBtn) copyBtn.remove();
+        // 获取处理后的纯代码文本
+        const code = tempDiv.textContent.trim();
+
+        navigator.clipboard.writeText(code).then(() => {
+            const originalText = button.textContent;
+            button.textContent = '已复制!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败:', err);
+        });
+    };
+
     fileManager.loadFileList();
 
     // 等待 Monaco Editor 加载完成
     await loadMonaco();
-    
+
     // 注册C#语言支持
     registerCsharpProvider();
 
     // 初始化编辑器
     const editorInstance = new Editor();
     const editor = editorInstance.initialize('container');
-    
+
     // 注册编辑器命令
     const commands = new EditorCommands(editor);
     commands.registerCommands();
