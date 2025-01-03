@@ -1297,11 +1297,15 @@ pre {
     display: flex;
     gap: 12px;
     background: #2d2d2d;
+    position: relative;
+    will-change: border-color;
 }
 
 #chatInput {
     flex: 1;
     resize: none;
+    max-height: 500px;
+    min-height: 60px;
     padding: 12px;
     border: 1px solid #444;
     border-radius: 8px;
@@ -1310,17 +1314,28 @@ pre {
     font-family: inherit;
     font-size: 14px;
     line-height: 1.5;
-    transition: all 0.2s;
+    will-change: height;
+    transition: height 0.05s ease-out;
 }
 
-#chatInput:hover {
-    border-color: #666;
+.chat-input-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10px;
+    top: -5px;
+    cursor: ns-resize;
+    background: transparent;
+    z-index: 1001;
 }
 
-#chatInput:focus {
-    outline: none;
-    border-color: #0078d4;
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+.chat-input-area.resizing {
+    border-top: 2px solid #0078d4;
+    transition: none !important;
+}
+
+.chat-input-area.resizing #chatInput {
+    transition: none !important;
 }
 
 #sendMessage {

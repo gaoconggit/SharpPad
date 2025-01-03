@@ -16,6 +16,9 @@ export class ChatManager {
         this.isResizing = false;
         this.startX = 0;
         this.startWidth = 0;
+        this.isInputResizing = false;
+        this.startY = 0;
+        this.startHeight = 0;
 
         this.initializeEventListeners();
         this.loadChatHistory();
@@ -33,6 +36,12 @@ export class ChatManager {
         this.chatPanel.addEventListener('mousedown', this.handleMouseDown.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+
+        // 聊天输入框大小调整
+        const resizeHandle = document.querySelector('.chat-input-resize-handle');
+        resizeHandle.addEventListener('mousedown', this.handleInputResizeStart.bind(this));
+        document.addEventListener('mousemove', this.handleInputResize.bind(this));
+        document.addEventListener('mouseup', this.handleInputResizeEnd.bind(this));
 
         // 聊天输入监听
         this.chatInput.addEventListener('keypress', async (e) => {
@@ -518,6 +527,39 @@ export class ChatManager {
 
         this.updateModelList();
         this.updateModelSelect();
+    }
+
+    handleInputResizeStart(e) {
+        this.isInputResizing = true;
+        this.startY = e.clientY;
+        this.startHeight = this.chatInput.offsetHeight;
+        document.querySelector('.chat-input-area').classList.add('resizing');
+        e.preventDefault();
+    }
+
+    handleInputResize(e) {
+        if (!this.isInputResizing) return;
+
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+        }
+
+        this.rafId = requestAnimationFrame(() => {
+            const delta = this.startY - e.clientY;
+            const newHeight = Math.min(Math.max(this.startHeight + delta, 60), 500);
+            this.chatInput.style.height = `${newHeight}px`;
+        });
+    }
+
+    handleInputResizeEnd() {
+        if (this.isInputResizing) {
+            this.isInputResizing = false;
+            document.querySelector('.chat-input-area').classList.remove('resizing');
+            if (this.rafId) {
+                cancelAnimationFrame(this.rafId);
+                this.rafId = null;
+            }
+        }
     }
 }
 
