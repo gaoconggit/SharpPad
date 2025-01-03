@@ -33,6 +33,14 @@ export class OutputPanel {
             this.outputPanel.style.display = 'none';
             this.minimizedOutputButton.style.display = 'block';
             this.container.style.marginBottom = '0';
+            
+            // 调整其他面板的高度
+            const fileList = document.getElementById('fileList');
+            const chatPanel = document.getElementById('chatPanel');
+            fileList.style.height = '100vh';
+            this.container.style.height = '100vh';
+            chatPanel.style.height = '100vh';
+            
             layoutEditor();
         });
 
@@ -41,6 +49,15 @@ export class OutputPanel {
             this.minimizedOutputButton.style.display = 'none';
             const height = parseInt(getComputedStyle(this.outputPanel).height, 10);
             this.container.style.marginBottom = `${height}px`;
+            
+            // 恢复其他面板的高度
+            const fileList = document.getElementById('fileList');
+            const chatPanel = document.getElementById('chatPanel');
+            const remainingHeight = `calc(100vh - ${height}px)`;
+            fileList.style.height = remainingHeight;
+            this.container.style.height = remainingHeight;
+            chatPanel.style.height = remainingHeight;
+            
             layoutEditor();
         });
 
