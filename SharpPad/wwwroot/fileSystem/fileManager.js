@@ -124,15 +124,6 @@ class FileManager {
                 const files = JSON.parse(filesData);
                 this.displayFileList(files);
                 this.restoreExpandedFolders(expandedFolders); // 恢复展开状态
-
-                // 加载当前文件
-                const currentFileId = localStorage.getItem('currentFileId');
-                if (currentFileId) {
-                    const currentFile = this.findFileById(files, currentFileId);
-                    if (currentFile) {
-                        this.openFile(currentFile);
-                    }
-                }
             } catch (error) {
                 console.error('Error parsing files from localStorage:', error);
             }
@@ -149,15 +140,6 @@ class FileManager {
             const element = this.createFileElement(file);
             this.fileListItems.appendChild(element);
         });
-
-        // 高亮当前文件
-        const currentFileId = localStorage.getItem('currentFileId');
-        if (currentFileId) {
-            const currentLink = this.fileListItems.querySelector(`a[data-file-id="${currentFileId}"]`);
-            if (currentLink) {
-                currentLink.classList.add('selected');
-            }
-        }
     }
 
     createFileElement(file) {
@@ -405,13 +387,11 @@ class FileManager {
             fileLink.classList.add('selected');
         }
 
-        // 更新编辑器内容
+        // 从localStorage获取最新的文件内容并更新编辑器
         if (window.editor) {
-            window.editor.setValue(file.content || '');
+            const fileContent = localStorage.getItem(`file_${file.id}`);
+            window.editor.setValue(fileContent || file.content || '');
         }
-
-        // 保存当前文件ID
-        localStorage.setItem('currentFileId', file.id);
     }
 
     showContextMenu(e, file) {
@@ -471,10 +451,9 @@ class Program
             localStorage.setItem('controllerFiles', JSON.stringify(files));
             this.loadFileList();
 
-            // 如果删除的是当前文件，清空编辑器
-            const currentFileId = localStorage.getItem('currentFileId');
-            if (currentFileId === file.id) {
-                localStorage.removeItem('currentFileId');
+            // 如果删除的是当前选中的文件，清空编辑器
+            const selectedFileElement = document.querySelector('#fileListItems a.selected');
+            if (selectedFileElement?.getAttribute('data-file-id') === file.id) {
                 if (window.editor) {
                     window.editor.setValue('');
                 }
@@ -1134,31 +1113,50 @@ class Program
 
     saveCode(code) {
         try {
-            const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
+            const selectedFileElement = document.querySelector('#fileListItems a.selected');
+            const fileId = selectedFileElement?.getAttribute('data-file-id');
+            
+            // 如果没有选择文件，提示用户先选择或创建新文件
             if (!fileId) {
+                const createNew = confirm('没有选择文件。是否要创建新文件？');
+                if (!createNew) {
+                    showNotification('请先选择一个文件', 'warning');
+                    return;
+                }
+                
                 const newFileId = this.generateUUID();
-                const fileName = prompt('请输入文件名称：', 'New File');
-                if (!fileName) return;
+                const fileName = prompt('请输入文件名称：', 'New File.cs');
+                if (!fileName) {
+                    showNotification('取消创建新文件', 'info');
+                    return;
+                }
+                
                 const newFile = {
                     id: newFileId,
                     name: fileName,
-                    type: 'file',
-                    content: code
+                    content: code,
+                    nugetConfig: {
+                        packages: []
+                    }
                 };
+                
                 const filesData = localStorage.getItem('controllerFiles');
                 const files = filesData ? JSON.parse(filesData) : [];
                 files.push(newFile);
                 localStorage.setItem('controllerFiles', JSON.stringify(files));
-                // 保存到 file localStorage
                 localStorage.setItem(`file_${newFileId}`, code);
+                
                 this.loadFileList();
-
-                // 选中这个新文件
-                const fileListItems = document.getElementById('fileListItems');
-                const newFileElement = fileListItems.querySelector(`[data-file-id="${newFileId}"]`);
-                if (newFileElement) {
-                    newFileElement.classList.add('selected');
-                }
+                
+                // 选中新创建的文件
+                setTimeout(() => {
+                    const newFileElement = document.querySelector(`[data-file-id="${newFileId}"]`);
+                    if (newFileElement) {
+                        newFileElement.classList.add('selected');
+                    }
+                }, 0);
+                
+                showNotification('新文件创建成功', 'success');
                 return;
             }
 
