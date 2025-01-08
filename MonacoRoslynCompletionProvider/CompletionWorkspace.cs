@@ -56,7 +56,8 @@ namespace MonacoRoslynCompletionProvider
                 MetadataReference.CreateFromFile(Assembly.Load("Microsoft.Net.Http.Headers, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60").Location),
                 MetadataReference.CreateFromFile(Assembly.Load("System.Security.Cryptography, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location),
                 MetadataReference.CreateFromFile(Assembly.Load("Microsoft.AspNetCore.Http").Location),
-                MetadataReference.CreateFromFile(typeof(ObjectExtengsion).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(ObjectExtengsion).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location)
             };
 
         private Project _project;
