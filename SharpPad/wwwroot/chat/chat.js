@@ -198,27 +198,24 @@ export class ChatManager {
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${role}-message`;
 
-        if (role === 'user') {
-            messageDiv.textContent = content;
-        } else {
-            const md = window.markdownit({
-                highlight: function (str, lang) {
-                    if (lang && window.hljs.getLanguage(lang)) {
-                        try {
-                            const highlighted = window.hljs.highlight(str, { language: lang }).value;
-                            return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                        } catch (_) {
-                            return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                        }
-                    } else {
-                        const detected = window.hljs.highlightAuto(str);
-                        const lang = detected.language || 'text';
-                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+        const md = window.markdownit({
+            breaks: true,
+            highlight: function (str, lang) {
+                if (lang && window.hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = window.hljs.highlight(str, { language: lang }).value;
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    } catch (_) {
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${md.utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                     }
+                } else {
+                    const detected = window.hljs.highlightAuto(str);
+                    const lang = detected.language || 'text';
+                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 }
-            });
-            messageDiv.innerHTML = md.render(content);
-        }
+            }
+        });
+        messageDiv.innerHTML = md.render(content);
         this.chatMessages.appendChild(messageDiv);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
