@@ -1,4 +1,4 @@
-import { layoutEditor } from '../utils/common.js';
+import { layoutEditor, showNotification } from '../utils/common.js';
 import { fileListResizer } from '../fileSystem/fileListResizer.js';
 
 export class ChatManager {
@@ -65,7 +65,7 @@ export class ChatManager {
             if (confirm('确定要清除所有聊天记录吗？此操作不可恢复。')) {
                 this.chatMessages.innerHTML = '';
                 this.saveChatHistory([]);
-                this.showNotification('聊天记录已清除', 'success');
+                showNotification('聊天记录已清除', 'success');
             }
         });
 
