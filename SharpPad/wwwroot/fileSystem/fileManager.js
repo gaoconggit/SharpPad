@@ -3,8 +3,24 @@ import { showNotification } from '../utils/common.js';
 
 class FileManager {
     constructor() {
+        // 如果已经存在实例，则返回该实例
+        if (FileManager.instance) {
+            return FileManager.instance;
+        }
+
+        // 如果不存在实例，则创建新实例
+        FileManager.instance = this;
+        
         this.fileListItems = document.getElementById('fileListItems');
         this.initializeEventListeners();
+    }
+
+    // 获取单例实例的静态方法
+    static getInstance() {
+        if (!FileManager.instance) {
+            FileManager.instance = new FileManager();
+        }
+        return FileManager.instance;
     }
 
     initializeEventListeners() {
@@ -313,7 +329,14 @@ class FileManager {
 
         files.push(newFolder);
         localStorage.setItem('controllerFiles', JSON.stringify(files));
+        
+        // 保存当前展开的文件夹，并添加新文件夹
+        const expandedFolders = this.saveExpandedFolders();
+        expandedFolders.push(newFolder.id);
+        
+        // 刷新文件列表并恢复展开状态
         this.loadFileList();
+        this.restoreExpandedFolders(expandedFolders);
     }
 
     showFolderContextMenu(e, folder) {
