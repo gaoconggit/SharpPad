@@ -648,7 +648,7 @@ a:hover {
 .modal-content {
     background-color: #252526;
     position: absolute;
-    top: 20%;
+    top: 35%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 500px;

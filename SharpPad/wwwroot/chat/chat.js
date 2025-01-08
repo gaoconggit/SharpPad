@@ -511,6 +511,13 @@ export class ChatManager {
         this.updateModelList();
         this.updateModelSelect();
         window.closeAddModel();
+
+        //清空输入框
+        document.getElementById('addModelName').value = '';
+        document.getElementById('addModelId').value = '';
+        document.getElementById('addModelEndpoint').value = '';
+        document.getElementById('addApiKey').value = '';
+        document.getElementById('addSystemPrompt').value = '';
     }
 
     deleteModel(modelId, showConfirm = true) {
