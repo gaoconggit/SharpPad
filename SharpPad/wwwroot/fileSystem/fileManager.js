@@ -375,7 +375,7 @@ class FileManager {
                     this.loadFileList();
                     this.restoreExpandedFolders(expandedFolders);
                     
-                    this.showNotification('重命名成功', 'success');
+                    showNotification('重命名成功', 'success');
                     return true;
                 }
                 if (item.type === 'folder' && item.files) {
@@ -529,7 +529,7 @@ class Program
                         document.querySelector(`[data-file-id="${fileId}"]`)?.classList.add('selected');
                     }, 0);
 
-                    this.showNotification('重命名成功', 'success');
+                    showNotification('重命名成功', 'success');
                     return true;
                 }
                 if (items[i].type === 'folder' && items[i].files) {
@@ -962,10 +962,9 @@ class Program
                                     targetArray.push(subFolder);
                                     getFilesContent(file, subFolder.files);
                                 } else {
-                                    const fileContent = localStorage.getItem(`file_${file.id}`);
                                     targetArray.push({
                                         name: file.name,
-                                        content: fileContent,
+                                        content: file.content,
                                         nugetConfig: file.nugetConfig
                                     });
                                 }
@@ -987,7 +986,7 @@ class Program
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
 
-                    this.showNotification('文件夹已导出', 'success');
+                    showNotification('文件夹已导出', 'success');
                     return true;
                 }
                 if (item.type === 'folder' && item.files) {
