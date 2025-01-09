@@ -9,23 +9,20 @@
 1. 下载 release 包
 2. 解压后,找到 SharpPad.exe 双击运行
 3. 浏览器打开控制台显示的ip:port
+
+## 示例代码参考
+  https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
+ ![image](https://github.com/user-attachments/assets/6df73f74-5f14-4f98-8842-3828b35e4580)
+ ### 快速导入:
+   1. 下载配置 [参考代码](https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/KingOfTool.json)
+   2. 在sharpPad上创建一个目录
+   3. 在目录中按右键,选择导入 KingOfTool.json
    
 ## 开发向导
  #### 开发环境 建议 vs 2022 + net8.0
 1. git clone 代码仓库
 2. 在 Visual Studio 中启动 SharpPad 项目。
 3. 使用 `Ctrl + Enter` 运行 "Hello World"。
-
-
-## 示例代码参考
-  https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
- ![image](https://github.com/user-attachments/assets/6df73f74-5f14-4f98-8842-3828b35e4580)
- 快速导入:
-   1. 下载配置 [参考代码](https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/KingOfTool.json)
-   2. 在sharpPad上创建一个目录
-   3. 在目录中按右键,选择导入 KingOfTool.json
-
-
 
 ## 快捷键
 
