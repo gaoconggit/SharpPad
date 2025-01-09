@@ -20,8 +20,10 @@
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
  ![image](https://github.com/user-attachments/assets/6df73f74-5f14-4f98-8842-3828b35e4580)
- 导入 KingOfTool 参考代码
-   
+ 快速导入:
+   1. 下载配置 [参考代码](https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/KingOfTool.json)
+   2. 在sharpPad上创建一个目录
+   3. 在目录中按右键,选择导入 KingOfTool.json
 
 
 
