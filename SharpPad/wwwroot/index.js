@@ -51,6 +51,7 @@ async function initializeApp() {
     window.addFolderToFolder = (parentFolderId) => fileManager.addFolderToFolder(parentFolderId);
     window.exportFolder = () => fileManager.exportFolder();
     window.importFolder = () => fileManager.importFolder();
+    window.showOnlyCurrentFolder = (folderId) => fileManager.showOnlyCurrentFolder(folderId);
 
     // NuGet 相关的全局函数
     window.GetCurrentFiles = () => JSON.parse(localStorage.getItem('controllerFiles') || '[]');

@@ -10,7 +10,7 @@ class FileManager {
 
         // 如果不存在实例，则创建新实例
         FileManager.instance = this;
-        
+
         this.fileListItems = document.getElementById('fileListItems');
         this.initializeEventListeners();
     }
@@ -150,7 +150,7 @@ class FileManager {
 
     displayFileList(files) {
         if (!this.fileListItems) return;
-        
+
         this.fileListItems.innerHTML = '';
         files.forEach(file => {
             const element = this.createFileElement(file);
@@ -329,11 +329,11 @@ class FileManager {
 
         files.push(newFolder);
         localStorage.setItem('controllerFiles', JSON.stringify(files));
-        
+
         // 保存当前展开的文件夹，并添加新文件夹
         const expandedFolders = this.saveExpandedFolders();
         expandedFolders.push(newFolder.id);
-        
+
         // 刷新文件列表并恢复展开状态
         this.loadFileList();
         this.restoreExpandedFolders(expandedFolders);
@@ -367,14 +367,14 @@ class FileManager {
 
                     item.name = newFolderName;
                     localStorage.setItem('controllerFiles', JSON.stringify(files));
-                    
+
                     // 保存当前展开的文件夹状态
                     const expandedFolders = this.saveExpandedFolders();
-                    
+
                     // 刷新文件列表并恢复展开状态
                     this.loadFileList();
                     this.restoreExpandedFolders(expandedFolders);
-                    
+
                     showNotification('重命名成功', 'success');
                     return true;
                 }
@@ -544,10 +544,10 @@ class Program
 
     initializeContextMenu() {
         const menu = document.getElementById('fileContextMenu');
-        
+
         // 绑定删除事件
         menu.querySelector('.delete').addEventListener('click', () => this.deleteFile());
-        
+
         // 绑定重命名事件
         menu.querySelector('.rename').addEventListener('click', () => this.renameFile());
 
@@ -596,7 +596,7 @@ class Program
     }
 
     generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             const r = Math.random() * 16 | 0;
             const v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
@@ -785,7 +785,7 @@ class Program
         // 显示对话框
         const dialog = document.getElementById('nugetConfigDialog');
         dialog.style.display = 'block';
-        
+
         // 如果存在loadNuGetConfig函数，则调用它
         if (typeof window.loadNuGetConfig === 'function') {
             window.loadNuGetConfig(file);
@@ -1104,11 +1104,11 @@ class Program
         try {
             // 保存到 localStorage
             localStorage.setItem(`file_${fileId}`, code);
-            
+
             // 保存到文件列表
             const filesData = localStorage.getItem('controllerFiles');
             const files = filesData ? JSON.parse(filesData) : [];
-            
+
             const updateFileContent = (files, targetId, newCode) => {
                 for (const file of files) {
                     if (file.id === targetId) {
@@ -1120,10 +1120,10 @@ class Program
                     }
                 }
             };
-            
+
             updateFileContent(files, fileId, code);
             localStorage.setItem('controllerFiles', JSON.stringify(files));
-            
+
             showNotification('保存成功', 'success');
             return true;
         } catch (error) {
@@ -1137,7 +1137,7 @@ class Program
         try {
             const selectedFileElement = document.querySelector('#fileListItems a.selected');
             const fileId = selectedFileElement?.getAttribute('data-file-id');
-            
+
             // 如果没有选择文件，提示用户先选择或创建新文件
             if (!fileId) {
                 const createNew = confirm('没有选择文件。是否要创建新文件？');
@@ -1145,14 +1145,14 @@ class Program
                     showNotification('请先选择一个文件', 'warning');
                     return;
                 }
-                
+
                 const newFileId = this.generateUUID();
                 const fileName = prompt('请输入文件名称：', 'New File.cs');
                 if (!fileName) {
                     showNotification('取消创建新文件', 'info');
                     return;
                 }
-                
+
                 const newFile = {
                     id: newFileId,
                     name: fileName,
@@ -1161,15 +1161,15 @@ class Program
                         packages: []
                     }
                 };
-                
+
                 const filesData = localStorage.getItem('controllerFiles');
                 const files = filesData ? JSON.parse(filesData) : [];
                 files.push(newFile);
                 localStorage.setItem('controllerFiles', JSON.stringify(files));
                 localStorage.setItem(`file_${newFileId}`, code);
-                
+
                 this.loadFileList();
-                
+
                 // 选中新创建的文件
                 setTimeout(() => {
                     const newFileElement = document.querySelector(`[data-file-id="${newFileId}"]`);
@@ -1177,7 +1177,7 @@ class Program
                         newFileElement.classList.add('selected');
                     }
                 }, 0);
-                
+
                 showNotification('新文件创建成功', 'success');
                 return;
             }
@@ -1189,6 +1189,50 @@ class Program
             showNotification('保存失败: ' + error.message, 'error');
         }
     }
+
+    showOnlyCurrentFolder(folderId) {
+        // 获取 ul 元素
+        var ulElement = document.getElementById('fileListItems');
+
+        // 获取所有 ul 下的直接子 li 元素
+        var liElements = ulElement.children;
+
+        // 需要检查的 data-folder-header 值
+        var targetFolderHeaderId = folderId;
+
+        // 遍历 li 元素
+        for (var i = 0; i < liElements.length; i++) {
+            var li = liElements[i];
+            var folderHeader = li.querySelector('.folder-header');
+
+            // 检查当前 li 是否符合条件
+            if (folderHeader && folderHeader.getAttribute('data-folder-header') === targetFolderHeaderId) {
+                // 符合条件的 li 显示
+                li.style.display = '';
+            } else {
+                // 不符合条件的 li 隐藏
+                li.style.display = 'none';
+            }
+        }
+
+        const menu = document.getElementById('folderContextMenu');
+        menu.style.display = 'none';
+
+        // 展开当前文件夹
+        const content = document.querySelector(`[data-folder-content="${folderId}"]`);
+        const header = document.querySelector(`[data-folder-header="${folderId}"]`);
+        if (content && header) {
+            content.classList.add('open');
+            header.classList.add('open');
+            
+            // 展开所有子文件夹
+            // const subFolders = content.querySelectorAll('.folder-content, .folder-header');
+            // subFolders.forEach(element => {
+            //     element.classList.add('open');
+            // });
+        }
+    }
+
 }
 
 export { FileManager }; 

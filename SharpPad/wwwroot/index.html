@@ -99,6 +99,7 @@
         <div class="context-menu-item" onclick="duplicateFolder()">复制</div>
         <div class="context-menu-item" onclick="exportFolder()">导出</div>
         <div class="context-menu-item" onclick="importFolder()">导入</div>
+        <div class="context-menu-item" onclick="showOnlyCurrentFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">隐藏其它</div>
         <div class="context-menu-item delete" onclick="deleteFolder()">删除</div>
     </div>
     <div id="rootContextMenu" class="context-menu" style="display: none;">
