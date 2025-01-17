@@ -1,5 +1,5 @@
 // 文件系统管理模块
-import { showNotification } from '../utils/common.js';
+import { showNotification, DEFAULT_CODE } from '../utils/common.js';
 
 class FileManager {
     constructor() {
@@ -431,19 +431,7 @@ class FileManager {
         const newFile = {
             id: Date.now().toString(),
             name: 'New File.cs',
-            content: `using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-
-class Program
-{
-    public static async Task Main()
-    {
-         Console.WriteLine("Hello, World!");
-    }
-}`,
+            content: DEFAULT_CODE,
             nugetConfig: {
                 packages: []
             }
@@ -816,19 +804,7 @@ class Program
         const newFile = {
             id: this.generateUUID(),
             name: fileName,
-            content: `using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-
-class Program
-{
-    public static async Task Main()
-    {
-        Console.WriteLine("Hello, World!");
-    }
-}`
+            content: DEFAULT_CODE
         };
 
         const filesData = localStorage.getItem('controllerFiles');
@@ -1224,7 +1200,7 @@ class Program
         if (content && header) {
             content.classList.add('open');
             header.classList.add('open');
-            
+
             // 展开所有子文件夹
             // const subFolders = content.querySelectorAll('.folder-content, .folder-header');
             // subFolders.forEach(element => {

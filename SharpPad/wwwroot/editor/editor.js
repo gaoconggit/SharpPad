@@ -1,22 +1,10 @@
 // 编辑器核心模块
-import { layoutEditor } from '../utils/common.js';
+import { layoutEditor, DEFAULT_CODE } from '../utils/common.js';
 
 export class Editor {
     constructor() {
         this.editor = null;
-        this.defaultCode = `using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-
-class Program
-{
-    public static async Task Main()
-    {
-         Console.WriteLine("Hello, World!");
-    }
-}`;
+        this.defaultCode = DEFAULT_CODE;
     }
 
     initialize(containerId) {

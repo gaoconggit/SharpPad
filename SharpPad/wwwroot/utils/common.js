@@ -58,4 +58,21 @@ export function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.display = 'none';
     }, 2000);
-} 
+}
+
+//定义常量
+export const DEFAULT_CODE = `using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+
+class Program
+{
+    public static async Task Main()
+    {
+         Console.WriteLine("Hello, World!");
+    }
+}`;
