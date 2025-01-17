@@ -147,7 +147,7 @@ export class OutputPanel {
         try {
             const content = this.outputContent.textContent;
             const formatted = JSON.stringify(JSON.parse(content), null, 2);
-            this.outputContent.textContent = formatted;
+            this.outputContent.innerHTML = `<pre class="hljs"><code><div class="lang-label">json</div>${formatted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
         } catch (error) {
             console.error('Format error:', error);
         }
