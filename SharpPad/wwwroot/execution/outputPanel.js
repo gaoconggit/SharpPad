@@ -5,18 +5,25 @@ export class OutputPanel {
         this.outputPanel = document.getElementById('outputPanel');
         this.container = document.getElementById('container');
         this.toggleOutput = document.getElementById('toggleOutput');
+        this.toggleOutputLayout = document.getElementById('toggleOutputLayout');
         this.outputContent = document.getElementById('outputContent');
         this.formatOutput = document.getElementById('formatOutput');
         this.copyOutput = document.getElementById('copyOutput');
         this.clearOutput = document.getElementById('clearOutput');
         this.minimizedOutputButton = document.querySelector('.minimized-output-button');
+        this.chatPanel = document.getElementById('chatPanel');
 
         this.isResizing = false;
         this.startY = 0;
+        this.startX = 0;
         this.startHeight = 0;
+        this.startWidth = 0;
         this.rafId = null;
+        this.isVertical = false;
+        this.lastHorizontalHeight = 200;
 
         this.initializeEventListeners();
+        this.initializeChatPanelObserver();
     }
 
     initializeEventListeners() {
@@ -44,19 +51,80 @@ export class OutputPanel {
             layoutEditor();
         });
 
+        this.toggleOutputLayout.addEventListener('click', () => {
+            this.isVertical = !this.isVertical;
+            if (this.isVertical) {
+                this.lastHorizontalHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
+                
+                this.outputPanel.classList.add('vertical');
+                // 检查聊天面板是否最小化
+                const chatPanel = document.getElementById('chatPanel');
+                const fileList = document.getElementById('fileList');
+                const container = document.getElementById('container');
+
+                if (chatPanel.style.display === 'none') {
+                    this.outputPanel.classList.add('chat-minimized');
+                }
+
+                // 重置所有面板的高度为100vh
+                fileList.style.height = '100vh';
+                container.style.height = '100vh';
+                chatPanel.style.height = '100vh';
+                this.outputPanel.style.height = '100vh';
+
+                // 根据当前聊天面板的宽度设置位置
+                const chatPanelWidth = parseInt(getComputedStyle(chatPanel).width, 10);
+                this.outputPanel.style.right = `${chatPanelWidth}px`;
+            } else {
+                this.outputPanel.classList.remove('vertical', 'chat-minimized');
+                
+                const height = this.lastHorizontalHeight;
+                this.outputPanel.style.height = `${height}px`;
+                this.outputPanel.style.right = '0'; // 重置right值
+                
+                // 恢复水平布局时的高度
+                const fileList = document.getElementById('fileList');
+                const container = document.getElementById('container');
+                const chatPanel = document.getElementById('chatPanel');
+                const remainingHeight = `calc(100vh - ${height}px)`;
+
+                fileList.style.height = remainingHeight;
+                container.style.height = remainingHeight;
+                chatPanel.style.height = remainingHeight;
+
+                // 重置编辑器容器的右边距
+                container.style.marginRight = '520px';
+            }
+            layoutEditor();
+        });
+
         this.minimizedOutputButton.querySelector('.restore-output').addEventListener('click', () => {
             this.outputPanel.style.display = 'flex';
             this.minimizedOutputButton.style.display = 'none';
-            const height = parseInt(getComputedStyle(this.outputPanel).height, 10);
-            this.container.style.marginBottom = `${height}px`;
             
-            // 恢复其他面板的高度
             const fileList = document.getElementById('fileList');
+            const container = document.getElementById('container');
             const chatPanel = document.getElementById('chatPanel');
-            const remainingHeight = `calc(100vh - ${height}px)`;
-            fileList.style.height = remainingHeight;
-            this.container.style.height = remainingHeight;
-            chatPanel.style.height = remainingHeight;
+
+            if (this.isVertical) {
+                // 恢复垂直布局
+                fileList.style.height = '100vh';
+                container.style.height = '100vh';
+                chatPanel.style.height = '100vh';
+                this.outputPanel.style.height = '100vh';
+                
+                // 调整编辑器容器的右边距
+                container.style.marginRight = chatPanel.style.display === 'none' ? '520px' : '1040px';
+            } else {
+                // 恢复水平布局
+                const height = parseInt(getComputedStyle(this.outputPanel).height, 10);
+                const remainingHeight = `calc(100vh - ${height}px)`;
+                
+                fileList.style.height = remainingHeight;
+                container.style.height = remainingHeight;
+                chatPanel.style.height = remainingHeight;
+                container.style.marginBottom = `${height}px`;
+            }
             
             layoutEditor();
         });
@@ -67,6 +135,23 @@ export class OutputPanel {
 
         // 窗口大小变化事件
         window.addEventListener('resize', this.handleResize.bind(this));
+
+        // 监听聊天面板的显示状态变化
+        const chatPanel = document.getElementById('chatPanel');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (this.isVertical) {
+                        if (chatPanel.style.display === 'none') {
+                            this.outputPanel.classList.add('chat-minimized');
+                        } else {
+                            this.outputPanel.classList.remove('chat-minimized');
+                        }
+                    }
+                }
+            });
+        });
+        observer.observe(chatPanel, { attributes: true });
     }
 
     handleMouseDown(e) {
@@ -78,10 +163,15 @@ export class OutputPanel {
         }
 
         this.isResizing = true;
-        this.startY = e.clientY;
-        this.startHeight = parseInt(document.defaultView.getComputedStyle(this.outputPanel).height, 10);
+        if (this.isVertical) {
+            this.startX = e.clientX;
+            this.startWidth = parseInt(document.defaultView.getComputedStyle(this.outputPanel).width, 10);
+        } else {
+            this.startY = e.clientY;
+            this.startHeight = parseInt(document.defaultView.getComputedStyle(this.outputPanel).height, 10);
+        }
         this.outputPanel.classList.add('resizing');
-        document.documentElement.style.cursor = 'ns-resize';
+        document.documentElement.style.cursor = this.isVertical ? 'ew-resize' : 'ns-resize';
         e.preventDefault();
     }
 
@@ -93,20 +183,26 @@ export class OutputPanel {
         }
 
         this.rafId = requestAnimationFrame(() => {
-            const delta = e.clientY - this.startY;
-            const newHeight = Math.min(Math.max(this.startHeight - delta, 100), window.innerHeight * 0.8);
+            if (this.isVertical) {
+                const delta = this.startX - e.clientX;
+                const newWidth = Math.min(Math.max(this.startWidth + delta, 200), window.innerWidth * 0.4);
+                this.outputPanel.style.width = `${newWidth}px`;
+                this.outputPanel.style.right = this.outputPanel.classList.contains('chat-minimized') ? '0' : '520px';
+            } else {
+                const delta = e.clientY - this.startY;
+                const newHeight = Math.min(Math.max(this.startHeight - delta, 100), window.innerHeight * 0.8);
+                this.outputPanel.style.height = `${newHeight}px`;
 
-            this.outputPanel.style.height = `${newHeight}px`;
+                // 批量更新其他元素的高度
+                const fileList = document.getElementById('fileList');
+                const container = document.getElementById('container');
+                const chatPanel = document.getElementById('chatPanel');
 
-            // 批量更新其他元素的高度
-            const fileList = document.getElementById('fileList');
-            const container = document.getElementById('container');
-            const chatPanel = document.getElementById('chatPanel');
-
-            const remainingHeight = `calc(100vh - ${newHeight}px)`;
-            fileList.style.height = remainingHeight;
-            container.style.height = remainingHeight;
-            chatPanel.style.height = remainingHeight;
+                const remainingHeight = `calc(100vh - ${newHeight}px)`;
+                fileList.style.height = remainingHeight;
+                container.style.height = remainingHeight;
+                chatPanel.style.height = remainingHeight;
+            }
 
             layoutEditor();
         });
@@ -166,5 +262,21 @@ export class OutputPanel {
     clearOutputContent() {
         this.outputContent.innerHTML = '';
         this.outputContent.className = '';
+    }
+
+    initializeChatPanelObserver() {
+        // 创建一个 ResizeObserver 来监听聊天面板的大小变化
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (this.isVertical) {
+                const chatPanelWidth = entries[0].contentRect.width;
+                this.outputPanel.style.right = `${chatPanelWidth}px`;
+            }
+        });
+
+        // 开始观察聊天面板
+        resizeObserver.observe(this.chatPanel);
+
+        // 保存 observer 引用以便需要时可以断开
+        this.chatPanelResizeObserver = resizeObserver;
     }
 } 

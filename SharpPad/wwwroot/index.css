@@ -20,7 +20,7 @@ body {
     position: fixed;
     left: 0;
     top: 0;
-    height: calc(100vh - 200px);
+    height: 100vh;
     transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: width, height;
 }
@@ -237,8 +237,57 @@ a:hover {
     flex-direction: column;
     z-index: 1000;
     overflow: hidden;
-    transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: height;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, height, width;
+}
+
+#outputPanel.vertical {
+    width: 520px;
+    height: 100vh;
+    max-height: none;
+    left: auto;
+    right: 520px;
+    border-top: none;
+    border-left: 1px solid #444;
+    border-right: 1px solid #444;
+}
+
+#outputPanel.vertical .resize-handle {
+    left: -5px;
+    right: auto;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    height: auto;
+    cursor: ew-resize;
+}
+
+#outputPanel.vertical.resizing {
+    border-left: 2px solid #0078d4;
+    border-top: none;
+}
+
+#toggleOutputLayout {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    height: 26px;
+    min-width: 26px;
+}
+
+#toggleOutputLayout:hover {
+    opacity: 1;
+}
+
+/* 当聊天面板最小化时，输出面板占满位置 */
+#outputPanel.vertical.chat-minimized {
+    right: 0;
 }
 
 #outputPanel .resize-handle {
@@ -386,8 +435,6 @@ a:hover {
 .output-info {
     color: #2196f3;
 }
-
-
 
 .output-buttons {
     display: flex;
@@ -551,8 +598,6 @@ a:hover {
     border-radius: 3px;
     pointer-events: none;
 }
-
-
 
 .file-list-resize-handle {
     position: absolute;
@@ -961,7 +1006,6 @@ a:hover {
     background: #4f4f4f;
 }
 
-
 .result-streaming {
     position: relative;
 }
@@ -1016,8 +1060,6 @@ a:hover {
         opacity: 1;
     }
 }
-
-
 
 #outputContent {
     padding: 10px;
@@ -1856,4 +1898,21 @@ pre {
 .copy-button:hover {
     background: #f0f0f0;
     border-color: #007acc;
+}
+
+/* 当输出面板在底部时，调整其他面板的高度 */
+#outputPanel:not(.vertical) ~ #fileList,
+#outputPanel:not(.vertical) ~ #container,
+#outputPanel:not(.vertical) ~ #chatPanel {
+    height: calc(100vh - 200px);
+}
+
+/* 当输出面板在垂直位置时，调整编辑器容器的边距 */
+#outputPanel.vertical ~ #container {
+    margin-right: 1040px; /* 520px (output) + 520px (chat) */
+}
+
+/* 当聊天面板最小化且输出面板垂直显示时 */
+#outputPanel.vertical.chat-minimized ~ #container {
+    margin-right: 520px;
 }
