@@ -58,14 +58,9 @@ export class OutputPanel {
                 this.lastHorizontalHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
                 
                 this.outputPanel.classList.add('vertical');
-                // 检查聊天面板是否最小化
                 const chatPanel = document.getElementById('chatPanel');
                 const fileList = document.getElementById('fileList');
                 const container = document.getElementById('container');
-
-                if (chatPanel.style.display === 'none') {
-                    this.outputPanel.classList.add('chat-minimized');
-                }
 
                 // 重置所有面板的高度为100vh
                 fileList.style.height = '100vh';
@@ -76,9 +71,16 @@ export class OutputPanel {
                 // 使用保存的垂直布局宽度
                 this.outputPanel.style.width = `${this.lastVerticalWidth}px`;
 
-                // 根据当前聊天面板的宽度设置位置
-                const chatPanelWidth = parseInt(getComputedStyle(chatPanel).width, 10);
-                this.outputPanel.style.right = `${chatPanelWidth}px`;
+                // 根据聊天面板的显示状态设置位置
+                if (chatPanel.style.display === 'none') {
+                    this.outputPanel.classList.add('chat-minimized');
+                    this.outputPanel.style.right = '0';
+                    container.style.marginRight = '520px';
+                } else {
+                    this.outputPanel.classList.remove('chat-minimized');
+                    this.outputPanel.style.right = '520px';
+                    container.style.marginRight = '1040px';
+                }
             } else {
                 // 保存当前垂直布局的宽度
                 this.lastVerticalWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
@@ -101,7 +103,7 @@ export class OutputPanel {
                 chatPanel.style.height = remainingHeight;
 
                 // 重置编辑器容器的右边距
-                container.style.marginRight = '520px';
+                container.style.marginRight = chatPanel.style.display === 'none' ? '0' : '520px';
             }
             layoutEditor();
         });
