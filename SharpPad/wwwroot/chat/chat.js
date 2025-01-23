@@ -116,7 +116,7 @@ export class ChatManager {
         window.editModel = (modelId) => this.editModel(modelId);
 
         // 暴露保存编辑模型的方法到全局
-        window.saveEditModel = () => this.saveEditModel();
+        window.saveEditModel = (modelId) => this.saveEditModel(modelId);
 
         // 暴露保存新模型的方法到全局
         window.saveNewModel = () => this.saveNewModel();
@@ -341,7 +341,7 @@ export class ChatManager {
                 'Authorization': `Bearer ${modelConfig.apiKey}`,
             },
             body: JSON.stringify({
-                model: modelConfig.id,
+                model: modelConfig.name,
                 messages: reqMessages,
                 stream: true
             })
@@ -450,8 +450,8 @@ export class ChatManager {
         const model = models.find(m => m.id === modelId);
 
         if (model) {
-            document.getElementById('editModelName').value = model.name;
             document.getElementById('editModelId').value = model.id;
+            document.getElementById('editModelName').value = model.name;
             document.getElementById('editModelEndpoint').value = model.endpoint;
             document.getElementById('editApiKey').value = model.apiKey || '';
             document.getElementById('editSystemPrompt').value = model.systemPrompt || '';
@@ -460,23 +460,22 @@ export class ChatManager {
         }
     }
 
-    saveEditModel() {
+    saveEditModel(modelId) {
         const name = document.getElementById('editModelName').value.trim();
-        const id = document.getElementById('editModelId').value.trim();
         const endpoint = document.getElementById('editModelEndpoint').value.trim();
         const apiKey = document.getElementById('editApiKey').value.trim();
         const systemPrompt = document.getElementById('editSystemPrompt').value.trim();
 
-        if (!name || !id || !endpoint) {
+        if (!name || !endpoint) {
             alert('请填写所有必填字段');
             return;
         }
 
         const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
-        const index = models.findIndex(m => m.id === id);
+        const index = models.findIndex(m => m.id === modelId);
 
         if (index !== -1) {
-            models[index] = { name, id, endpoint, apiKey, systemPrompt };
+            models[index] = { id: modelId, name, endpoint, apiKey, systemPrompt };
             localStorage.setItem('chatModels', JSON.stringify(models));
 
             this.updateModelList();
@@ -487,25 +486,20 @@ export class ChatManager {
 
     saveNewModel() {
         const name = document.getElementById('addModelName').value.trim();
-        const id = document.getElementById('addModelId').value.trim();
         const endpoint = document.getElementById('addModelEndpoint').value.trim();
         const apiKey = document.getElementById('addApiKey').value.trim();
         const systemPrompt = document.getElementById('addSystemPrompt').value.trim();
 
-        if (!name || !id || !endpoint) {
+        if (!name || !endpoint) {
             alert('请填写所有必填字段');
             return;
         }
 
         const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
 
-        // 检查是否已存在相同ID的模型
-        if (models.some(m => m.id === id)) {
-            alert('已存在相同ID的模型');
-            return;
-        }
-
-        models.push({ name, id, endpoint, apiKey, systemPrompt });
+        //生成主键id,guid
+        var id = crypto.randomUUID();
+        models.push({ id, name, endpoint, apiKey, systemPrompt });
         localStorage.setItem('chatModels', JSON.stringify(models));
 
         this.updateModelList();
@@ -514,7 +508,6 @@ export class ChatManager {
 
         //清空输入框
         document.getElementById('addModelName').value = '';
-        document.getElementById('addModelId').value = '';
         document.getElementById('addModelEndpoint').value = '';
         document.getElementById('addApiKey').value = '';
         document.getElementById('addSystemPrompt').value = '';
