@@ -21,6 +21,7 @@ export class OutputPanel {
         this.rafId = null;
         this.isVertical = false;
         this.lastHorizontalHeight = 200;
+        this.lastVerticalWidth = 520;
 
         this.initializeEventListeners();
         this.initializeChatPanelObserver();
@@ -72,15 +73,22 @@ export class OutputPanel {
                 chatPanel.style.height = '100vh';
                 this.outputPanel.style.height = '100vh';
 
+                // 使用保存的垂直布局宽度
+                this.outputPanel.style.width = `${this.lastVerticalWidth}px`;
+
                 // 根据当前聊天面板的宽度设置位置
                 const chatPanelWidth = parseInt(getComputedStyle(chatPanel).width, 10);
                 this.outputPanel.style.right = `${chatPanelWidth}px`;
             } else {
+                // 保存当前垂直布局的宽度
+                this.lastVerticalWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
+                
                 this.outputPanel.classList.remove('vertical', 'chat-minimized');
                 
                 const height = this.lastHorizontalHeight;
                 this.outputPanel.style.height = `${height}px`;
                 this.outputPanel.style.right = '0'; // 重置right值
+                this.outputPanel.style.width = '100%'; // 重置宽度为100%
                 
                 // 恢复水平布局时的高度
                 const fileList = document.getElementById('fileList');
