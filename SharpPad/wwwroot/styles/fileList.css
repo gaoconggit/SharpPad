@@ -50,7 +50,7 @@
     border-color: #007fd4;
 }
 
-#addFileBtn, #addFolderBtn {
+#addFileBtn {
     background-color: #444;
     border: none;
     color: #fff;
@@ -71,17 +71,34 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-#addFileBtn:hover, #addFolderBtn:hover {
+#addFileBtn:hover {
     opacity: 1;
     background-image: linear-gradient(to bottom right, #2962ff, #1976d2);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-#addFileBtn:active, #addFolderBtn:active {
+#addFileBtn:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     background-image: linear-gradient(to bottom right, #1565c0, #0d47a1);
+}
+
+#addFolderBtn {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 0;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    height: 24px;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #fileListItems {
