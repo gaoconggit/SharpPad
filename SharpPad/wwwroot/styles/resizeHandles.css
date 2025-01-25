@@ -1,0 +1,84 @@
+/* 统一的调整大小手柄样式 */
+.file-list-resize-handle,
+#outputPanel .resize-handle,
+#chatPanel .resize-handle {
+    position: absolute;
+    background: transparent;
+}
+
+/* 水平调整手柄（文件列表和聊天面板） */
+.file-list-resize-handle,
+#chatPanel .resize-handle {
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+}
+
+.file-list-resize-handle {
+    right: -5px;
+}
+
+#chatPanel .resize-handle {
+    left: 0;
+}
+
+/* 垂直调整手柄（输出面板） */
+#outputPanel .resize-handle {
+    left: 0;
+    right: 0;
+    height: 10px;
+    top: -5px;
+    cursor: ns-resize;
+}
+
+/* 聊天输入框调整手柄 */
+.chat-input-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10px;
+    top: -5px;
+    cursor: ns-resize;
+    background: transparent;
+    z-index: 1001;
+}
+
+/* 调整时的边框高亮 */
+#fileList.resizing {
+    border-right: 2px solid #0078d4;
+}
+
+#outputPanel.resizing {
+    border-top: 2px solid #0078d4;
+}
+
+#chatPanel.resizing {
+    border-left: 2px solid #0078d4;
+}
+
+.chat-input-area.resizing {
+    border-top: 2px solid #0078d4;
+}
+
+/* 调整时禁用过渡效果 */
+#fileList.resizing,
+#fileList.resizing~#container,
+#outputPanel.resizing,
+#outputPanel.resizing~#fileList,
+#outputPanel.resizing~#container,
+#chatPanel.resizing,
+#chatPanel.resizing~#container,
+.chat-input-area.resizing #chatInput {
+    transition: none !important;
+}
+
+/* 移除所有hover效果 */
+.file-list-resize-handle:hover,
+.file-list-resize-handle.resizing,
+#outputPanel .resize-handle:hover,
+#outputPanel.resizing .resize-handle,
+#chatPanel .resize-handle:hover,
+#chatPanel.resizing .resize-handle {
+    background: transparent;
+} 

@@ -1,0 +1,71 @@
+/* 输出面板滚动条 */
+#outputContent::-webkit-scrollbar {
+    width: 10px;
+}
+
+#outputContent::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+#outputContent::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 0;
+}
+
+#outputContent::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
+}
+
+/* 文件列表滚动条 */
+#fileList::-webkit-scrollbar {
+    width: 10px;
+}
+
+#fileList::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+#fileList::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 0;
+}
+
+#fileList::-webkit-scrollbar-thumb:hover {
+    background: #4f4f4f;
+}
+
+/* 聊天消息滚动条 */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 模态框滚动条 */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+} 

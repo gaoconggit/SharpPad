@@ -1,0 +1,43 @@
+.hljs {
+    position: relative;
+    padding-top: 25px;
+}
+
+.lang-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 2px 8px;
+    font-size: 12px;
+    color: #001080;
+    background: #ffffff;
+    border-bottom: 1px solid #d4d4d4;
+    border-right: 1px solid #d4d4d4;
+    border-radius: 0 0 4px 0;
+}
+
+.copy-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 4px 8px;
+    background: #ffffff;
+    border: 1px solid #d4d4d4;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 1;
+    color: #001080;
+    font-family: Consolas, monospace;
+}
+
+.copy-button:hover {
+    background: #f0f0f0;
+    border-color: #007acc;
+}
+
+pre {
+    background: #4f4f4f;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+} 

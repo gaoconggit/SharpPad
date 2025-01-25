@@ -1,0 +1,227 @@
+#outputPanel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    min-height: 32px;
+    max-height: 80vh;
+    background-color: #1e1e1e;
+    border-top: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, height, width;
+}
+
+#outputPanel.vertical {
+    width: 520px;
+    height: 100vh;
+    max-height: none;
+    left: auto;
+    right: 520px;
+    border-top: none;
+    border-left: 1px solid #444;
+    border-right: 1px solid #444;
+}
+
+#outputPanel.vertical.chat-minimized {
+    right: 0;
+}
+
+.output-header {
+    padding: 10px 14px;
+    background-color: #2d2d2d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffffff;
+    font-size: 15px;
+    cursor: default;
+    user-select: none;
+    position: relative;
+    z-index: 1000;
+    transition: padding 0.2s;
+}
+
+#toggleOutput {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    height: 26px;
+    min-width: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#toggleOutput:hover {
+    opacity: 1;
+    background-color: #505050;
+}
+
+#toggleOutput::before {
+    content: "▼";
+    font-size: 10px;
+    transition: transform 0.3s;
+}
+
+#toggleOutput.collapsed::before {
+    transform: rotate(-90deg);
+}
+
+#outputPanel.collapsed {
+    display: none !important;
+}
+
+#outputContent {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    color: #ffffff;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    background-color: #1e1e1e;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+.output-success {
+    color: #4caf50;
+}
+
+.output-error {
+    color: #f44336;
+}
+
+.output-info {
+    color: #2196f3;
+}
+
+.output-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+#clearOutput, #copyOutput, #formatOutput, #toggleOutputLayout {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    height: 26px;
+    min-width: 50px;
+}
+
+#clearOutput:hover, #copyOutput:hover, #formatOutput:hover, #toggleOutputLayout:hover {
+    opacity: 1;
+}
+
+.minimized-output-button {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 1000;
+    display: none;
+}
+
+#outputPanel.collapsed~.minimized-output-button {
+    display: block;
+}
+
+.minimized-output-button .icon-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.minimized-output-button .icon-button:hover {
+    background: #404040;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.minimized-output-button .icon-button:active {
+    transform: translateY(0);
+}
+
+/* 当输出面板在底部时，调整其他面板的高度 */
+#outputPanel:not(.vertical) ~ #fileList,
+#outputPanel:not(.vertical) ~ #container,
+#outputPanel:not(.vertical) ~ #chatPanel {
+    height: calc(100vh - 200px);
+}
+
+/* 当输出面板在垂直位置时，调整编辑器容器的边距 */
+#outputPanel.vertical ~ #container {
+    margin-right: 1040px;
+}
+
+/* 当聊天面板最小化且输出面板垂直显示时 */
+#outputPanel.vertical.chat-minimized ~ #container {
+    margin-right: 520px;
+}
+
+/* 调整大小相关样式 */
+#outputPanel .resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10px;
+    top: -5px;
+    cursor: ns-resize;
+    background: transparent;
+    z-index: 1001;
+}
+
+#outputPanel.vertical .resize-handle {
+    left: -5px;
+    right: auto;
+    width: 10px;
+    height: 100%;
+    top: 0;
+    cursor: ew-resize;
+}
+
+#outputPanel.resizing {
+    transition: none !important;
+}
+
+#outputPanel.resizing .resize-handle {
+    background: transparent;
+}
+
+#outputPanel.resizing {
+    border-top: 2px solid #0078d4;
+}
+
+#outputPanel.vertical.resizing {
+    border-top: none;
+    border-left: 2px solid #0078d4;
+}

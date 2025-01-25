@@ -1,0 +1,300 @@
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #252526;
+    max-width: 600px;
+    width: 90%;
+    margin: 10vh auto;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 16px 20px;
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #444;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.close-button:hover {
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #fff;
+    font-size: 13px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #0078d4;
+}
+
+.form-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.save-button {
+    background-color: #0078d4;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.save-button:hover {
+    background-color: #106ebe;
+}
+
+/* NuGet Configuration Dialog */
+.nuget-config-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #2d2d2d;
+    border-radius: 4px;
+}
+
+.nuget-config-section h3 {
+    margin: 0 0 15px 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.package-references {
+    margin-bottom: 15px;
+}
+
+.no-packages-message {
+    color: #888;
+    font-style: italic;
+    padding: 10px;
+    text-align: center;
+    background-color: #363636;
+    border-radius: 4px;
+}
+
+.package-reference {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #363636;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.package-reference-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.package-reference-name {
+    color: #fff;
+    font-weight: 500;
+}
+
+.package-reference-version {
+    color: #0078d4;
+    font-size: 13px;
+}
+
+.add-package-button {
+    background-color: #13a10e;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.add-package-button:hover {
+    background-color: #16c60c;
+}
+
+/* Model Settings Dialog */
+.model-settings {
+    padding: 0;
+}
+
+.model-list-header {
+    margin-bottom: 16px;
+}
+
+.model-list-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.add-model-button {
+    padding: 8px 16px;
+    background-color: #0078d4;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.add-model-button:hover {
+    background-color: #106ebe;
+}
+
+#modelList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.model-item {
+    padding: 12px;
+    background-color: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+.model-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.model-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.model-endpoint {
+    font-size: 12px;
+    color: #888;
+}
+
+.model-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.edit-model,
+.delete-model {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+}
+
+.edit-model {
+    background-color: #0078d4;
+    color: #fff;
+}
+
+.edit-model:hover {
+    background-color: #106ebe;
+}
+
+.delete-model {
+    background-color: #d83b01;
+    color: #fff;
+}
+
+.delete-model:hover {
+    background-color: #f03f03;
+}
+
+/* API Key Input */
+.api-key-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.api-key-input input {
+    flex: 1;
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 16px;
+    transition: color 0.2s;
+}
+
+.toggle-password:hover {
+    color: #fff;
+} 
