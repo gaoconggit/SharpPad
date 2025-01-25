@@ -5,17 +5,24 @@ export class Editor {
     constructor() {
         this.editor = null;
         this.defaultCode = DEFAULT_CODE;
+        this.currentTheme = 'vs-dark';
+        
+        // 设置初始主题
+        document.body.classList.add('theme-dark');
     }
 
     initialize(containerId) {
         this.editor = monaco.editor.create(document.getElementById(containerId), {
             value: this.defaultCode,
             language: 'csharp',
-            theme: "vs-dark"
+            theme: this.currentTheme
         });
 
         // 添加全屏功能
         this.setupFullscreen();
+        
+        // 设置主题切换
+        this.setupThemeToggle();
 
         return this.editor;
     }
@@ -124,6 +131,30 @@ export class Editor {
                 layoutEditor();
             }
         });
+    }
+
+    setupThemeToggle() {
+        const themeButton = document.getElementById('themeButton');
+        if (themeButton) {
+            themeButton.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+    }
+
+    toggleTheme() {
+        this.currentTheme = this.currentTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
+        monaco.editor.setTheme(this.currentTheme);
+        
+        // 更新全局主题
+        document.body.classList.toggle('theme-light', this.currentTheme === 'vs-light');
+        document.body.classList.toggle('theme-dark', this.currentTheme === 'vs-dark');
+        
+        // 更新按钮图标
+        const themeButton = document.getElementById('themeButton');
+        if (themeButton) {
+            themeButton.innerHTML = this.currentTheme === 'vs-dark' ? '🌓' : '☀️';
+        }
     }
 
     getValue() {

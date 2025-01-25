@@ -5,6 +5,125 @@ body {
     overflow: hidden;
     background-color: #1e1e1e;
     min-height: 100vh;
+    color: #ffffff;
+}
+
+/* 亮色主题 */
+body.theme-light {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light #container {
+    background-color: #ffffff;
+}
+
+body.theme-light .button-container {
+    background-color: #f3f3f3;
+}
+
+body.theme-light #outputPanel,
+body.theme-light #chatPanel {
+    background-color: #f3f3f3;
+    color: #333333;
+}
+
+body.theme-light .output-header,
+body.theme-light .chat-header {
+    background-color: #e1e1e1;
+    border-bottom: 1px solid #d1d1d1;
+    color: #333333;
+}
+
+body.theme-light #outputContent,
+body.theme-light #chatMessages {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light #chatInput {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #d1d1d1;
+}
+
+body.theme-light .context-menu {
+    background-color: #ffffff;
+    border: 1px solid #d1d1d1;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .context-menu-item {
+    color: #333333;
+}
+
+body.theme-light .context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+body.theme-light .context-menu-item.delete {
+    color: #dc3545;
+}
+
+body.theme-light .modal-content {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light .modal-header {
+    background-color: #f3f3f3;
+    border-bottom: 1px solid #d1d1d1;
+    color: #333333;
+}
+
+body.theme-light .modal-header h2 {
+    color: #333333;
+}
+
+body.theme-light input,
+body.theme-light textarea,
+body.theme-light select {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #d1d1d1;
+}
+
+body.theme-light label {
+    color: #333333;
+}
+
+body.theme-light .close-button {
+    color: #666666;
+}
+
+body.theme-light .close-button:hover {
+    color: #333333;
+}
+
+body.theme-light a {
+    color: #0366d6;
+}
+
+body.theme-light a:hover {
+    color: #0056b3;
+}
+
+body.theme-light .notification {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+body.theme-light .chat-messages .message {
+    border-bottom: 1px solid #e1e4e8;
+}
+
+body.theme-light .chat-messages .user-message {
+    background-color: #f1f8ff;
+}
+
+body.theme-light .chat-messages .assistant-message {
+    background-color: #fff;
 }
 
 #container {
@@ -19,37 +138,30 @@ body {
 }
 
 .button-container {
-    position: absolute;
-    top: 10px;
-    right: 50px;
     display: flex;
-    gap: 12px;
-    z-index: 1000;
+    gap: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
 }
 
-.button-container button {
-    pointer-events: auto;
-    padding: 6px 16px;
-    font-size: 14px;
-    cursor: pointer;
+#runButton, #themeButton {
+    padding: 5px 15px;
     border: none;
-    background-color: #2d2d2d;
+    border-radius: 4px;
+    background-color: #0e639c;
     color: white;
-    border-radius: 5px;
-    transition: background-color 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
 }
 
-.button-container button:hover {
-    background-color: #404040;
+#runButton:hover, #themeButton:hover {
+    background-color: #1177bb;
 }
 
-.button-container button::before {
-    content: "▶";
-    font-size: 12px;
+#themeButton {
+    padding: 5px 10px;
+    font-size: 16px;
 }
 
 .notification {

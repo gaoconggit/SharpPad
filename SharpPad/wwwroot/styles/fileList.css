@@ -16,6 +16,13 @@
     will-change: width, height;
 }
 
+/* 亮色主题样式 */
+body.theme-light #fileList {
+    background-color: #f5f5f5;
+    border-right: 1px solid #e0e0e0;
+    box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
+}
+
 #fileList:hover {
     border-right-color: #444;
 }
@@ -33,6 +40,10 @@
     z-index: 999;
 }
 
+body.theme-light .file-list-header {
+    background-color: #f5f5f5;
+}
+
 #fileFilter {
     flex: 1;
     padding: 8px 12px;
@@ -46,8 +57,14 @@
     outline: none;
 }
 
-#fileFilter:focus {
-    border-color: #007fd4;
+body.theme-light #fileFilter {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+body.theme-light #fileFilter:focus {
+    border-color: #0066b8;
 }
 
 #addFileBtn {
@@ -124,16 +141,19 @@
     cursor: move;
 }
 
-#fileListItems a:hover {
-    color: #fff;
-    background-color: #37373d;
+body.theme-light #fileListItems a {
+    color: #333333;
     opacity: 1;
 }
 
-#fileListItems a.selected {
-    background-color: #37373d;
-    color: #fff;
-    opacity: 1;
+body.theme-light #fileListItems a:hover {
+    background-color: #e8e8e8;
+    color: #0066b8;
+}
+
+body.theme-light #fileListItems a.selected {
+    background-color: #e8f0fe;
+    color: #0066b8;
     font-weight: 500;
 }
 
@@ -160,9 +180,14 @@
     text-align: left;
 }
 
-.folder-header:hover {
-    background-color: #37373d;
+body.theme-light .folder-header {
+    color: #0066b8;
     opacity: 1;
+    font-weight: 500;
+}
+
+body.theme-light .folder-header:hover {
+    background-color: #e8e8e8;
 }
 
 .folder-header::before {
@@ -200,6 +225,22 @@
     pointer-events: none;
 }
 
+body.theme-light .folder-header.drag-over {
+    background-color: #e3f2fd;
+}
+
+body.theme-light .folder-header.drag-over::after {
+    border: 2px dashed #0066b8;
+}
+
+body.theme-light .drag-over-top {
+    border-top: 2px solid #0066b8;
+}
+
+body.theme-light .drag-over-bottom {
+    border-bottom: 2px solid #0066b8;
+}
+
 .dragging {
     opacity: 0.5;
 }
@@ -235,6 +276,14 @@
     line-height: 1;
 }
 
-.sort-button:hover {
-    color: #2979ff;
+body.theme-light .sort-buttons {
+    opacity: 0.6;
+}
+
+body.theme-light .sort-button {
+    color: #424242;
+}
+
+body.theme-light .sort-button:hover {
+    color: #0066b8;
 } 
