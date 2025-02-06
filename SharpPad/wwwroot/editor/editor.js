@@ -1,12 +1,13 @@
 // 编辑器核心模块
 import { layoutEditor, DEFAULT_CODE } from '../utils/common.js';
+import { registerCompletion } from './index.mjs';
 
 export class Editor {
     constructor() {
         this.editor = null;
         this.defaultCode = DEFAULT_CODE;
         this.currentTheme = 'vs-dark';
-        
+
         // 设置初始主题
         document.body.classList.add('theme-dark');
     }
@@ -20,9 +21,22 @@ export class Editor {
 
         // 添加全屏功能
         this.setupFullscreen();
-        
+
         // 设置主题切换
         this.setupThemeToggle();
+
+        const completion = registerCompletion(monaco, this.editor, {
+            // This is the endpoint where you set up the monacopilot API handler
+            // https://github.com/arshad-yaseen/monacopilot?tab=readme-ov-file#api-handler
+            endpoint: "http://localhost:3030/v1/chat/monaco-copilot",
+            language: "csharp",
+            trigger: 'onIdle',
+            maxContextLines: 64,
+            enableCaching: false,
+            onError: error => {
+                console.error(error);
+            },
+        });
 
         return this.editor;
     }
@@ -145,11 +159,11 @@ export class Editor {
     toggleTheme() {
         this.currentTheme = this.currentTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
         monaco.editor.setTheme(this.currentTheme);
-        
+
         // 更新全局主题
         document.body.classList.toggle('theme-light', this.currentTheme === 'vs-light');
         document.body.classList.toggle('theme-dark', this.currentTheme === 'vs-dark');
-        
+
         // 更新按钮图标
         const themeButton = document.getElementById('themeButton');
         if (themeButton) {
