@@ -30,11 +30,23 @@ export class Editor {
             // https://github.com/arshad-yaseen/monacopilot?tab=readme-ov-file#api-handler
             endpoint: "http://localhost:3030/v1/chat/monaco-copilot",
             language: "csharp",
-            trigger: 'onIdle',
-            maxContextLines: 64,
-            enableCaching: false,
+            trigger: 'onDemand',
+            maxContextLines: 80,
+            enableCaching: true,
             onError: error => {
                 console.error(error);
+            },
+        });
+
+        monaco.editor.addEditorAction({
+            id: 'monacopilot.triggerCompletion',
+            label: 'GPT Complete Code',
+            contextMenuGroupId: 'navigation',
+            keybindings: [
+                monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Space,
+            ],
+            run: () => {
+                completion.trigger();
             },
         });
 
