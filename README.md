@@ -34,6 +34,7 @@
 - `Ctrl + K` `Ctrl + D` 格式化代码
 - `Ctrl + S` 保存代码
 - `Alt+L` 光标在聊天框时,清空聊天记录
+- `Ctrl + Shift + Space` 手动触发GPT自动补全
 
 ## 特性
 
