@@ -76,3 +76,42 @@ class Program
          Console.WriteLine("Hello, World!");
     }
 }`;
+
+// 定义常量：completion prompt for code suggestions
+export const GPT_COMPLETION_SYSTEM_PROMPT = `## Task: Code Completion
+                    
+### {{language}}
+
+### Instructions:
+- You are a world class coding assistant.
+- Given the current text, context, and the last character of the user input, provide a suggestion for code completion.
+- The suggestion must be based on the current text, as well as the text before the cursor.
+- This is not a conversation, so please do not ask questions or prompt for additional information.
+
+### Notes:
+- NEVER INCLUDE ANY MARKDOWN IN THE RESPONSE - THIS MEANS CODEBLOCKS AS WELL.
+- Never include any annotations such as "# Suggestion:" or "# Suggestions:".
+- Newlines should be included after any of the following characters: "{", "[", "(", ")", "]", "}", and ",".
+- Never suggest a newline after a space or newline.
+- Ensure that newline suggestions follow the same indentation as the current line.
+- The suggestion must start with the last character of the current user input.
+- Only ever return the code snippet, do not return any markdown unless it is part of the code snippet.
+- Do not return any code that is already present in the current text.
+- Do not return anything that is not valid code.
+- If you do not have a suggestion, return an empty string.`;
+
+// Start of Selection
+export function getSelectedModel() {
+    const modelSelect = document.getElementById('modelSelect');
+    if (!modelSelect) {
+        throw new Error('模型选择器未找到');
+    }
+    const selectedModel = modelSelect.value;
+    const modelConfigs = JSON.parse(localStorage.getItem('chatModels') || '[]');
+    const modelConfig = modelConfigs.find(model => model.id === selectedModel);
+    if (!modelConfig) {
+        throw new Error('请先配置模型');
+    }
+    return modelConfig;
+}
+// End of Selectio

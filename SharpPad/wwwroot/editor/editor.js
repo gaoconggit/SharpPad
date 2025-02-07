@@ -1,5 +1,5 @@
 // 编辑器核心模块
-import { layoutEditor, DEFAULT_CODE } from '../utils/common.js';
+import { layoutEditor, DEFAULT_CODE, getSelectedModel, GPT_COMPLETION_SYSTEM_PROMPT } from '../utils/common.js';
 import { registerCompletion } from './index.mjs';
 
 export class Editor {
@@ -26,16 +26,45 @@ export class Editor {
         this.setupThemeToggle();
 
         const completion = registerCompletion(monaco, this.editor, {
-            // This is the endpoint where you set up the monacopilot API handler
-            // https://github.com/arshad-yaseen/monacopilot?tab=readme-ov-file#api-handler
-            endpoint: "http://localhost:3030/v1/chat/monaco-copilot",
+            endpoint: "",
             language: "csharp",
-            trigger: 'onDemand',
-            maxContextLines: 80,
+            trigger: 'onIdle',
+            maxContextLines: 100,
             enableCaching: true,
             onError: error => {
-                console.error(error);
+                console.log(error);
             },
+            requestHandler: async ({ endpoint, body }) => {
+                var selectedModel = getSelectedModel();
+                const response = await fetch(selectedModel.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${selectedModel.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        "model": selectedModel.name,
+                        "stream": false,
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": GPT_COMPLETION_SYSTEM_PROMPT.replace("{{language}}", body.completionMetadata.language)
+                            },
+                            {
+                                "role": "user",
+                                "content": `Complete the following ${body.completionMetadata.language} code at line ${body.completionMetadata.cursorPosition.lineNumber}, column ${body.completionMetadata.cursorPosition.column}:
+${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.textAfterCursor}`
+                            }
+                        ],
+                        "max_tokens": 300
+                    }),
+                });
+
+                const data = await response.json();
+                return {
+                    completion: data.choices[0].message.content,
+                };
+            }
         });
 
         monaco.editor.addEditorAction({
