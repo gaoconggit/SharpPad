@@ -52,3 +52,7 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 
 - Work in Progress
   - Apply AI-generated code to editor
+ 
+## Project Acknowledgment
+
+- Thanks to [monacopilot](https://github.com/arshad-yaseen/monacopilot) for GPT auto-completion functionality.
