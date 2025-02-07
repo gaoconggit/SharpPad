@@ -1,3 +1,5 @@
+**English** | **[简体中文](README.md)**
+
 # SharpPad
 
 A lightweight tool for quickly validating C# code snippets, built with Roslyn and monaco-editor. Similar to LinqPad, with AI chat and AI completion support.
