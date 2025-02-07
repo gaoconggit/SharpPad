@@ -54,3 +54,8 @@
 
 - 进行中的任务
   - ai 生成的代码应用到编辑器
+
+## 项目致谢
+
+ - 感谢 [monacopilot](https://github.com/arshad-yaseen/monacopilot) 提供的 GPT 自动完成功能。
+
