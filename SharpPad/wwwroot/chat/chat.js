@@ -214,7 +214,7 @@ export class ChatManager {
                     return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
                 }
             }
-        });
+        }).use(this.thinkBlockPlugin);
         messageDiv.innerHTML = md.render(content);
         this.chatMessages.appendChild(messageDiv);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
@@ -244,11 +244,13 @@ export class ChatManager {
 
             const { reader } = await this.chatToLLM(messages);
             let result = "";
+            let reasoning = "";
 
             // 配置 markdown-it
             const md = window.markdownit({
+                breaks: true,
                 highlight: this.highlightCode
-            });
+            }).use(this.thinkBlockPlugin);
 
             // 添加延时函数
             const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -286,8 +288,14 @@ export class ChatManager {
                         const data = JSON.parse(line.substring(6));
                         if (data.choices && data.choices[0]) {
                             const delta = data.choices[0].delta;
-                            if (delta && delta.content) {
-                                result += delta.content;
+                            if (delta) {
+                                if (delta.content) {
+                                    result += delta.content;
+                                }
+
+                                if (delta.reasoning_content) {
+                                    reasoning += delta.reasoning_content;
+                                }
 
                                 // 检查是否需要延时
                                 const now = Date.now();
@@ -296,8 +304,14 @@ export class ChatManager {
                                     await delay(MIN_RENDER_INTERVAL - timeSinceLastRender);
                                 }
 
-                                // 使用配置的markdown-it渲染
-                                contentDiv.innerHTML = md.render(result);
+                                if (reasoning != "") {
+                                    // 使用配置的markdown-it渲染
+                                    contentDiv.innerHTML = md.render("<think>" + reasoning + "</think>\n" + result);
+                                } else {
+                                    // 使用配置的markdown-it渲染
+                                    contentDiv.innerHTML = md.render(result);
+                                }
+
                                 this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
                                 lastRenderTime = Date.now();
                             }
@@ -443,6 +457,89 @@ export class ChatManager {
             const lang = detected.language || 'text';
             return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
         }
+    }
+
+    thinkBlockPlugin(md) {
+        function thinkBlock(state, startLine, endLine, silent) {
+            const startTag = '<think>';
+            const endTag = '</think>';
+            let pos = state.bMarks[startLine] + state.tShift[startLine];
+            let max = state.eMarks[startLine];
+
+            // 判断本行是否以 <think> 开始
+            if (state.src.slice(pos, max).trim().indexOf(startTag) !== 0) {
+                return false;
+            }
+
+            // 如果仅检测，不生成 token，则返回 true
+            if (silent) {
+                return true;
+            }
+
+            // 找开始标签后的内容起始位置
+            let contentStart = pos + startTag.length;
+            let haveEndTag = false;
+            let nextLine = startLine;
+
+            // 记录 think 块的内容，在本行读取 startLine 剩余部分（若有）
+            let content = state.src.slice(contentStart, max);
+
+            // 如果本行已经包含结束标签，则只取中间文本
+            if (content.indexOf(endTag) >= 0) {
+                content = content.split(endTag)[0];
+                haveEndTag = true;
+            }
+
+            // 否则继续读取后续行，直到找到结束标签或到达文档末尾
+            while (!haveEndTag) {
+                nextLine++;
+                if (nextLine >= endLine) {
+                    break;
+                }
+                pos = state.bMarks[nextLine] + state.tShift[nextLine];
+                max = state.eMarks[nextLine];
+                let lineText = state.src.slice(pos, max);
+                if (lineText.indexOf(endTag) >= 0) {
+                    // 找到结束标签，截取之前的文本
+                    content += "\n" + lineText.split(endTag)[0];
+                    haveEndTag = true;
+                    break;
+                } else {
+                    content += "\n" + lineText;
+                }
+            }
+
+            // 创建 token
+            let token = state.push('think_open', 'div', 1);
+            token.block = true;
+            token.map = [startLine, nextLine + 1];
+            token.attrs = [['class', 'think']];
+
+            token = state.push('think_content', '', 0);
+            token.block = true;
+            token.content = content.trim();
+
+            token = state.push('think_close', 'div', -1);
+            token.block = true;
+
+            state.line = nextLine + 1;
+            return true;
+        }
+
+        // 将规则插入到 block ruler 中，放在 paragraph 规则之前
+        md.block.ruler.before('paragraph', 'think_block', thinkBlock);
+
+        md.renderer.rules.think_open = function () {
+            return '<div class="think">';
+        };
+        md.renderer.rules.think_close = function () {
+            return '</div>';
+        };
+        md.renderer.rules.think_content = function (tokens, idx) {
+            // 默认转义 HTML，你也可以根据需求自行渲染 markdown
+            //return md.utils.escapeHtml(tokens[idx].content);
+            return tokens[idx].content;
+        };
     }
 
     editModel(modelId) {

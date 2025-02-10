@@ -308,4 +308,20 @@ body.theme-light .minimized-chat-button .icon-button:hover {
     100% {
         opacity: 1;
     }
-} 
+}
+
+.think {
+    padding: 10px;
+    margin: 10px 0;
+    border-left: 4px solid #42b983;
+    /*background-color: #f3f5f7;*/
+    border-radius: 4px;
+}
+
+body.theme-light .think {
+    padding: 10px;
+    margin: 10px 0;
+    border-left: 4px solid #42b983;
+    background-color: #f3f5f7;
+    border-radius: 4px;
+}
