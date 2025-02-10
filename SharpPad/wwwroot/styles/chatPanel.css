@@ -269,34 +269,46 @@ body.theme-light .minimized-chat-button .icon-button:hover {
     position: relative;
 }
 
-.result-streaming p {
-    display: inline;
-}
+    .result-streaming p {
+        display: inline;
+    }
 
-.result-streaming:not(:has(pre:last-child, ul:last-child, ol:last-child))::after {
-    content: "▋";
-    margin-left: .25rem;
-    vertical-align: baseline;
-    animation: cursor-blink 1s infinite;
-    display: inline-block;
-}
+    /* Base cases for cursor after content */
+    .result-streaming:not(:has(pre:last-child, ul:last-child, ol:last-child, div.think:last-child))::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
 
-.result-streaming>pre:last-child code::after {
-    content: "▋";
-    margin-left: .25rem;
-    vertical-align: baseline;
-    animation: cursor-blink 1s infinite;
-    display: inline-block;
-}
+    /* Cursor for code blocks */
+    .result-streaming > pre:last-child code::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
 
-.result-streaming>ul:last-child>li:last-child::after,
-.result-streaming>ol:last-child>li:last-child::after {
-    content: "▋";
-    margin-left: .25rem;
-    vertical-align: baseline;
-    animation: cursor-blink 1s infinite;
-    display: inline-block;
-}
+    /* Cursor for list items */
+    .result-streaming > ul:last-child > li:last-child::after,
+    .result-streaming > ol:last-child > li:last-child::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
+
+    /* New rule for div.think */
+    .result-streaming > div.think:last-child::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
 
 @keyframes cursor-blink {
     0% {
