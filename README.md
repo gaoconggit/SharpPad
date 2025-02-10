@@ -1,7 +1,11 @@
-# SharpPad
-基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的小玩意。类似 LinqPad,支持ai chat
+**[English](README_EN.md)** | **简体中文**
 
-![image](https://github.com/user-attachments/assets/ab2d0f49-7974-4b3b-b7ce-c7455c485abf)
+# SharpPad
+基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的小玩意。类似 LinqPad,支持ai chat与ai completion
+
+![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
+
+
 
 
 
@@ -32,6 +36,7 @@
 - `Ctrl + K` `Ctrl + D` 格式化代码
 - `Ctrl + S` 保存代码
 - `Alt+L` 光标在聊天框时,清空聊天记录
+- `Ctrl + Shift + Space` 手动触发GPT自动补全
 
 ## 特性
 
@@ -40,9 +45,17 @@
 - 多目录支持
 - 导入导出目录功能
 - ai chat
+- ai auto completion
+- 多模型切换
+- 主题切换
+- 仅显示当前目录
 
 ## 期待实现的功能
 
 - 进行中的任务
-  - ai auto completion
   - ai 生成的代码应用到编辑器
+
+## 项目致谢
+
+ - 感谢 [monacopilot](https://github.com/arshad-yaseen/monacopilot) 提供的 GPT 自动完成功能。
+
