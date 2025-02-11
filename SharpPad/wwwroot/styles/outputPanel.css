@@ -283,3 +283,7 @@ body.theme-light #outputPanel.vertical.resizing {
     border-top: none;
     border-left: 2px solid #0066b8;
 }
+
+body.theme-dark .output-error {
+    color: #ff302a;
+}
