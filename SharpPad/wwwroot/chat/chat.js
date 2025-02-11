@@ -538,7 +538,7 @@ export class ChatManager {
         md.renderer.rules.think_content = function (tokens, idx) {
             // 默认转义 HTML，你也可以根据需求自行渲染 markdown
             //return md.utils.escapeHtml(tokens[idx].content);
-            return tokens[idx].content;
+            return md.render(tokens[idx].content);
         };
     }
 

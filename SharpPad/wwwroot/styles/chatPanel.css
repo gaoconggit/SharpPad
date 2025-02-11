@@ -61,10 +61,10 @@ body.theme-light #modelSelect {
     color: #333333;
 }
 
-body.theme-light #modelSelect:hover {
-    border-color: #0066b8;
-    background: #f5f5f5;
-}
+    body.theme-light #modelSelect:hover {
+        border-color: #0066b8;
+        background: #f5f5f5;
+    }
 
 #clearChat {
     background-color: #444;
@@ -89,11 +89,11 @@ body.theme-light #modelSettingsBtn {
     opacity: 1;
 }
 
-body.theme-light #clearChat:hover,
-body.theme-light #toggleChat:hover,
-body.theme-light #modelSettingsBtn:hover {
-    background-color: #d0d0d0;
-}
+    body.theme-light #clearChat:hover,
+    body.theme-light #toggleChat:hover,
+    body.theme-light #modelSettingsBtn:hover {
+        background-color: #d0d0d0;
+    }
 
 #toggleChat {
     background-color: #444;
@@ -112,16 +112,16 @@ body.theme-light #modelSettingsBtn:hover {
     justify-content: center;
 }
 
-#toggleChat:hover {
-    opacity: 1;
-    background-color: #505050;
-}
+    #toggleChat:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
 
-#toggleChat::before {
-    content: "▼";
-    font-size: 10px;
-    transition: transform 0.3s;
-}
+    #toggleChat::before {
+        content: "▼";
+        font-size: 10px;
+        transition: transform 0.3s;
+    }
 
 .chat-messages {
     flex: 1;
@@ -176,9 +176,9 @@ body.theme-light .assistant-message {
     border: 1px solid #e0e0e0;
 }
 
-body.theme-light .assistant-message:hover {
-    background: #f0f0f0;
-}
+    body.theme-light .assistant-message:hover {
+        background: #f0f0f0;
+    }
 
 .chat-input-area {
     padding: 16px;
@@ -218,10 +218,10 @@ body.theme-light #chatInput {
     color: #333333;
 }
 
-body.theme-light #chatInput:focus {
-    border-color: #0066b8;
-    outline: none;
-}
+    body.theme-light #chatInput:focus {
+        border-color: #0066b8;
+        outline: none;
+    }
 
 .minimized-chat-button {
     position: fixed;
@@ -239,9 +239,9 @@ body.theme-light .minimized-chat-button .icon-button {
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
-body.theme-light .minimized-chat-button .icon-button:hover {
-    background: #e8e8e8;
-}
+    body.theme-light .minimized-chat-button .icon-button:hover {
+        background: #e8e8e8;
+    }
 
 #modelSettingsBtn {
     background-color: #444;
@@ -260,10 +260,10 @@ body.theme-light .minimized-chat-button .icon-button:hover {
     justify-content: center;
 }
 
-#modelSettingsBtn:hover {
-    opacity: 1;
-    background-color: #505050;
-}
+    #modelSettingsBtn:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
 
 .result-streaming {
     position: relative;
@@ -271,6 +271,10 @@ body.theme-light .minimized-chat-button .icon-button:hover {
 
     .result-streaming p {
         display: inline;
+    }
+
+    .result-streaming .think p {
+        display: inline-block;
     }
 
     /* Base cases for cursor after content */
@@ -314,9 +318,11 @@ body.theme-light .minimized-chat-button .icon-button:hover {
     0% {
         opacity: 1;
     }
+
     50% {
         opacity: 0;
     }
+
     100% {
         opacity: 1;
     }
