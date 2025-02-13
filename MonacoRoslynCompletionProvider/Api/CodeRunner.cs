@@ -33,6 +33,13 @@ namespace MonacoRoslynCompletionProvider.Api
                 // 加载 NuGet 包
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
 
+                // 设置解析选项，包括语言版本
+                //var parseOptions = new CSharpParseOptions(
+                //    languageVersion: LanguageVersion.CSharp13,
+                //    kind: SourceCodeKind.Regular,
+                //    documentationMode: DocumentationMode.Parse
+                //);
+
                 // 解析代码
                 var syntaxTree = CSharpSyntaxTree.ParseText(code);
                 var defaultReferences = AppDomain.CurrentDomain.GetAssemblies()
