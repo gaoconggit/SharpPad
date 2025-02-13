@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
@@ -57,7 +58,8 @@ namespace MonacoRoslynCompletionProvider
                 MetadataReference.CreateFromFile(Assembly.Load("System.Security.Cryptography, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location),
                 MetadataReference.CreateFromFile(Assembly.Load("Microsoft.AspNetCore.Http").Location),
                 MetadataReference.CreateFromFile(typeof(ObjectExtengsion).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Process).Assembly.Location),
             };
 
         private Project _project;
