@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.Host;
 using System;
 using System.Collections.Generic;
 using monacoEditorCSharp.DataHelpers;
+using System.IO;
 
 namespace MonacoRoslynCompletionProvider
 {
@@ -22,11 +23,12 @@ namespace MonacoRoslynCompletionProvider
             .. AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
                 .Select(a => a.Location).ToArray(),
-            ".\\Dll\\System.Text.Json.dll",
-            ".\\Dll\\FreeSql.dll",
-            ".\\Dll\\CSRedisCore.dll",
-            ".\\Dll\\RestSharp.dll",
+            Path.Combine("Dll", "System.Text.Json.dll"),
+            Path.Combine("Dll", "FreeSql.dll"),
+            Path.Combine("Dll", "CSRedisCore.dll"),
+            Path.Combine("Dll", "RestSharp.dll"),
         ];
+
         public async static Task<TabCompletionResult[]> Handle(TabCompletionRequest tabCompletionRequest, string nuget)
         {
             // 加载 NuGet 包
