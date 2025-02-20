@@ -12,7 +12,7 @@ class Program
         Name: C# Dev Kit
         Id: ms-dotnettools.csdevkit
         Description: Official C# extension from Microsoft
-        Version: 1.16.6
+        Version: 1.17.27
         Publisher: Microsoft
         VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit
         """;
@@ -32,8 +32,9 @@ class Program
             string publisher = id.Split(".")[0];
             string extensionName = id.Split(".")[1];
 
-            var template = $"https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{publisher}/vsextensions/{extensionName}/{version}/vspackage";
-
+            var template = $"https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{publisher}/vsextensions/{extensionName}/{version}/vspackage?targetPlatform=win32-x64";
+            //The currently available platforms are:
+            // win32-x64, win32-arm64, linux-x64, linux-arm64, linux-armhf, alpine-x64, alpine-arm64, darwin-x64, darwin-arm64 and web
             Console.WriteLine(template);
         }
     }
