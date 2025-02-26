@@ -22,12 +22,5 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
-  </ItemGroup>
-
-  <!--<ItemGroup>
-    <Reference Include="RoslynPad.Roslyn">
-      <HintPath>..\..\..\..\common\roslynpad\src\RoslynPad.Roslyn\bin\Debug\netstandard2.0\RoslynPad.Roslyn.dll</HintPath>
-    </Reference>
-  </ItemGroup>-->
-  
+  </ItemGroup>  
 </Project>

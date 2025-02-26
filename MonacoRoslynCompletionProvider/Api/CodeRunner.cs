@@ -22,7 +22,7 @@ namespace MonacoRoslynCompletionProvider.Api
         }
 
         // Start of Selection
-        public static async Task<RunResult> RunProgramCodeAsync(string code, string nuget, Action<string> onOutput, Action<string> onError)
+        public static async Task<RunResult> RunProgramCodeAsync(string code, string nuget, int languageVersion, Action<string> onOutput, Action<string> onError)
         {
             var result = new RunResult();
             var outputBuilder = new StringBuilder();
@@ -34,14 +34,14 @@ namespace MonacoRoslynCompletionProvider.Api
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
 
                 // 设置解析选项，包括语言版本
-                //var parseOptions = new CSharpParseOptions(
-                //    languageVersion: LanguageVersion.CSharp13,
-                //    kind: SourceCodeKind.Regular,
-                //    documentationMode: DocumentationMode.Parse
-                //);
+                var parseOptions = new CSharpParseOptions(
+                    languageVersion: (LanguageVersion)languageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse
+                );
 
                 // 解析代码
-                var syntaxTree = CSharpSyntaxTree.ParseText(code);
+                var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
                 var defaultReferences = AppDomain.CurrentDomain.GetAssemblies()
                     .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
                     .Select(a => MetadataReference.CreateFromFile(a.Location));

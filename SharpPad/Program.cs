@@ -89,6 +89,7 @@ app.MapPost("/completion/{0}", async (e) =>
             var result = await CodeRunner.RunProgramCodeAsync(
                 codeRunRequest?.SourceCode,
                 nugetPackages,
+                codeRunRequest?.LanguageVersion ?? 2147483647,
                 OnOutput,
                 OnError
             );

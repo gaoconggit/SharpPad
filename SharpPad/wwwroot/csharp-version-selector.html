@@ -1,0 +1,46 @@
+<div class="version-selector">
+    <select id="csharpVersion" class="version-select" title="选择C#语言版本">
+        <option value="latest">C# Latest</option>
+        <option value="12.0">C# 12.0</option>
+        <option value="11.0">C# 11.0</option>
+        <option value="10.0">C# 10.0</option>
+        <option value="9.0">C# 9.0</option>
+        <option value="8.0">C# 8.0</option>
+        <option value="7.3">C# 7.3</option>
+        <option value="7.2">C# 7.2</option>
+        <option value="7.1">C# 7.1</option>
+        <option value="7.0">C# 7.0</option>
+    </select>
+</div>
+
+<style>
+.version-selector {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.version-select {
+    padding: 4px 8px;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.version-select:hover {
+    border-color: #007acc;
+}
+
+.version-select:focus {
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.25);
+}
+
+.version-select option {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+</style>

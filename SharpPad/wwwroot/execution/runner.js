@@ -133,12 +133,16 @@ export class CodeRunner {
         const file = getCurrentFile();
         const packages = file?.nugetConfig?.packages || [];
 
+        // 获取选择的C#版本
+        const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
+
         const request = {
             SourceCode: code,
             Packages: packages.map(p => ({
                 Id: p.id,
                 Version: p.version
-            }))
+            })),
+            LanguageVersion: parseInt(csharpVersion)
         };
 
         // 清空输出区域
@@ -202,4 +206,4 @@ export class CodeRunner {
             return false;
         }
     }
-} 
+}

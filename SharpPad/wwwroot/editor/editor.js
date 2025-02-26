@@ -22,9 +22,6 @@ export class Editor {
         // 添加全屏功能
         this.setupFullscreen();
 
-        // 设置主题切换
-        this.setupThemeToggle();
-
         const completion = registerCompletion(monaco, this.editor, {
             endpoint: "",
             language: "csharp",
@@ -83,9 +80,54 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
     }
 
     setupFullscreen() {
-        // 添加全屏样式
+        // 添加全屏和主题切换按钮样式
         const style = document.createElement('style');
         style.textContent = `
+            .editor-control-button {
+                position: absolute !important;
+                top: 10px !important;
+                z-index: 10000;
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+                border: none !important;
+                border-radius: 4px !important;
+                background-color: #2d2d2d !important;
+                color: #fff !important;
+                font-size: 18px !important;
+                cursor: pointer !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                opacity: 0.7 !important;
+                transition: all 0.2s ease !important;
+            }
+
+            .editor-control-button:hover {
+                opacity: 1 !important;
+                background-color: #404040 !important;
+            }
+
+            .fullscreen-button {
+                right: 10px !important;
+            }
+
+            .theme-button {
+                right: 50px !important;
+            }
+
+            /* 深色主题下的主题按钮样式 */
+            .theme-dark .theme-button {
+                background-color: #2d2d2d !important;
+                color: #fff !important;
+            }
+
+            /* 浅色主题下的主题按钮样式 */
+            .theme-light .theme-button {
+                background-color: rgb(243, 239, 239) !important;
+                color: #242424 !important;
+            }
+
             .fullscreen-editor {
                 position: fixed !important;
                 top: 0 !important;
@@ -120,44 +162,32 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
                 width: 100% !important;
                 height: 100% !important;
             }
-
-            .fullscreen-button {
-                position: absolute !important;
-                top: 10px !important;
-                right: 10px !important;
-                z-index: 10000;
-                width: 32px !important;
-                height: 32px !important;
-                padding: 0 !important;
-                border: none !important;
-                border-radius: 4px !important;
-                background-color: #2d2d2d !important;
-                color: #fff !important;
-                font-size: 18px !important;
-                cursor: pointer !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                opacity: 0.7 !important;
-                transition: all 0.2s ease !important;
-            }
-
-            .fullscreen-button:hover {
-                opacity: 1 !important;
-                background-color: #404040 !important;
-            }
         `;
         document.head.appendChild(style);
 
+        const container = this.editor.getDomNode().parentElement;
+
         // 创建全屏按钮
         const fullscreenButton = document.createElement('button');
-        fullscreenButton.className = 'fullscreen-button';
+        fullscreenButton.className = 'editor-control-button fullscreen-button';
         fullscreenButton.innerHTML = '⛶';
         fullscreenButton.title = '全屏';
-
-        // 将全屏按钮添加到编辑器容器中
-        const container = this.editor.getDomNode().parentElement;
         container.appendChild(fullscreenButton);
+
+        // 创建主题切换按钮
+        const themeButton = document.createElement('button');
+        themeButton.className = 'editor-control-button theme-button';
+        themeButton.innerHTML = this.currentTheme === 'vs-dark' ? '☀️' :
+            '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow-x: visible;">' +
+            '<path d="M16.3592 13.9967C14.1552 17.8141 9.27399 19.122 5.45663 16.918C4.41706 16.3178 3.54192 15.5059 2.87537 14.538C2.65251 14.2143 2.79667 13.7674 3.16661 13.635C6.17301 12.559 7.78322 11.312 8.71759 9.52844C9.70125 7.65076 9.95545 5.59395 9.26732 2.77462C9.17217 2.38477 9.4801 2.01357 9.88082 2.03507C11.1233 2.10173 12.3371 2.45863 13.4378 3.09415C17.2552 5.2981 18.5631 10.1793 16.3592 13.9967Z" fill="#242424" style="overflow-x: visible;"></path>' +
+            '</svg>';
+        themeButton.title = '切换主题';
+        container.appendChild(themeButton);
+
+        // 设置主题切换事件
+        themeButton.addEventListener('click', () => {
+            this.toggleTheme();
+        });
 
         let isFullscreen = false;
         fullscreenButton.addEventListener('click', () => {
@@ -206,9 +236,12 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
         document.body.classList.toggle('theme-dark', this.currentTheme === 'vs-dark');
 
         // 更新按钮图标
-        const themeButton = document.getElementById('themeButton');
+        const themeButton = document.querySelector('.theme-button');
         if (themeButton) {
-            themeButton.innerHTML = this.currentTheme === 'vs-dark' ? '🌓' : '☀️';
+            themeButton.innerHTML = this.currentTheme === 'vs-dark' ? '☀️' :
+                '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow-x: visible;">' +
+                '<path d="M16.3592 13.9967C14.1552 17.8141 9.27399 19.122 5.45663 16.918C4.41706 16.3178 3.54192 15.5059 2.87537 14.538C2.65251 14.2143 2.79667 13.7674 3.16661 13.635C6.17301 12.559 7.78322 11.312 8.71759 9.52844C9.70125 7.65076 9.95545 5.59395 9.26732 2.77462C9.17217 2.38477 9.4801 2.01357 9.88082 2.03507C11.1233 2.10173 12.3371 2.45863 13.4378 3.09415C17.2552 5.2981 18.5631 10.1793 16.3592 13.9967Z" fill="#242424" style="overflow-x: visible;"></path>' +
+                '</svg>';
         }
     }
 
@@ -233,4 +266,4 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
             this.editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
         }
     }
-} 
+}
