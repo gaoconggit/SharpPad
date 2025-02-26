@@ -6,10 +6,13 @@ export class Editor {
     constructor() {
         this.editor = null;
         this.defaultCode = DEFAULT_CODE;
-        this.currentTheme = 'vs-dark';
-
+        
+        // 从localStorage读取主题设置，如果没有则默认为light主题
+        this.currentTheme = localStorage.getItem('editorTheme') || 'vs-light';
+        
         // 设置初始主题
-        document.body.classList.add('theme-dark');
+        document.body.classList.remove('theme-dark', 'theme-light');
+        document.body.classList.add(this.currentTheme === 'vs-dark' ? 'theme-dark' : 'theme-light');
     }
 
     initialize(containerId) {
@@ -234,6 +237,9 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
         // 更新全局主题
         document.body.classList.toggle('theme-light', this.currentTheme === 'vs-light');
         document.body.classList.toggle('theme-dark', this.currentTheme === 'vs-dark');
+
+        // 保存主题设置到localStorage
+        localStorage.setItem('editorTheme', this.currentTheme);
 
         // 更新按钮图标
         const themeButton = document.querySelector('.theme-button');
