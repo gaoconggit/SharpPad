@@ -5,14 +5,17 @@
 
 ![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
 
-
-
-
+## 演示站点: http://148.135.58.4
 
 ## 快速体验
 1. 下载 release 包
 2. 解压后,找到 SharpPad.exe 双击运行
 3. 浏览器打开控制台显示的ip:port
+
+## Docker Compose
+  在项目根目录
+    `docker-compose up -d`
+   
 
 ## 示例代码参考
   https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
