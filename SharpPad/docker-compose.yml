@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  sharppad:
+    image: sharppad:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5090:5090"
+    volumes:
+      # 持久化NuGet包缓存
+      - sharppad-nuget-packages:/app/NugetPackages/packages
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5090
+
+volumes:
+  sharppad-nuget-packages:

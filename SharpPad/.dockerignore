@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Visual Studio 文件
+.vs
+**/*.user
+**/*.userosscache
+**/*.sln.docstates
+
+# 构建结果
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
+**/x64/
+**/x86/
+
+# NuGet包文件(构建时将会恢复)
+**/packages/
+**/NugetPackages/packages/
+
+# 节点模块
+**/node_modules/
+
+# 其他不需要的文件
+**/*.md
+**/*.log
+**/*.bak
+Dockerfile*
+docker-compose*
+.dockerignore
