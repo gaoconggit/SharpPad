@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using monacoEditorCSharp.DataHelpers;
+using System.Runtime.Loader;
 
 namespace MonacoRoslynCompletionProvider.Api
 {
@@ -18,8 +19,8 @@ namespace MonacoRoslynCompletionProvider.Api
         // 用于同步Console重定向的锁对象
         private static readonly object _consoleLock = new object();
 
-        // 用于程序集加载的锁对象
-        private static readonly object _assemblyLock = new object();
+        // 用于创建AssemblyLoadContext的锁对象
+        private static readonly object _loadContextLock = new object();
 
         public class RunResult
         {
@@ -32,6 +33,9 @@ namespace MonacoRoslynCompletionProvider.Api
             var result = new RunResult();
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
+
+            // 创建一个可卸载的AssemblyLoadContext
+            var loadContext = new CustomAssemblyLoadContext();
 
             try
             {
@@ -81,11 +85,11 @@ namespace MonacoRoslynCompletionProvider.Api
 
                     peStream.Seek(0, SeekOrigin.Begin);
 
-                    // 线程安全地加载程序集
+                    // 使用自定义LoadContext加载程序集
                     Assembly assembly;
-                    lock (_assemblyLock)
+                    lock (_loadContextLock)
                     {
-                        assembly = Assembly.Load(peStream.ToArray());
+                        assembly = loadContext.LoadFromStream(peStream);
                     }
 
                     var entryPoint = assembly.EntryPoint;
@@ -165,10 +169,32 @@ namespace MonacoRoslynCompletionProvider.Api
                 SafeInvokeCallback(onError, $"Runtime error: {ex.Message}");
                 errorBuilder.AppendLine($"Runtime error: {ex.Message}");
             }
+            finally
+            {
+                // 执行完毕后卸载程序集
+                loadContext.Unload();
+
+                // 强制GC回收内存
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
 
             result.Output = outputBuilder.ToString();
             result.Error = errorBuilder.ToString();
             return result;
+        }
+
+        // 自定义可卸载的AssemblyLoadContext
+        private class CustomAssemblyLoadContext : AssemblyLoadContext
+        {
+            public CustomAssemblyLoadContext() : base(isCollectible: true)
+            {
+            }
+
+            protected override Assembly Load(AssemblyName assemblyName)
+            {
+                return null; // 我们不需要从AssemblyName加载，仅从流加载
+            }
         }
 
         // 线程安全的回调执行方法

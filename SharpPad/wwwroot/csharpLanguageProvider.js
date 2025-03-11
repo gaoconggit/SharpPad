@@ -26,11 +26,11 @@ export function registerCsharpProvider() {
                 for (let elem of data) {
                     suggestions.push({
                         label: {
-                            label: elem.Suggestion,
-                            description: elem.Description
+                            label: elem.suggestion,
+                            description: elem.description
                         },
                         kind: monaco.languages.CompletionItemKind.Function,
-                        insertText: elem.Suggestion
+                        insertText: elem.suggestion
                     });
                 }
             } catch (error) {
@@ -62,26 +62,26 @@ export function registerCsharpProvider() {
                 if (!data) return;
 
                 let signatures = [];
-                for (let signature of data.Signatures) {
+                for (let signature of data.signatures) {
                     let params = [];
-                    for (let param of signature.Parameters) {
+                    for (let param of signature.parameters) {
                         params.push({
-                            label: param.Label,
-                            documentation: param.Documentation ?? ""
+                            label: param.label,
+                            documentation: param.documentation ?? ""
                         });
                     }
 
                     signatures.push({
-                        label: signature.Label,
-                        documentation: signature.Documentation ?? "",
+                        label: signature.label,
+                        documentation: signature.documentation ?? "",
                         parameters: params,
                     });
                 }
 
                 let signatureHelp = {
                     signatures,
-                    activeParameter: data.ActiveParameter,
-                    activeSignature: data.ActiveSignature
+                    activeParameter: data.activeParameter,
+                    activeSignature: data.activeSignature
                 };
 
                 return {
@@ -113,13 +113,13 @@ export function registerCsharpProvider() {
                 const { data } = await sendRequest("hover", request);
                 if (!data) return null;
 
-                const posStart = model.getPositionAt(data.OffsetFrom);
-                const posEnd = model.getPositionAt(data.OffsetTo);
+                const posStart = model.getPositionAt(data.offsetFrom);
+                const posEnd = model.getPositionAt(data.offsetTo);
 
                 return {
                     range: new monaco.Range(posStart.lineNumber, posStart.column, posEnd.lineNumber, posEnd.column),
                     contents: [
-                        { value: data.Information }
+                        { value: data.information }
                     ]
                 };
             } catch (error) {
@@ -147,15 +147,15 @@ export function registerCsharpProvider() {
                 let markers = [];
 
                 for (let elem of data) {
-                    const posStart = model.getPositionAt(elem.OffsetFrom);
-                    const posEnd = model.getPositionAt(elem.OffsetTo);
+                    const posStart = model.getPositionAt(elem.offsetFrom);
+                    const posEnd = model.getPositionAt(elem.offsetTo);
                     markers.push({
-                        severity: elem.Severity,
+                        severity: elem.severity,
                         startLineNumber: posStart.lineNumber,
                         startColumn: posStart.column,
                         endLineNumber: posEnd.lineNumber,
                         endColumn: posEnd.column,
-                        message: elem.Message,
+                        message: elem.message,
                         code: elem.Id
                     });
                 }
