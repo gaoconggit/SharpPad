@@ -10,23 +10,32 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using monacoEditorCSharp.DataHelpers;
+using System.Runtime.Loader;
 
 namespace MonacoRoslynCompletionProvider.Api
 {
     public class CodeRunner
     {
+        // 用于同步Console重定向的锁对象
+        private static readonly object _consoleLock = new object();
+
+        // 用于创建AssemblyLoadContext的锁对象
+        private static readonly object _loadContextLock = new object();
+
         public class RunResult
         {
             public string Output { get; set; }
             public string Error { get; set; }
         }
 
-        // Start of Selection
         public static async Task<RunResult> RunProgramCodeAsync(string code, string nuget, int languageVersion, Action<string> onOutput, Action<string> onError)
         {
             var result = new RunResult();
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
+
+            // 创建一个可卸载的AssemblyLoadContext
+            var loadContext = new CustomAssemblyLoadContext();
 
             try
             {
@@ -40,6 +49,9 @@ namespace MonacoRoslynCompletionProvider.Api
                     documentationMode: DocumentationMode.Parse
                 );
 
+                // 生成唯一的程序集名称，避免并发冲突
+                string uniqueAssemblyName = $"DynamicCode_{Guid.NewGuid():N}";
+
                 // 解析代码
                 var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
                 var defaultReferences = AppDomain.CurrentDomain.GetAssemblies()
@@ -52,7 +64,7 @@ namespace MonacoRoslynCompletionProvider.Api
                         MetadataReference.CreateFromFile(assembly.Location)));
 
                 var compilation = CSharpCompilation.Create(
-                    assemblyName: "DynamicCode",
+                    assemblyName: uniqueAssemblyName,
                     syntaxTrees: new[] { syntaxTree },
                     references: allReferences,
                     options: new CSharpCompilationOptions(OutputKind.ConsoleApplication));
@@ -66,75 +78,139 @@ namespace MonacoRoslynCompletionProvider.Api
                         var errors = string.Join(Environment.NewLine, compileResult.Diagnostics
                             .Where(d => d.Severity == DiagnosticSeverity.Error)
                             .Select(d => d.ToString()));
-                        onError?.Invoke($"Compilation error:\n{errors}");
+                        SafeInvokeCallback(onError, $"Compilation error:\n{errors}");
                         result.Error = errors;
                         return result;
                     }
 
                     peStream.Seek(0, SeekOrigin.Begin);
-                    var assembly = Assembly.Load(peStream.ToArray());
+
+                    // 使用自定义LoadContext加载程序集
+                    Assembly assembly;
+                    lock (_loadContextLock)
+                    {
+                        assembly = loadContext.LoadFromStream(peStream);
+                    }
+
                     var entryPoint = assembly.EntryPoint;
 
                     if (entryPoint != null)
                     {
                         var parameters = entryPoint.GetParameters();
 
-                        var originalOutput = Console.Out;
-                        var originalError = Console.Error;
+                        // 使用本地变量来存储当前线程的控制台输出
+                        TextWriter threadLocalOutput = null;
+                        TextWriter threadLocalError = null;
 
-                        await using var outputWriter = new CallbackTextWriter(onOutput, outputBuilder);
-                        await using var errorWriter = new CallbackTextWriter(onError, errorBuilder);
-                        Console.SetOut(outputWriter);
-                        Console.SetError(errorWriter);
+                        await using var outputWriter = new CallbackTextWriter(
+                            text => SafeInvokeCallback(onOutput, text),
+                            outputBuilder);
+                        await using var errorWriter = new CallbackTextWriter(
+                            text => SafeInvokeCallback(onError, text),
+                            errorBuilder);
 
                         // Execute the entry point asynchronously to prevent blocking
                         var executionTask = Task.Run(() =>
                         {
                             try
                             {
-                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
+                                // 使用锁保护Console重定向
+                                lock (_consoleLock)
                                 {
-                                    // 兼容 Main(string[] args)
-                                    entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
+                                    threadLocalOutput = Console.Out;
+                                    threadLocalError = Console.Error;
+                                    Console.SetOut(outputWriter);
+                                    Console.SetError(errorWriter);
                                 }
-                                else
+
+                                try
                                 {
-                                    entryPoint.Invoke(null, null);
+                                    if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
+                                    {
+                                        // 兼容 Main(string[] args)
+                                        entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
+                                    }
+                                    else
+                                    {
+                                        entryPoint.Invoke(null, null);
+                                    }
+                                }
+                                finally
+                                {
+                                    // 确保在同一个锁内恢复控制台输出
+                                    lock (_consoleLock)
+                                    {
+                                        if (threadLocalOutput != null)
+                                            Console.SetOut(threadLocalOutput);
+                                        if (threadLocalError != null)
+                                            Console.SetError(threadLocalError);
+                                    }
                                 }
                             }
                             catch (Exception ex)
                             {
-                                onError?.Invoke($"Execution error: {ex.InnerException?.InnerException?.Message
-                                                                    ?? ex.InnerException?.Message
-                                                                    ?? ex.Message}");
-                                errorBuilder.AppendLine($"Execution error: {ex.InnerException?.InnerException?.Message
-                                                                            ?? ex.InnerException?.Message
-                                                                            ?? ex.Message}");
+                                string errorMessage = $"Execution error: {ex.InnerException?.InnerException?.Message ?? ex.InnerException?.Message ?? ex.Message}";
+                                SafeInvokeCallback(onError, errorMessage);
+                                errorBuilder.AppendLine(errorMessage);
                             }
                         });
 
                         await executionTask;
-
-                        // 恢复控制台输出
-                        Console.SetOut(originalOutput);
-                        Console.SetError(originalError);
                     }
                     else
                     {
-                        onError?.Invoke("No entry point found in the code.");
+                        SafeInvokeCallback(onError, "No entry point found in the code.");
                         errorBuilder.AppendLine("No entry point found in the code.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                onError?.Invoke($"Runtime error: {ex.Message}");
+                SafeInvokeCallback(onError, $"Runtime error: {ex.Message}");
                 errorBuilder.AppendLine($"Runtime error: {ex.Message}");
+            }
+            finally
+            {
+                // 执行完毕后卸载程序集
+                loadContext.Unload();
+
+                // 强制GC回收内存
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
             }
 
             result.Output = outputBuilder.ToString();
             result.Error = errorBuilder.ToString();
             return result;
+        }
+
+        // 自定义可卸载的AssemblyLoadContext
+        private class CustomAssemblyLoadContext : AssemblyLoadContext
+        {
+            public CustomAssemblyLoadContext() : base(isCollectible: true)
+            {
+            }
+
+            protected override Assembly Load(AssemblyName assemblyName)
+            {
+                return null; // 我们不需要从AssemblyName加载，仅从流加载
+            }
+        }
+
+        // 线程安全的回调执行方法
+        private static void SafeInvokeCallback(Action<string> callback, string message)
+        {
+            if (callback != null)
+            {
+                try
+                {
+                    callback(message);
+                }
+                catch
+                {
+                    // 忽略回调中的异常 
+                }
+            }
         }
 
         // 辅助类用于实时回调输出并累加输出内容
