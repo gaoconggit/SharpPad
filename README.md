@@ -6,8 +6,9 @@
 ![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
 
 ## 演示站点:
- - http://148.135.58.4
- - http://try.dotnet10.com/
+
+ - https://try.dotnet10.com  国内
+ - http://148.135.58.4 国外
 
 ## 快速体验
 1. 下载 release 包
