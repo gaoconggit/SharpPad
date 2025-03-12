@@ -1,7 +1,7 @@
 // Monaco Editor 配置
 const monacoConfig = {
     paths: {
-        'vs': 'monaco-editor/min/vs'
+        'vs': 'https://unpkg.com/monaco-editor@0.52.2/min/vs'
     }
 };
 
@@ -9,7 +9,7 @@ const monacoConfig = {
 function loadMonaco() {
     return new Promise((resolve) => {
         const script = document.createElement('script');
-        script.src = 'monaco-editor/min/vs/loader.js';
+        script.src = 'https://unpkg.com/monaco-editor@0.52.2/min/vs/loader.js';
         script.onload = () => {
             require.config(monacoConfig);
             require(['vs/editor/editor.main'], () => {
@@ -26,7 +26,6 @@ import { FileManager } from './fileSystem/fileManager.js';
 import { registerCsharpProvider } from './csharpLanguageProvider.js';
 import { CodeRunner } from './execution/runner.js';
 import { OutputPanel } from './execution/outputPanel.js';
-import { FileListResizer } from './fileSystem/fileListResizer.js';
 import { sendRequest } from './utils/apiService.js';
 import { showNotification } from './utils/common.js';
 

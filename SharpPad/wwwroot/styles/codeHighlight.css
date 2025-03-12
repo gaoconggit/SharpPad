@@ -15,6 +15,10 @@ body.theme-dark .lang-label {
     border-bottom: 1px solid #444;
     border-right: 1px solid #444;
     border-radius: 0 0 4px 0;
+    z-index: 10;
+    height: 20px;
+    box-sizing: border-box;
+    line-height: 16px;
 }
 
 body.theme-dark .copy-button {
@@ -40,6 +44,7 @@ body.theme-dark .copy-button:hover {
 body.theme-dark pre {
     background: #1e1e1e;
     padding: 10px;
+    padding-top: 30px;
     border-radius: 5px;
     overflow-x: auto;
     border: 1px solid #444;
@@ -57,6 +62,10 @@ body.theme-light .lang-label {
     border-bottom: 1px solid #e0e0e0;
     border-right: 1px solid #e0e0e0;
     border-radius: 0 0 4px 0;
+    z-index: 10;
+    height: 20px;
+    box-sizing: border-box;
+    line-height: 16px;
 }
 
 body.theme-light .copy-button {
@@ -81,6 +90,7 @@ body.theme-light .copy-button:hover {
 body.theme-light pre {
     background: #ffffff;
     padding: 10px;
+    padding-top: 30px;
     border-radius: 5px;
     overflow-x: auto;
     border: 1px solid #e0e0e0;

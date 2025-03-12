@@ -62,18 +62,19 @@ export function showNotification(message, type = 'info') {
 
 //定义常量
 export const DEFAULT_CODE = `using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 
 class Program
 {
-    public static async Task Main()
+    static void Main()
     {
-        Console.WriteLine("Hello, World!");
+        string message = "Hello, SharpPad! 关注我: https://github.com/gaoconggit/SharpPad";
+        foreach (char c in message)
+        {
+            Console.Write(c);  // 使用Console.Write逐字符打印
+            Thread.Sleep(100); // 设置适当的延时，单位是毫秒
+        }
+        Console.WriteLine();  // 打印结束后换行
     }
 }`;
 
