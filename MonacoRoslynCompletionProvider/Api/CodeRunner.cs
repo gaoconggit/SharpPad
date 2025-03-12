@@ -175,8 +175,8 @@ namespace MonacoRoslynCompletionProvider.Api
                 loadContext.Unload();
 
                 // 强制GC回收内存
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
+                //GC.Collect();
+                //GC.WaitForPendingFinalizers();
             }
 
             result.Output = outputBuilder.ToString();

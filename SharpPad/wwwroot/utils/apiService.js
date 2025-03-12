@@ -54,6 +54,13 @@ export async function sendRequest(type, request) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // Handle 204 No Content responses
+            if (response.status === 204) {
+                // Return an object with data as null to maintain consistent return structure
+                return { data: null };
+            }
+
+            // For responses with content, parse the JSON
             const data = await response.json();
             return { data };
         }
