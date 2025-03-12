@@ -26,7 +26,6 @@ import { FileManager } from './fileSystem/fileManager.js';
 import { registerCsharpProvider } from './csharpLanguageProvider.js';
 import { CodeRunner } from './execution/runner.js';
 import { OutputPanel } from './execution/outputPanel.js';
-import { FileListResizer } from './fileSystem/fileListResizer.js';
 import { sendRequest } from './utils/apiService.js';
 import { showNotification } from './utils/common.js';
 
