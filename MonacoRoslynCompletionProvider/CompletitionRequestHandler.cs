@@ -17,9 +17,9 @@ using System.IO;
 
 namespace MonacoRoslynCompletionProvider
 {
-    public static class CompletitionRequestHandler
+    public static class MonacoRequestHandler
     {
-        private static readonly string[] s_assemblies = [
+        private static readonly string[] SAssemblies = [
             .. AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
                 .Select(a => a.Location).ToArray(),
@@ -29,40 +29,40 @@ namespace MonacoRoslynCompletionProvider
             Path.Combine("Dll", "RestSharp.dll"),
         ];
 
-        public async static Task<TabCompletionResult[]> Handle(TabCompletionRequest tabCompletionRequest, string nuget)
+        public static async Task<TabCompletionResult[]> CompletionHandle(TabCompletionRequest tabCompletionRequest, string nuget)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
-            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
-            var document = await workspace.CreateDocument(tabCompletionRequest.Code);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(tabCompletionRequest.Code);
             return await document.GetTabCompletion(tabCompletionRequest.Position, CancellationToken.None);
         }
 
-        public async static Task<HoverInfoResult> Handle(HoverInfoRequest hoverInfoRequest, string nuget)
+        public static async Task<HoverInfoResult> HoverHandle(HoverInfoRequest hoverInfoRequest, string nuget)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
 
-            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
-            var document = await workspace.CreateDocument(hoverInfoRequest.Code);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(hoverInfoRequest.Code);
             return await document.GetHoverInformation(hoverInfoRequest.Position, CancellationToken.None);
         }
 
-        public async static Task<CodeCheckResult[]> Handle(CodeCheckRequest codeCheckRequest, string nuget)
+        public static async Task<CodeCheckResult[]> CodeCheckHandle(CodeCheckRequest codeCheckRequest, string nuget)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
 
-            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
-            var document = await workspace.CreateDocument(codeCheckRequest.Code);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(codeCheckRequest.Code);
             return await document.GetCodeCheckResults(CancellationToken.None);
         }
 
-        public async static Task<SignatureHelpResult> Handle(SignatureHelpRequest signatureHelpRequest, string nuget)
+        public static async Task<SignatureHelpResult> SignatureHelpHandle(SignatureHelpRequest signatureHelpRequest, string nuget)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
-            var workspace = CompletionWorkspace.Create([.. nugetAssembliesArray, .. s_assemblies]);
-            var document = await workspace.CreateDocument(signatureHelpRequest.Code);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(signatureHelpRequest.Code);
             return await document.GetSignatureHelp(signatureHelpRequest.Position, CancellationToken.None);
         }
 
@@ -96,7 +96,7 @@ namespace MonacoRoslynCompletionProvider
             return Formatter.Format(root, workspace).ToFullString();
         }
 
-        public class CSharpLanguage : ILanguageService
+        private class CSharpLanguage : ILanguageService
         {
             private static readonly LanguageVersion MaxLanguageVersion = Enum
                 .GetValues(typeof(LanguageVersion))

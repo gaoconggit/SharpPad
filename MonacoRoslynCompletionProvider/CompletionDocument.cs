@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Emit;
 using MonacoRoslynCompletionProvider.Api;
 //using MonacoRoslynCompletionProvider.RoslynPad;
@@ -8,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace MonacoRoslynCompletionProvider
 {
-    public class CompletionDocument
+    public class CompletionDocument : IDisposable
     {
-        private readonly Document document;
-        private readonly SemanticModel semanticModel;
-        private readonly EmitResult emitResult;
+        private bool _disposed = false;
+        public Document document { get; private set; }
+        public SemanticModel semanticModel { get; private set; }
+        public EmitResult emitResult { get; private set; }
 
         //private QuickInfoProvider quickInfoProvider;
 
@@ -49,6 +51,24 @@ namespace MonacoRoslynCompletionProvider
         {
             var signatureHelpProvider = new SignatureHelpProvider();
             return signatureHelpProvider.Provide(document, position, semanticModel);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+            if (disposing)
+            {
+                document = null;
+                semanticModel = null;
+                emitResult = null;
+            }
+            _disposed = true;
         }
     }
 }
