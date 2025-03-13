@@ -28,7 +28,8 @@ namespace MonacoRoslynCompletionProvider.Api
             public string Error { get; set; }
         }
 
-        public static async Task<RunResult> RunProgramCodeAsync(string code, string nuget, int languageVersion, Action<string> onOutput, Action<string> onError)
+        public static async Task<RunResult> RunProgramCodeAsync(string code, string nuget, int languageVersion, Func<string, Task> onOutput,
+            Func<string, Task> onError)
         {
             var result = new RunResult();
             var outputBuilder = new StringBuilder();
@@ -50,7 +51,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 );
 
                 // 生成唯一的程序集名称，避免并发冲突
-                string uniqueAssemblyName = $"DynamicCode_{Guid.NewGuid():N}";
+                string uniqueAssemblyName = $"DynamicCode";
 
                 // 解析代码
                 var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
@@ -78,7 +79,7 @@ namespace MonacoRoslynCompletionProvider.Api
                         var errors = string.Join(Environment.NewLine, compileResult.Diagnostics
                             .Where(d => d.Severity == DiagnosticSeverity.Error)
                             .Select(d => d.ToString()));
-                        SafeInvokeCallback(onError, $"Compilation error:\n{errors}");
+                        await SafeInvokeCallback(onError, $"Compilation error:\n{errors}");
                         result.Error = errors;
                         return result;
                     }
@@ -103,14 +104,13 @@ namespace MonacoRoslynCompletionProvider.Api
                         TextWriter threadLocalError = null;
 
                         await using var outputWriter = new CallbackTextWriter(
-                            text => SafeInvokeCallback(onOutput, text),
+                            async text => await SafeInvokeCallback(onOutput, text),
                             outputBuilder);
-                        await using var errorWriter = new CallbackTextWriter(
-                            text => SafeInvokeCallback(onError, text),
+                        await using var errorWriter = new CallbackTextWriter(async text => await SafeInvokeCallback(onError, text),
                             errorBuilder);
 
                         // Execute the entry point asynchronously to prevent blocking
-                        var executionTask = Task.Run(() =>
+                        var executionTask = Task.Run(async () =>
                         {
                             try
                             {
@@ -150,7 +150,7 @@ namespace MonacoRoslynCompletionProvider.Api
                             catch (Exception ex)
                             {
                                 string errorMessage = $"Execution error: {ex.InnerException?.InnerException?.Message ?? ex.InnerException?.Message ?? ex.Message}";
-                                SafeInvokeCallback(onError, errorMessage);
+                                await SafeInvokeCallback(onError, errorMessage);
                                 errorBuilder.AppendLine(errorMessage);
                             }
                         });
@@ -159,14 +159,14 @@ namespace MonacoRoslynCompletionProvider.Api
                     }
                     else
                     {
-                        SafeInvokeCallback(onError, "No entry point found in the code.");
+                        await SafeInvokeCallback(onError, "No entry point found in the code.");
                         errorBuilder.AppendLine("No entry point found in the code.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                SafeInvokeCallback(onError, $"Runtime error: {ex.Message}");
+                await SafeInvokeCallback(onError, $"Runtime error: {ex.Message}");
                 errorBuilder.AppendLine($"Runtime error: {ex.Message}");
             }
             finally
@@ -175,8 +175,8 @@ namespace MonacoRoslynCompletionProvider.Api
                 loadContext.Unload();
 
                 // 强制GC回收内存
-                //GC.Collect();
-                //GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
             }
 
             result.Output = outputBuilder.ToString();
@@ -198,13 +198,13 @@ namespace MonacoRoslynCompletionProvider.Api
         }
 
         // 线程安全的回调执行方法
-        private static void SafeInvokeCallback(Action<string> callback, string message)
+        private static async Task SafeInvokeCallback(Func<string, Task> callback, string message)
         {
             if (callback != null)
             {
                 try
                 {
-                    callback(message);
+                    await callback(message);
                 }
                 catch
                 {

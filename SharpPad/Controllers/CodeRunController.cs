@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MonacoRoslynCompletionProvider;
 using MonacoRoslynCompletionProvider.Api;
 using System.Text.Json;
+using System.Threading.Channels;
 
 namespace SharpPad.Controllers
 {
@@ -19,22 +20,50 @@ namespace SharpPad.Controllers
             Response.Headers.TryAdd("Cache-Control", "no-cache");
             Response.Headers.TryAdd("Connection", "keep-alive");
 
-            // 使用CancellationTokenSource来控制任务的取消
             var cts = new CancellationTokenSource();
             HttpContext.RequestAborted.Register(() => cts.Cancel());
 
-            // 创建输出和错误回调
-            // 创建输出和错误回调
-            async void OnOutput(string output)
+            // 创建一个无界的 Channel 以缓冲输出
+            var channel = Channel.CreateUnbounded<string>();
+
+            // 处理 Channel 任务
+            async Task ProcessChannel()
             {
-                await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n");
-                await Response.Body.FlushAsync();
+                await foreach (var message in channel.Reader.ReadAllAsync(cts.Token))
+                {
+                    if (!cts.Token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await Response.WriteAsync(message, cts.Token);
+                            await Response.Body.FlushAsync(cts.Token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Response 写入异常: {ex.Message}");
+                        }
+                    }
+                }
             }
 
-            async void OnError(string error)
+            // 在后台启动 Channel 处理任务
+            _ = Task.Run(ProcessChannel, cts.Token);
+
+            // 回调函数将数据写入 Channel
+            async Task OnOutput(string output)
             {
-                await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n");
-                await Response.Body.FlushAsync();
+                if (!cts.Token.IsCancellationRequested)
+                {
+                    await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n");
+                }
+            }
+
+            async Task OnError(string error)
+            {
+                if (!cts.Token.IsCancellationRequested)
+                {
+                    await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n");
+                }
             }
 
             try
@@ -47,21 +76,23 @@ namespace SharpPad.Controllers
                     OnError
                 );
 
-                // 只有在请求未取消时才发送完成消息
+                // 发送完成消息
                 if (!cts.Token.IsCancellationRequested)
                 {
-                    await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "completed", result })}\n\n", cts.Token);
-                    await Response.Body.FlushAsync(cts.Token);
+                    await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "completed", result })}\n\n");
                 }
             }
             catch (Exception ex)
             {
-                // 如果运行代码过程中发生错误，尝试发送错误消息
-                if (!cts.Token.IsCancellationRequested && !Response.HasStarted)
+                if (!cts.Token.IsCancellationRequested)
                 {
-                    await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = ex.ToString() })}\n\n");
-                    await Response.Body.FlushAsync();
+                    await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = ex.ToString() })}\n\n");
                 }
+            }
+            finally
+            {
+                // 关闭 Channel，通知 ProcessChannel 任务结束
+                channel.Writer.Complete();
             }
         }
     }
