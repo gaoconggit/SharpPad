@@ -193,7 +193,7 @@ body.theme-light .chat-messages .assistant-message {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
-    margin-right: 6rem;
+    margin-right: 3rem;
 }
 
 #runButton:hover, #themeButton:hover {
