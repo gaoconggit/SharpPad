@@ -9,20 +9,26 @@ using System.Threading.Tasks;
 
 namespace MonacoRoslynCompletionProvider
 {
-    public class CompletionDocument : IDisposable
+    public class CompletionDocument
     {
-        private bool _disposed = false;
-        public Document document { get; private set; }
-        public SemanticModel semanticModel { get; private set; }
-        public EmitResult emitResult { get; private set; }
+        public Document Document { get; }
+        public SemanticModel SemanticModel { get; }
+        public EmitResult EmitResult { get; }
+
+        //public CompletionDocument(Document document, SemanticModel semanticModel, EmitResult emitResult)
+        //{
+        //    Document = document;
+        //    SemanticModel = semanticModel;
+        //    EmitResult = emitResult;
+        //}
 
         //private QuickInfoProvider quickInfoProvider;
 
         internal CompletionDocument(Document document, SemanticModel semanticModel, EmitResult emitResult)
         {
-            this.document = document;
-            this.semanticModel = semanticModel;
-            this.emitResult = emitResult;
+            this.Document = document;
+            this.SemanticModel = semanticModel;
+            this.EmitResult = emitResult;
 
             //this.quickInfoProvider = new QuickInfoProvider(new DeferredQuickInfoContentProvider());
         }
@@ -32,43 +38,26 @@ namespace MonacoRoslynCompletionProvider
             //var info = await quickInfoProvider.GetItemAsync(document, position, cancellationToken);
             //return new HoverInfoResult() { Information = info.Create().ToString() };
             var hoverInformationProvider = new HoverInformationProvider();
-            return hoverInformationProvider.Provide(document, position, semanticModel);
+            return hoverInformationProvider.Provide(Document, position, SemanticModel);
         }
 
         public Task<TabCompletionResult[]> GetTabCompletion(int position, CancellationToken cancellationToken)
         {
             var tabCompletionProvider = new TabCompletionProvider();
-            return tabCompletionProvider.Provide(document, position);
+            return tabCompletionProvider.Provide(Document, position);
         }
 
         public async Task<CodeCheckResult[]> GetCodeCheckResults(CancellationToken cancellationToken)
         {
             var codeCheckProvider = new CodeCheckProvider();
-            return await codeCheckProvider.Provide(emitResult, document, cancellationToken);
+            return await codeCheckProvider.Provide(EmitResult, Document, cancellationToken);
         }
 
         public Task<SignatureHelpResult> GetSignatureHelp(int position, CancellationToken cancellationToken)
         {
             var signatureHelpProvider = new SignatureHelpProvider();
-            return signatureHelpProvider.Provide(document, position, semanticModel);
+            return signatureHelpProvider.Provide(Document, position, SemanticModel);
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed) return;
-            if (disposing)
-            {
-                document = null;
-                semanticModel = null;
-                emitResult = null;
-            }
-            _disposed = true;
-        }
     }
 }
