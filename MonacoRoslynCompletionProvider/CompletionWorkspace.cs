@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 using System;
@@ -10,16 +11,22 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using MonacoRoslynCompletionProvider.Api;
 
 namespace MonacoRoslynCompletionProvider
 {
-    public class CompletionWorkspace : IDisposable
+    /// <summary>
+    /// 高性能的 CompletionWorkspace，复用工作空间和程序集引用缓存，
+    /// 并通过合理的并发控制达到优化性能的目的。
+    /// </summary>
+    public sealed class CompletionWorkspace : IDisposable
     {
-        // Static cache for metadata references
-        private static readonly ConcurrentDictionary<string, MetadataReference> _referenceCache = new ConcurrentDictionary<string, MetadataReference>();
+        // 缓存程序集引用，避免重复加载（线程安全）
+        private static readonly ConcurrentDictionary<string, MetadataReference> ReferenceCache = new ConcurrentDictionary<string, MetadataReference>();
 
-        // Static list of default assembly names to be loaded
-        private static readonly string[] _defaultAssemblyNames = [
+        // 默认程序集路径，仅加载必要的程序集
+        private static readonly string[] DefaultAssemblyPaths = new[]
+        {
             typeof(Console).Assembly.Location,
             Assembly.Load("System.Runtime").Location,
             typeof(List<>).Assembly.Location,
@@ -54,21 +61,22 @@ namespace MonacoRoslynCompletionProvider
             Assembly.Load("Microsoft.Net.Http.Headers, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60").Location,
             Assembly.Load("System.Security.Cryptography, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
             Assembly.Load("Microsoft.AspNetCore.Http").Location,
-            typeof(ObjectExtengsion).Assembly.Location,
+            typeof(ObjectExtengsion).Assembly.Location, // 假设此类型存在
             typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location,
             typeof(System.Diagnostics.Process).Assembly.Location
-        ];
+        };
 
-        // Workspace object pool
-        private static readonly ConcurrentBag<AdhocWorkspace> _workspacePool = new ConcurrentBag<AdhocWorkspace>();
+        // 用于复用 AdhocWorkspace 减少创建开销
+        private static readonly ConcurrentBag<AdhocWorkspace> WorkspacePool = new ConcurrentBag<AdhocWorkspace>();
 
-        // Semaphore to limit concurrent operations
-        private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(Environment.ProcessorCount * 2);
+        // 并发控制，数量可根据实际硬件调整
+        private static readonly SemaphoreSlim ConcurrencySemaphore = new SemaphoreSlim(Environment.ProcessorCount * 2);
 
-        // MEF host services (created once and shared)
-        private static readonly Lazy<MefHostServices> _host = new Lazy<MefHostServices>(() =>
+        // MEF host services，Roslyn 工作空间依赖（单例）
+        private static readonly Lazy<MefHostServices> HostServices = new Lazy<MefHostServices>(() =>
         {
-            Assembly[] assemblies = new[] {
+            var assemblies = new[]
+            {
                 Assembly.Load("Microsoft.CodeAnalysis.Workspaces"),
                 Assembly.Load("Microsoft.CodeAnalysis.CSharp.Workspaces"),
                 Assembly.Load("Microsoft.CodeAnalysis.Features"),
@@ -79,201 +87,180 @@ namespace MonacoRoslynCompletionProvider
 
         private AdhocWorkspace _workspace;
         private Project _project;
-        private bool _disposed = false;
-        private CancellationTokenSource _cts = new CancellationTokenSource();
-
-        // Instead of storing references directly, store assembly names for lazy loading
-        private readonly HashSet<string> _metadataReferenceNames = new HashSet<string>();
+        // 存储所有程序集路径，初始化时已包含默认程序集
+        private readonly HashSet<string> _metadataReferencePaths = new HashSet<string>(DefaultAssemblyPaths);
+        private bool _disposed;
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private CompletionWorkspace() { }
 
-        public static async Task<CompletionWorkspace> CreateAsync(params string[] additionalAssemblies)
+        /// <summary>
+        /// 异步创建 CompletionWorkspace 实例，可以传入额外的程序集路径
+        /// </summary>
+        public static async Task<CompletionWorkspace> CreateAsync(params string[] additionalAssemblyPaths)
         {
-            var workspace = new CompletionWorkspace();
-            await workspace.InitializeAsync(additionalAssemblies);
-            return workspace;
+            var instance = new CompletionWorkspace();
+            await instance.InitializeAsync(additionalAssemblyPaths).ConfigureAwait(false);
+            return instance;
         }
 
-        private async Task InitializeAsync(string[] additionalAssemblies)
+        private async Task InitializeAsync(string[] additionalAssemblyPaths)
         {
-            await Task.Run(() =>
+            // 添加额外的程序集引用（如果有）
+            if (additionalAssemblyPaths != null)
             {
-                // Add default assembly names
-                foreach (var assembly in _defaultAssemblyNames)
+                foreach (var path in additionalAssemblyPaths)
                 {
-                    _metadataReferenceNames.Add(assembly);
+                    _metadataReferencePaths.Add(path);
                 }
+            }
 
-                // Add additional assembly names
-                if (additionalAssemblies != null)
-                {
-                    foreach (var assembly in additionalAssemblies)
-                    {
-                        _metadataReferenceNames.Add(assembly);
-                    }
-                }
+            // 尝试复用工作空间，减少创建成本
+            if (!WorkspacePool.TryTake(out _workspace))
+            {
+                _workspace = new AdhocWorkspace(HostServices.Value);
+            }
 
-                // Try to get a workspace from the pool or create a new one
-                if (!_workspacePool.TryTake(out _workspace))
-                {
-                    _workspace = new AdhocWorkspace(_host.Value);
-                }
+            // 创建包含最基本引用的项目，保证启动速度
+            var initialReferences = GetCoreReferences();
+            var projectInfo = ProjectInfo.Create(
+                ProjectId.CreateNewId(),
+                VersionStamp.Create(),
+                "TempProject",
+                "TempProject",
+                LanguageNames.CSharp,
+                metadataReferences: initialReferences
+            );
 
-                // Create project with minimal references initially
-                var initialReferences = GetCoreReferences();
-                var projectInfo = ProjectInfo.Create(
-                    ProjectId.CreateNewId(),
-                    VersionStamp.Create(),
-                    "TempProject",
-                    "TempProject",
-                    LanguageNames.CSharp)
-                    .WithMetadataReferences(initialReferences);
-
-                _project = _workspace.AddProject(projectInfo);
-            });
+            _project = _workspace.AddProject(projectInfo);
+            await Task.CompletedTask.ConfigureAwait(false);
         }
 
-        // Gets only essential references for initial project creation
+        // 返回最基本的程序集引用，保证项目能快速启动
         private List<MetadataReference> GetCoreReferences()
         {
-            var essentialAssemblies = new[]
+            var essentialPaths = new[]
             {
                 typeof(object).Assembly.Location,
                 typeof(Console).Assembly.Location,
                 Assembly.Load("System.Runtime").Location
             };
 
-            return essentialAssemblies.Select(GetOrCreateMetadataReference).ToList();
+            return essentialPaths.Select(GetOrCreateMetadataReference)
+                                 .Where(r => r != null)
+                                 .ToList();
         }
 
-        // Lazy-loads the full set of references
+        // 获取所有需要的程序集引用，利用缓存减少加载开销
         private List<MetadataReference> GetAllReferences()
         {
-            return _metadataReferenceNames
-                .AsParallel()
+            return _metadataReferencePaths
                 .Select(GetOrCreateMetadataReference)
+                .Where(r => r != null)
                 .ToList();
         }
 
-        // Gets or creates a metadata reference (thread-safe)
+        // 线程安全地获取或创建 MetadataReference
         private static MetadataReference GetOrCreateMetadataReference(string assemblyPath)
         {
-            return _referenceCache.GetOrAdd(assemblyPath, path =>
+            return ReferenceCache.GetOrAdd(assemblyPath, path =>
             {
                 try
                 {
                     return MetadataReference.CreateFromFile(path);
                 }
-                catch (Exception)
+                catch
                 {
-                    Console.WriteLine($"Failed to load assembly: {path}");
+                    // 可在此处记录加载失败的日志
                     return null;
                 }
             });
         }
 
-        public async Task<CompletionDocument> CreateDocumentAsync(string code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// 创建用于代码补全的 CompletionDocument，
+        /// 内部通过并发控制、复用工作空间和引用缓存达到高性能。
+        /// </summary>
+        public async Task<CompletionDocument> CreateDocumentAsync(
+            string code,
+            OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+            CancellationToken cancellationToken = default)
         {
-            // Combine with internal cancellation token
             using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken))
             {
-                var linkedToken = linkedCts.Token;
-
-                // Wait for a slot in the semaphore
-                await _semaphore.WaitAsync(linkedToken);
-
+                var token = linkedCts.Token;
+                await ConcurrencySemaphore.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
-                    // Create a unique document ID to avoid conflicts in concurrent scenarios
-                    string documentName = $"Document_{Guid.NewGuid()}.cs";
-
-                    // Create document with source text
+                    // 生成唯一的文档名称
+                    string documentName = $"Document_{Guid.NewGuid():N}.cs";
                     var document = _workspace.AddDocument(_project.Id, documentName, SourceText.From(code));
 
-                    // Ensure we have all references needed
+                    // 更新项目，添加所有必要的程序集引用
                     var allReferences = GetAllReferences();
-                    var updatedProject = document.Project.WithMetadataReferences(allReferences);
-                    document = updatedProject.GetDocument(document.Id);
+                    _project = document.Project.WithMetadataReferences(allReferences);
+                    document = _project.GetDocument(document.Id);
 
-                    // Get syntax tree and create compilation in parallel
-                    var syntaxTreeTask = document.GetSyntaxTreeAsync(linkedToken);
+                    // 异步获取语法树
+                    var syntaxTree = await document.GetSyntaxTreeAsync(token).ConfigureAwait(false);
 
-                    // Process in parallel where possible
-                    var st = await syntaxTreeTask;
-
-                    // Create compilation with the updated references
+                    // 创建编译对象，启用并发构建和 Release 优化
                     var compilation = CSharpCompilation.Create(
-                        "Temp",
-                        new[] { st },
+                        "TempCompilation",
+                        new[] { syntaxTree },
+                        references: allReferences,
                         options: new CSharpCompilationOptions(outputKind)
-                            .WithOptimizationLevel(OptimizationLevel.Release)
-                            .WithConcurrentBuild(true),
-                        references: allReferences.Where(r => r != null)
+                                    .WithOptimizationLevel(OptimizationLevel.Release)
+                                    .WithConcurrentBuild(true)
                     );
 
-                    // Get semantic model
-                    var semanticModel = compilation.GetSemanticModel(st, true);
+                    // 获取语义模型（忽略可访问性检查，加快分析速度）
+                    var semanticModel = compilation.GetSemanticModel(syntaxTree, ignoreAccessibility: true);
 
-                    // Emit to check for errors
-                    using (var stream = new MemoryStream())
+                    // 编译检查错误，写入内存流（仅用于诊断，不生成文件）
+                    using (var ms = new MemoryStream())
                     {
-                        var emitResult = compilation.Emit(stream, cancellationToken: linkedToken);
-
-                        // Create completion document
+                        var emitResult = compilation.Emit(ms, cancellationToken: token);
                         return new CompletionDocument(document, semanticModel, emitResult);
                     }
                 }
                 finally
                 {
-                    _semaphore.Release();
+                    ConcurrencySemaphore.Release();
                 }
             }
         }
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
             if (!_disposed)
             {
-                if (disposing)
+                _cts.Cancel();
+                _cts.Dispose();
+
+                // 清理当前工作空间中的所有项目，保证状态干净
+                var solution = _workspace.CurrentSolution;
+                foreach (var projId in solution.ProjectIds)
                 {
-                    // Cancel any ongoing operations
-                    _cts.Cancel();
-                    _cts.Dispose();
-
-                    // Clear the workspace by creating a new solution without any projects
-                    var solution = _workspace.CurrentSolution;
-                    foreach (var projectId in solution.ProjectIds)
-                    {
-                        solution = solution.RemoveProject(projectId);
-                    }
-
-                    // Apply the empty solution
-                    _workspace.TryApplyChanges(solution);
-
-                    // Return workspace to the pool instead of disposing it
-                    _workspacePool.Add(_workspace);
+                    solution = solution.RemoveProject(projId);
                 }
+                _workspace.TryApplyChanges(solution);
+                // 将工作空间返还到池中，以供后续复用
+                WorkspacePool.Add(_workspace);
                 _disposed = true;
             }
         }
 
-        // Cleanup method to call during application shutdown
+        /// <summary>
+        /// 应用退出时调用，释放所有工作空间及缓存资源。
+        /// </summary>
         public static void Shutdown()
         {
-            // Dispose all pooled workspaces
-            while (_workspacePool.TryTake(out var workspace))
+            while (WorkspacePool.TryTake(out var workspace))
             {
                 workspace.Dispose();
             }
-
-            // Clear reference cache
-            _referenceCache.Clear();
+            ReferenceCache.Clear();
         }
     }
 }
