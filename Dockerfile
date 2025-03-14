@@ -11,6 +11,7 @@ EXPOSE 5090
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ./NuGet.config /etc/opt/NuGet/Config/NuGet.config
 COPY ["SharpPad/SharpPad.csproj", "SharpPad/"]
 COPY ["MonacoRoslynCompletionProvider/MonacoRoslynCompletionProvider.csproj", "MonacoRoslynCompletionProvider/"]
 RUN dotnet restore "./SharpPad/SharpPad.csproj"
