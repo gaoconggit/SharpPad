@@ -53,7 +53,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 );
 
                 // 生成唯一程序集名称，使用 Guid 避免并发冲突
-                string uniqueAssemblyName = "DynamicCode_" + Guid.NewGuid().ToString("N");
+                string assemblyName = "DynamicCode";
 
                 // 解析代码
                 var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
@@ -72,7 +72,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 }
 
                 var compilation = CSharpCompilation.Create(
-                    uniqueAssemblyName,
+                    assemblyName,
                     new[] { syntaxTree },
                     references,
                     new CSharpCompilationOptions(OutputKind.ConsoleApplication)

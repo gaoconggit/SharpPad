@@ -193,7 +193,7 @@ namespace MonacoRoslynCompletionProvider
                 try
                 {
                     // 生成唯一的文档名称
-                    string documentName = $"Document_{Guid.NewGuid():N}.cs";
+                    string documentName = $"Document.cs";
                     var document = _workspace.AddDocument(_project.Id, documentName, SourceText.From(code));
 
                     // 更新项目，添加所有必要的程序集引用

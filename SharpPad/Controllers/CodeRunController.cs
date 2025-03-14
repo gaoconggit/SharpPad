@@ -26,87 +26,107 @@ namespace SharpPad.Controllers
             // 创建一个无界的 Channel 以缓冲输出
             var channel = Channel.CreateUnbounded<string>();
 
-            // 在后台启动 Channel 处理任务
-            _ = Task.Run(ProcessChannel, cts.Token);
-
             try
             {
+                // 创建处理 Channel 的任务
+                var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
+
+                // 执行代码运行器
                 var result = await CodeRunner.RunProgramCodeAsync(
                     request?.SourceCode,
                     nugetPackages,
                     request?.LanguageVersion ?? 2147483647,
-                    OnOutput,
-                    OnError
+                    message => OnOutputAsync(message, channel.Writer, cts.Token),
+                    error => OnErrorAsync(error, channel.Writer, cts.Token)
                 );
 
+                // 发送完成消息
                 await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "completed", result })}\n\n", cts.Token);
+
+                // 关闭 Channel，不再接受新消息
+                channel.Writer.Complete();
+
+                // 等待处理任务完成
+                await processTask;
             }
             catch (Exception ex)
             {
                 if (!cts.Token.IsCancellationRequested)
                 {
-                    await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
-                }
-            }
-            finally
-            {
-                // 关闭 Channel，通知 ProcessChannel 任务结束
-                channel.Writer.TryComplete();
-            }
-
-            return;
-
-            async Task OnError(string error)
-            {
-                if (!cts.Token.IsCancellationRequested)
-                {
                     try
                     {
-                        await channel.Writer.WriteAsync(
-                            $"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n",
-                            cts.Token);
-                    }
-                    catch (ChannelClosedException)
-                    {
-                        // Channel 已关闭，可以选择记录日志或忽略此异常
-                    }
-                }
-            }
-
-            async Task OnOutput(string output)
-            {
-                if (!cts.Token.IsCancellationRequested)
-                {
-                    try
-                    {
-                        await channel.Writer.WriteAsync(
-                            $"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n",
-                            cts.Token);
-                    }
-                    catch (ChannelClosedException)
-                    {
-                        // Channel 已关闭，可以选择记录日志或忽略此异常
-                    }
-                }
-            }
-
-            // 处理 Channel 任务
-            async Task ProcessChannel()
-            {
-                await foreach (var message in channel.Reader.ReadAllAsync(cts.Token))
-                {
-                    if (cts.Token.IsCancellationRequested) break;
-
-                    try
-                    {
-                        await Response.WriteAsync(message, cts.Token);
+                        await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
                         await Response.Body.FlushAsync(cts.Token);
+                    }
+                    catch
+                    {
+                        // 如果响应已经被处理，则忽略该异常
+                    }
+                }
+            }
+        }
+
+        private async Task OnOutputAsync(string output, ChannelWriter<string> writer, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return;
+
+            try
+            {
+                await writer.WriteAsync(
+                    $"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n",
+                    token);
+            }
+            catch (ChannelClosedException)
+            {
+                // Channel 已关闭，可以选择记录日志或忽略此异常
+            }
+        }
+
+        private async Task OnErrorAsync(string error, ChannelWriter<string> writer, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return;
+
+            try
+            {
+                await writer.WriteAsync(
+                    $"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n",
+                    token);
+            }
+            catch (ChannelClosedException)
+            {
+                // Channel 已关闭，可以选择记录日志或忽略此异常
+            }
+        }
+
+        private async Task ProcessChannelAsync(ChannelReader<string> reader, CancellationToken token)
+        {
+            try
+            {
+                await foreach (var message in reader.ReadAllAsync(token))
+                {
+                    if (token.IsCancellationRequested) break;
+
+                    try
+                    {
+                        await Response.WriteAsync(message, token);
+                        await Response.Body.FlushAsync(token);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        // 记录日志并退出，避免继续尝试写入已释放的响应
+                        Console.WriteLine($"Response 对象已释放: {ex.Message}");
+                        break;
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Response 写入异常: {ex.Message}");
+                        break;
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"处理 Channel 时发生异常: {ex.Message}");
             }
         }
     }
