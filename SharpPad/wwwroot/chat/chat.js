@@ -348,17 +348,33 @@ export class ChatManager {
             ? [{ role: 'system', content: modelConfig.systemPrompt }, ...messages]
             : messages;
 
-        const response = await fetch(modelConfig.endpoint, {
+        // 构建请求参数
+        const requestBody = {
+            model: modelConfig.name,
+            messages: reqMessages,
+            stream: true
+        };
+
+        // 构建请求头
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${modelConfig.apiKey}`,
+        };
+
+        // 使用后端调用时，请求转发到本地后端
+        let endpoint = modelConfig.endpoint;
+        if (modelConfig.useBackend) {
+            // 如果使用后端，则将目标端点作为请求头传递
+            headers['X-Endpoint'] = modelConfig.endpoint;
+            
+            // 使用相对当前页面的API路径，自动适应任何部署环境
+            endpoint = './v1/chat/completions';
+        }
+
+        const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${modelConfig.apiKey}`,
-            },
-            body: JSON.stringify({
-                model: modelConfig.name,
-                messages: reqMessages,
-                stream: true
-            })
+            headers: headers,
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -425,6 +441,7 @@ export class ChatManager {
                     <div class="model-name">${model.name}</div>
                     <div class="model-endpoint">${model.endpoint}</div>
                     <div class="model-api-key">${model.apiKey ? '******' : '未设置API Key'}</div>
+                    <div class="model-backend-status">${model.useBackend ? '使用后端调用' : '本地调用'}</div>
                 </div>
                 <div class="model-actions">
                     <button class="edit-model" data-model-id="${model.id}">编辑</button>
@@ -552,6 +569,7 @@ export class ChatManager {
             document.getElementById('editModelEndpoint').value = model.endpoint;
             document.getElementById('editApiKey').value = model.apiKey || '';
             document.getElementById('editSystemPrompt').value = model.systemPrompt || '';
+            document.getElementById('editUseBackend').checked = model.useBackend || false;
             // 打开编辑模型对话框
             document.getElementById('editModelModal').style.display = 'block';
         }
@@ -562,6 +580,7 @@ export class ChatManager {
         const endpoint = document.getElementById('editModelEndpoint').value.trim();
         const apiKey = document.getElementById('editApiKey').value.trim();
         const systemPrompt = document.getElementById('editSystemPrompt').value.trim();
+        const useBackend = document.getElementById('editUseBackend').checked;
 
         if (!name || !endpoint) {
             alert('请填写所有必填字段');
@@ -572,7 +591,7 @@ export class ChatManager {
         const index = models.findIndex(m => m.id === modelId);
 
         if (index !== -1) {
-            models[index] = { id: modelId, name, endpoint, apiKey, systemPrompt };
+            models[index] = { id: modelId, name, endpoint, apiKey, systemPrompt, useBackend };
             localStorage.setItem('chatModels', JSON.stringify(models));
 
             this.updateModelList();
@@ -586,6 +605,7 @@ export class ChatManager {
         const endpoint = document.getElementById('addModelEndpoint').value.trim();
         const apiKey = document.getElementById('addApiKey').value.trim();
         const systemPrompt = document.getElementById('addSystemPrompt').value.trim();
+        const useBackend = document.getElementById('addUseBackend').checked;
 
         if (!name || !endpoint) {
             alert('请填写所有必填字段');
@@ -596,7 +616,7 @@ export class ChatManager {
 
         //生成主键id,guid
         var id = crypto.randomUUID();
-        models.push({ id, name, endpoint, apiKey, systemPrompt });
+        models.push({ id, name, endpoint, apiKey, systemPrompt, useBackend });
         localStorage.setItem('chatModels', JSON.stringify(models));
 
         this.updateModelList();
@@ -608,6 +628,7 @@ export class ChatManager {
         document.getElementById('addModelEndpoint').value = '';
         document.getElementById('addApiKey').value = '';
         document.getElementById('addSystemPrompt').value = '';
+        document.getElementById('addUseBackend').checked = false;
     }
 
     deleteModel(modelId, showConfirm = true) {

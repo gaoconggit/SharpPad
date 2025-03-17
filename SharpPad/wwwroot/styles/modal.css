@@ -342,6 +342,30 @@ body.theme-light .model-endpoint {
     color: #666666;
 }
 
+.model-api-key {
+    font-size: 12px;
+    color: #888;
+}
+
+body.theme-light .model-api-key {
+    color: #666666;
+}
+
+.model-backend-status {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    background-color: #363636;
+}
+
+body.theme-light .model-backend-status {
+    color: #666666;
+    background-color: #f0f0f0;
+}
+
 .model-actions {
     margin-top: 8px;
     display: flex;
@@ -425,10 +449,6 @@ body.theme-light .edit-model {
     background-color: #0066b8;
 }
 
-body.theme-light .edit-model:hover {
-    background-color: #005ba1;
-}
-
 body.theme-light .delete-model {
     background-color: #dc3545;
 }
@@ -454,4 +474,24 @@ body.theme-light .modal-body::-webkit-scrollbar-thumb {
 
 body.theme-light .modal-body::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* 复选框标签样式 */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #fff;
+    font-size: 13px;
+}
+
+body.theme-light .checkbox-label {
+    color: #333333;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin: 0;
 } 
