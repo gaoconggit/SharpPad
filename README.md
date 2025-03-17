@@ -1,7 +1,7 @@
 **[English](README_EN.md)** | **简体中文**
 
 # SharpPad
-基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的小玩意。类似 LinqPad,支持ai chat与ai completion
+基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的工具。类似 LinqPad,支持ai chat与ai completion
 
 ![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
 
