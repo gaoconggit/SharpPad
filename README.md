@@ -8,7 +8,6 @@
 ## 演示站点:
 
  - https://try.dotnet10.com  国内
- - http://148.135.58.4 国外
 
 ## 快速体验
 1. 下载 release 包
