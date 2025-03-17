@@ -365,7 +365,7 @@ export class ChatManager {
         let endpoint = modelConfig.endpoint;
         if (modelConfig.useBackend) {
             // 如果使用后端，则将目标端点作为请求头传递
-            headers['X-Endpoint'] = modelConfig.endpoint;
+            headers['x-endpoint'] = modelConfig.endpoint;
             
             // 使用相对当前页面的API路径，自动适应任何部署环境
             endpoint = './v1/chat/completions';

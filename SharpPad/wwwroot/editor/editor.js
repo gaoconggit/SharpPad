@@ -34,30 +34,44 @@ export class Editor {
             onError: error => {
                 console.log(error);
             },
-            requestHandler: async ({ endpoint, body }) => {
+            requestHandler: async ({ _endpoint, body }) => {
                 var selectedModel = getSelectedModel();
-                const response = await fetch(selectedModel.endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${selectedModel.apiKey}`
-                    },
-                    body: JSON.stringify({
-                        "model": selectedModel.name,
-                        "stream": false,
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": GPT_COMPLETION_SYSTEM_PROMPT.replace("{{language}}", body.completionMetadata.language)
-                            },
-                            {
-                                "role": "user",
-                                "content": `Complete the following ${body.completionMetadata.language} code at line ${body.completionMetadata.cursorPosition.lineNumber}, column ${body.completionMetadata.cursorPosition.column}:
+                
+                // 构建请求头和请求体
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${selectedModel.apiKey}`
+                };
+                
+                const requestBody = {
+                    "model": selectedModel.name,
+                    "stream": false,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": GPT_COMPLETION_SYSTEM_PROMPT.replace("{{language}}", body.completionMetadata.language)
+                        },
+                        {
+                            "role": "user",
+                            "content": `Complete the following ${body.completionMetadata.language} code at line ${body.completionMetadata.cursorPosition.lineNumber}, column ${body.completionMetadata.cursorPosition.column}:
 ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.textAfterCursor}`
-                            }
-                        ],
-                        "max_tokens": 300
-                    }),
+                        }
+                    ],
+                    "max_tokens": 300
+                };
+                
+                // 确定请求端点
+                let endpoint = selectedModel.endpoint;
+                if (selectedModel.useBackend) {
+                    // 如果使用后端，将目标端点作为请求头传递
+                    headers['x-endpoint'] = selectedModel.endpoint;
+                    endpoint = './v1/chat/completions';
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
