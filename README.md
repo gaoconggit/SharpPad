@@ -18,7 +18,7 @@
 ## Docker Compose
   在项目根目录
    1. 跑新服务 `docker compose up -d`
-   2. 更新服务 `docker compose down && docker compose build sharppad && docker compose up -d`
+   2. 更新服务 `docker compose build sharppad && docker compose restart `
    3. 停止服务 `docker compose down`
    
 
