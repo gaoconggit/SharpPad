@@ -285,78 +285,45 @@ export class OutputPanel {
             }
         }
         
-        // 计算移动速度，用于优化体验
-        const now = Date.now();
-        let moveSpeed = 1;
-        
-        if (this.isVertical) {
-            const deltaX = this.lastTouchX - e.touches[0].clientX;
-            // 大幅度移动时减小调整速度，提高精度
-            if (Math.abs(deltaX) > 10) {
-                moveSpeed = 0.7;
-            }
-            this.lastTouchX = e.touches[0].clientX;
-        } else {
-            const deltaY = this.lastTouchY - e.touches[0].clientY;
-            if (Math.abs(deltaY) > 10) {
-                moveSpeed = 0.7;
-            }
-            this.lastTouchY = e.touches[0].clientY;
-        }
-        
+        // 减少计算量，只在必要时更新
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
         }
         
         this.rafId = requestAnimationFrame(() => {
             if (this.isVertical) {
-                const delta = (this.startX - e.touches[0].clientX) * moveSpeed;
+                // 优化垂直方向的调整
+                const delta = this.startX - e.touches[0].clientX;
                 const newWidth = Math.min(
                     Math.max(this.startWidth + delta, 200), 
                     window.innerWidth * (isMobileDevice() ? 0.8 : 0.4)
                 );
+                
+                // 直接设置宽度，减少样式计算
                 this.outputPanel.style.width = `${newWidth}px`;
-                this.updateVerticalLayout(newWidth);
+                
+                // 批量更新相关元素
+                this.lastVerticalWidth = newWidth;
+                this.updateContainerMargins(newWidth, true);
                 
                 // 更新辅助提示线
-                if (isMobileDevice()) {
-                    const helperLine = this.outputPanel.querySelector('.resize-helper-line');
-                    if (helperLine) {
-                        helperLine.style.left = '0';
-                    }
-                }
+                this.updateHelperLine(true);
             } else {
-                // 改进移动端高度调整的计算方式
-                // 修复计算方向：使拖动方向和调整方向一致
-                const delta = (this.startY - e.touches[0].clientY) * moveSpeed;
-                // 为移动设备调整最小和最大高度限制
+                // 优化水平方向的调整
+                const delta = this.startY - e.touches[0].clientY;
                 const minHeight = isMobileDevice() ? 150 : 100;
                 const maxHeight = window.innerHeight * (isMobileDevice() ? 0.7 : 0.8);
                 const newHeight = Math.min(Math.max(this.startHeight + delta, minHeight), maxHeight);
                 
+                // 直接设置高度
                 this.outputPanel.style.height = `${newHeight}px`;
-                // 保存当前高度以便在布局切换时恢复
-                if (!this.isVertical) {
-                    this.lastHorizontalHeight = newHeight;
-                }
                 
-                // 添加平滑过渡效果，但仅在移动设备上
-                if (isMobileDevice() && !this.outputPanel.style.transition) {
-                    // 仅在拖动期间添加平滑过渡
-                    if (Math.abs(delta) > 20) {
-                        this.outputPanel.style.transition = 'none'; // 拖动中不使用过渡
-                    }
-                }
+                // 批量更新相关元素
+                this.lastHorizontalHeight = newHeight;
+                this.updateContainerMargins(newHeight, false);
                 
-                this.updateHorizontalLayout(newHeight);
-                
-                // 更新辅助提示线位置
-                if (isMobileDevice()) {
-                    const helperLine = this.outputPanel.querySelector('.resize-helper-line');
-                    if (helperLine) {
-                        helperLine.style.top = '0';
-                    }
-                }
+                // 更新辅助提示线
+                this.updateHelperLine(false);
             }
         });
     }
@@ -437,71 +404,76 @@ export class OutputPanel {
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
+        // 使用requestAnimationFrame来优化性能
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
         }
 
         this.rafId = requestAnimationFrame(() => {
             if (this.isVertical) {
+                // 垂直布局调整宽度，保持原有逻辑但优化计算
                 const delta = this.startX - e.clientX;
                 const maxWidth = window.innerWidth * (isMobileDevice() ? 0.8 : 0.4);
                 const newWidth = Math.min(Math.max(this.startWidth + delta, 200), maxWidth);
+                
+                // 直接设置宽度，减少不必要的计算和样式更新
                 this.outputPanel.style.width = `${newWidth}px`;
-                this.updateVerticalLayout(newWidth);
+                
+                // 批量更新相关元素布局，减少重复计算
+                this.lastVerticalWidth = newWidth;
+                this.updateContainerMargins(newWidth, true);
             } else {
-                // 修复计算方向：使鼠标向上移动增加高度，向下移动减小高度
+                // 水平布局调整高度，使用优化的计算
                 const delta = this.startY - e.clientY;
                 const maxHeight = window.innerHeight * (isMobileDevice() ? 0.6 : 0.8);
                 const newHeight = Math.min(Math.max(this.startHeight + delta, 100), maxHeight);
+                
+                // 直接设置高度，减少复杂计算
                 this.outputPanel.style.height = `${newHeight}px`;
-                this.updateHorizontalLayout(newHeight);
+                
+                // 批量更新相关元素，避免触发多次重排
+                this.lastHorizontalHeight = newHeight;
+                this.updateContainerMargins(newHeight, false);
             }
         });
     }
     
-    // 更新垂直布局的方法
-    updateVerticalLayout(width) {
-        const chatPanel = document.getElementById('chatPanel');
-        if (isMobileDevice()) {
-            // 移动设备的特殊处理
-            const chatWidth = parseInt(getComputedStyle(chatPanel).width, 10);
-            if (chatPanel.style.display === 'none') {
-                this.outputPanel.style.right = '0';
-                this.container.style.marginRight = `${width}px`;
-            } else {
-                this.outputPanel.style.right = `${chatWidth}px`;
-                this.container.style.marginRight = `${chatWidth + width}px`;
-            }
-        } else {
-            // 桌面设备的处理
-            this.outputPanel.style.right = this.outputPanel.classList.contains('chat-minimized') ? '0' : '520px';
-        }
-        layoutEditor();
-    }
-    
-    // 更新水平布局的方法
-    updateHorizontalLayout(height) {
-        // 批量更新其他元素的高度
+    // 更新容器边距的优化方法
+    updateContainerMargins(size, isVertical) {
         const fileList = document.getElementById('fileList');
         const container = document.getElementById('container');
-        const chatPanel = document.getElementById('chatPanel');
-
-        // 考虑不同设备类型的高度计算
-        const remainingHeight = isMobileDevice() ? 
-            `calc(100% - ${height}px)` : 
-            `calc(100vh - ${height}px)`;
+        
+        if (isVertical) {
+            // 垂直布局时更新右边距
+            const chatVisible = this.chatPanel.style.display !== 'none';
+            const chatWidth = chatVisible ? parseInt(getComputedStyle(this.chatPanel).width, 10) : 0;
             
-        fileList.style.height = remainingHeight;
-        container.style.height = remainingHeight;
-        container.style.marginBottom = `${height}px`; // 确保容器边距正确设置
-        
-        // 在非移动设备上才调整聊天面板的高度
-        if (!isMobileDevice()) {
-            chatPanel.style.height = remainingHeight;
+            if (isMobileDevice()) {
+                container.style.marginRight = `${size}px`;
+            } else {
+                if (chatVisible) {
+                    this.outputPanel.style.right = `${chatWidth}px`;
+                    container.style.marginRight = `${chatWidth + size}px`;
+                } else {
+                    this.outputPanel.style.right = '0';
+                    container.style.marginRight = `${size}px`;
+                }
+            }
+        } else {
+            // 水平布局时更新底部边距和高度
+            const remainingHeight = isMobileDevice() ? 
+                `calc(100% - ${size}px)` : 
+                `calc(100vh - ${size}px)`;
+                
+            // 批量更新，减少重排和重绘
+            fileList.style.height = remainingHeight;
+            container.style.height = remainingHeight;
+            container.style.marginBottom = `${size}px`;
+            
+            if (!isMobileDevice() && this.chatPanel.style.display !== 'none') {
+                this.chatPanel.style.height = remainingHeight;
+            }
         }
-        // 移动设备上，保持聊天面板的原有高度设置，不受输出面板影响
-        
-        layoutEditor();
     }
 
     handleMouseUp() {
@@ -618,5 +590,33 @@ export class OutputPanel {
         setTimeout(() => {
             this.outputPanel.classList.remove('size-transition');
         }, 300);
+    }
+
+    // 辅助方法：更新辅助线位置
+    updateHelperLine(isVertical) {
+        if (isMobileDevice()) {
+            const helperLine = this.outputPanel.querySelector('.resize-helper-line');
+            if (helperLine) {
+                if (isVertical) {
+                    helperLine.style.left = '0';
+                } else {
+                    helperLine.style.top = '0';
+                }
+            }
+        }
+    }
+
+    // 更新垂直布局的方法
+    updateVerticalLayout(width) {
+        // 调用优化后的通用方法
+        this.updateContainerMargins(width, true);
+        layoutEditor();
+    }
+    
+    // 更新水平布局的方法
+    updateHorizontalLayout(height) {
+        // 调用优化后的通用方法
+        this.updateContainerMargins(height, false);
+        layoutEditor();
     }
 } 
