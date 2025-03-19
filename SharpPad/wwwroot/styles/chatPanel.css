@@ -22,7 +22,7 @@
 @media (max-width: 768px) {
     #chatPanel {
         width: 100%;
-        height: 94vh; 
+        height: 93.5vh; 
         top: auto; /* 改为自动，从底部定位 */
         bottom: 0; /* 从底部开始 */
         left: 0;
@@ -41,20 +41,6 @@
         opacity: 1;
         visibility: visible;
         display: flex;
-    }
-    
-    /* 默认收起时显示小提示条 */
-    #chatPanel::before {
-        content: '';
-        position: absolute;
-        top: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 40px;
-        height: 4px;
-        background: #777;
-        border-radius: 4px;
-        opacity: 0.6;
     }
     
     .chat-header {
@@ -499,11 +485,7 @@ body.theme-light .think {
 
 @media (max-width: 768px) {
     #chatPanel .resize-handle {
-        display: none !important; /* 移动端不显示调整大小的手柄，添加!important确保覆盖内联样式 */
-    }
-    
-    #chatPanel {
-        height: 85vh !important; /* 固定高度，不允许调整，添加!important确保覆盖内联样式 */
+        display: none; /* 移动端不显示调整大小的手柄 */
     }
 }
 
@@ -511,12 +493,6 @@ body.theme-light .think {
 #chatPanel.resizing {
     transition: none;
     cursor: ew-resize;
-}
-
-@media (max-width: 768px) {
-    #chatPanel.resizing {
-        cursor: default; /* 移动端不调整大小，不显示调整光标 */
-    }
 }
 
 /* 添加显示/隐藏聊天面板的过渡效果 */

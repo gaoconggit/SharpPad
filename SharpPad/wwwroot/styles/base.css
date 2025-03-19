@@ -237,9 +237,8 @@ body.theme-light .chat-messages .assistant-message {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
-    /* margin-right: 2.5rem; */
+    margin-right: 2.5rem;
 }
-
 #themeButton {
     padding: 5px 15px;
     border: none;

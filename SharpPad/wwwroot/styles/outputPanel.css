@@ -355,7 +355,7 @@ body.theme-light #outputPanel .resize-handle {
     align-items: center;
 }
 
-#outputPanel .resize-handle-indicator::before,
+/* #outputPanel .resize-handle-indicator::before,
 #outputPanel .resize-handle-indicator::after {
     content: '';
     display: inline-block;
@@ -364,7 +364,7 @@ body.theme-light #outputPanel .resize-handle {
     background-color: #999;
     margin: 0 2px;
     border-radius: 1px;
-}
+} */
 
 body.theme-light #outputPanel .resize-handle-indicator::before,
 body.theme-light #outputPanel .resize-handle-indicator::after {
@@ -436,115 +436,53 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
     bottom: 0;
     right: auto;
     left: 0;
-    width: 8px;
+    width: 10px;
     height: auto;
     cursor: ew-resize;
     z-index: 1001;
     opacity: 0.5;
-    background-color: #444;
+    background-color: transparent;
     transition: opacity 0.2s, background-color 0.2s;
 }
 
 body.theme-light #outputPanel.vertical .resize-handle {
-    background-color: #ccc;
+    background-color: transparent;
 }
 
-/* 垂直布局的视觉指示器 */
+/* 移除垂直布局的视觉指示器，与文件列表保持一致 */
 #outputPanel.vertical .resize-handle-indicator {
-    top: 50%;
-    left: 1px;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 40px;
-    flex-direction: column;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: none;
 }
 
-#outputPanel.vertical .resize-handle-indicator::before,
-#outputPanel.vertical .resize-handle-indicator::after {
-    content: '';
-    display: block;
-    width: 2px;
-    height: 16px;
-    background-color: #999;
-    margin: 2px 0;
-    border-radius: 1px;
+/* 保持与文件列表一致的调整样式 */
+#outputPanel.vertical.resizing {
+    border-top: none;
+    border-left: 2px solid #0078d4;
 }
 
-body.theme-light #outputPanel.vertical .resize-handle-indicator::before,
-body.theme-light #outputPanel.vertical .resize-handle-indicator::after {
-    background-color: #666;
-}
-
-#outputPanel.vertical .resize-handle:hover,
-#outputPanel.vertical .resize-handle.active {
-    opacity: 0.8;
-    background-color: #666;
-}
-
-#outputPanel.vertical .resize-handle:hover .resize-handle-indicator::before,
-#outputPanel.vertical .resize-handle:hover .resize-handle-indicator::after,
-#outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
-#outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
-    background-color: #bbb;
-}
-
-body.theme-light #outputPanel.vertical .resize-handle:hover,
-body.theme-light #outputPanel.vertical .resize-handle.active {
-    background-color: #aaa;
-}
-
-body.theme-light #outputPanel.vertical .resize-handle:hover .resize-handle-indicator::before,
-body.theme-light #outputPanel.vertical .resize-handle:hover .resize-handle-indicator::after,
-body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
-body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
-    background-color: #444;
+body.theme-light #outputPanel.vertical.resizing {
+    border-left: 2px solid #0078d4;
 }
 
 /* 移动设备上垂直布局的调整手柄 */
 @media (max-width: 768px) {
     #outputPanel.vertical .resize-handle {
-        width: 12px;
-        opacity: 0.7;
+        width: 10px;
+        opacity: 0.5;
     }
     
     #outputPanel.vertical .resize-handle-indicator {
-        left: 3px;
-        height: 60px;
-    }
-    
-    #outputPanel.vertical .resize-handle-indicator::before,
-    #outputPanel.vertical .resize-handle-indicator::after {
-        width: 3px;
-        height: 24px;
-        margin: 3px 0;
-    }
-    
-    body.theme-light #outputPanel.vertical .resize-handle-indicator::before,
-    body.theme-light #outputPanel.vertical .resize-handle-indicator::after {
-        background-color: #666;
-    }
-    
-    #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
-    #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
-        background-color: #bbb;
-    }
-    
-    body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
-    body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
-        background-color: #444;
+        display: none;
     }
 }
 
 /* 调整辅助线样式 */
 .resize-helper-line {
     position: absolute;
-    background-color: rgba(100, 149, 237, 0.7);
+    background-color: rgba(0, 120, 212, 0.7);
     pointer-events: none;
     z-index: 1001;
-    box-shadow: 0 0 4px rgba(100, 149, 237, 0.5);
+    box-shadow: 0 0 4px rgba(0, 120, 212, 0.5);
 }
 
 .resize-helper-line.horizontal {
@@ -572,40 +510,32 @@ body.theme-light .resize-helper-line {
     pointer-events: all;
 }
 
+/* 移除特殊样式，与文件列表保持一致 */
 #outputPanel.vertical.resizing:after {
-    content: '';
-    position: absolute;
-    width: 2px;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    background-color: rgba(100, 149, 237, 0.5);
-    pointer-events: none;
+    display: none;
 }
 
 body.theme-light #outputPanel.vertical.resizing:after {
-    background-color: rgba(0, 120, 212, 0.5);
+    display: none;
 }
 
 /* 设置调整中的面板位置 */
 #outputPanel.resizing .resize-handle {
     opacity: 1;
-    background-color: #666;
+    background-color: transparent;
 }
 
 body.theme-light #outputPanel.resizing .resize-handle {
-    background-color: #aaa;
+    background-color: transparent;
 }
 
-/* 调整时指示器的样式 */
-#outputPanel.resizing .resize-handle-indicator::before,
-#outputPanel.resizing .resize-handle-indicator::after {
-    background-color: #bbb;
+/* 调整时指示器的样式，与文件列表保持一致 */
+#outputPanel.resizing .resize-handle-indicator {
+    display: none;
 }
 
-body.theme-light #outputPanel.resizing .resize-handle-indicator::before,
-body.theme-light #outputPanel.resizing .resize-handle-indicator::after {
-    background-color: #444;
+body.theme-light #outputPanel.resizing .resize-handle-indicator {
+    display: none;
 }
 
 /* 移动端双击/双触反馈 */
@@ -641,28 +571,18 @@ body.theme-light #outputPanel.resizing .resize-handle-indicator::after {
     transition: none !important;
 }
 
-/* 垂直调整手柄的特殊效果 */
+/* 垂直调整手柄的特殊效果 - 移除，保持与文件列表一致 */
 html.ew-resizing {
     cursor: ew-resize !important;
 }
 
 html.ew-resizing #outputPanel.vertical .resize-handle {
     opacity: 1;
-    background-color: #666;
+    background-color: transparent;
 }
 
 body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle {
-    background-color: #aaa;
-}
-
-html.ew-resizing #outputPanel.vertical .resize-handle-indicator::before,
-html.ew-resizing #outputPanel.vertical .resize-handle-indicator::after {
-    background-color: #bbb;
-}
-
-body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle-indicator::before,
-body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle-indicator::after {
-    background-color: #444;
+    background-color: transparent;
 }
 
 body.theme-dark .output-error {

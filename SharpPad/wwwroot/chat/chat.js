@@ -331,9 +331,6 @@ export class ChatManager {
     }
 
     handleTouchStart(e) {
-        // 移动端不允许调整大小
-        if (this.isMobile) return;
-        
         if (e.touches.length !== 1) return;
         
         const touch = e.touches[0];
@@ -366,9 +363,6 @@ export class ChatManager {
     }
 
     handleTouchMove(e) {
-        // 移动端不允许调整大小
-        if (this.isMobile) return;
-        
         if (!this.isResizing || e.touches.length !== 1) return;
         
         const touch = e.touches[0];
