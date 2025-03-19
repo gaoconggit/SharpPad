@@ -22,9 +22,17 @@ export class OutputPanel {
         this.isVertical = false;
         this.lastHorizontalHeight = 200;
         this.lastVerticalWidth = 520;
+        
+        // 添加拖动边界阈值，用于优化移动端的调整体验
+        this.dragThreshold = 5;
+        this.dragStarted = false;
+        this.lastTouchY = 0;
+        this.lastTouchX = 0;
+        
+        // 添加防抖定时器
+        this.resizeDebounceTimer = null;
 
         this.initializeEventListeners();
-        this.initializeChatPanelObserver();
     }
 
     initializeEventListeners() {
@@ -198,6 +206,21 @@ export class OutputPanel {
             resizeHandle.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
             document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
             document.addEventListener('touchend', this.handleTouchEnd.bind(this));
+            
+            // 添加双击快速调整功能，便于移动设备用户使用
+            if (isMobileDevice()) {
+                resizeHandle.addEventListener('dblclick', this.handleDoubleTapResize.bind(this));
+                // 实现简单的双击检测
+                let lastTap = 0;
+                resizeHandle.addEventListener('touchend', (e) => {
+                    const currentTime = new Date().getTime();
+                    const tapLength = currentTime - lastTap;
+                    if (tapLength < 300 && tapLength > 0) {
+                        this.handleDoubleTapResize(e);
+                    }
+                    lastTap = currentTime;
+                });
+            }
         }
     }
 
@@ -209,14 +232,35 @@ export class OutputPanel {
         if (this.outputPanel.classList.contains('collapsed')) return;
         
         this.isResizing = true;
+        this.dragStarted = false; // 重置拖动状态
+        
         if (this.isVertical) {
             this.startX = e.touches[0].clientX;
+            this.lastTouchX = this.startX;
             this.startWidth = parseInt(document.defaultView.getComputedStyle(this.outputPanel).width, 10);
         } else {
             this.startY = e.touches[0].clientY;
+            this.lastTouchY = this.startY;
             this.startHeight = parseInt(document.defaultView.getComputedStyle(this.outputPanel).height, 10);
         }
         this.outputPanel.classList.add('resizing');
+        
+        // 添加视觉提示，特别是在移动设备上
+        if (isMobileDevice()) {
+            const resizeHandle = this.outputPanel.querySelector('.resize-handle');
+            resizeHandle.classList.add('active');
+            
+            // 显示辅助提示线，帮助用户理解调整方向
+            if (!this.isVertical) {
+                const helperLine = document.createElement('div');
+                helperLine.className = 'resize-helper-line horizontal';
+                this.outputPanel.appendChild(helperLine);
+            } else {
+                const helperLine = document.createElement('div');
+                helperLine.className = 'resize-helper-line vertical';
+                this.outputPanel.appendChild(helperLine);
+            }
+        }
     }
     
     handleTouchMove(e) {
@@ -224,25 +268,95 @@ export class OutputPanel {
         
         e.preventDefault(); // 防止页面滚动
         
+        // 检查是否超过拖动阈值
+        if (!this.dragStarted) {
+            if (this.isVertical) {
+                if (Math.abs(e.touches[0].clientX - this.startX) > this.dragThreshold) {
+                    this.dragStarted = true;
+                } else {
+                    return; // 如果没有超过阈值，不处理移动
+                }
+            } else {
+                if (Math.abs(e.touches[0].clientY - this.startY) > this.dragThreshold) {
+                    this.dragStarted = true;
+                } else {
+                    return; // 如果没有超过阈值，不处理移动
+                }
+            }
+        }
+        
+        // 计算移动速度，用于优化体验
+        const now = Date.now();
+        let moveSpeed = 1;
+        
+        if (this.isVertical) {
+            const deltaX = this.lastTouchX - e.touches[0].clientX;
+            // 大幅度移动时减小调整速度，提高精度
+            if (Math.abs(deltaX) > 10) {
+                moveSpeed = 0.7;
+            }
+            this.lastTouchX = e.touches[0].clientX;
+        } else {
+            const deltaY = this.lastTouchY - e.touches[0].clientY;
+            if (Math.abs(deltaY) > 10) {
+                moveSpeed = 0.7;
+            }
+            this.lastTouchY = e.touches[0].clientY;
+        }
+        
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
         }
         
         this.rafId = requestAnimationFrame(() => {
             if (this.isVertical) {
-                const delta = this.startX - e.touches[0].clientX;
+                const delta = (this.startX - e.touches[0].clientX) * moveSpeed;
                 const newWidth = Math.min(
                     Math.max(this.startWidth + delta, 200), 
                     window.innerWidth * (isMobileDevice() ? 0.8 : 0.4)
                 );
                 this.outputPanel.style.width = `${newWidth}px`;
                 this.updateVerticalLayout(newWidth);
+                
+                // 更新辅助提示线
+                if (isMobileDevice()) {
+                    const helperLine = this.outputPanel.querySelector('.resize-helper-line');
+                    if (helperLine) {
+                        helperLine.style.left = '0';
+                    }
+                }
             } else {
-                const delta = e.touches[0].clientY - this.startY;
-                const maxHeight = window.innerHeight * (isMobileDevice() ? 0.6 : 0.8);
-                const newHeight = Math.min(Math.max(this.startHeight - delta, 100), maxHeight);
+                // 改进移动端高度调整的计算方式
+                // 修复计算方向：使拖动方向和调整方向一致
+                const delta = (e.touches[0].clientY - this.startY) * moveSpeed;
+                // 为移动设备调整最小和最大高度限制
+                const minHeight = isMobileDevice() ? 150 : 100;
+                const maxHeight = window.innerHeight * (isMobileDevice() ? 0.7 : 0.8);
+                const newHeight = Math.min(Math.max(this.startHeight + delta, minHeight), maxHeight);
+                
                 this.outputPanel.style.height = `${newHeight}px`;
+                // 保存当前高度以便在布局切换时恢复
+                if (!this.isVertical) {
+                    this.lastHorizontalHeight = newHeight;
+                }
+                
+                // 添加平滑过渡效果，但仅在移动设备上
+                if (isMobileDevice() && !this.outputPanel.style.transition) {
+                    // 仅在拖动期间添加平滑过渡
+                    if (Math.abs(delta) > 20) {
+                        this.outputPanel.style.transition = 'none'; // 拖动中不使用过渡
+                    }
+                }
+                
                 this.updateHorizontalLayout(newHeight);
+                
+                // 更新辅助提示线位置
+                if (isMobileDevice()) {
+                    const helperLine = this.outputPanel.querySelector('.resize-helper-line');
+                    if (helperLine) {
+                        helperLine.style.top = '0';
+                    }
+                }
             }
         });
     }
@@ -250,12 +364,52 @@ export class OutputPanel {
     handleTouchEnd() {
         if (this.isResizing) {
             this.isResizing = false;
+            this.dragStarted = false;
             this.outputPanel.classList.remove('resizing');
+            
+            // 移除视觉提示
+            if (isMobileDevice()) {
+                const resizeHandle = this.outputPanel.querySelector('.resize-handle');
+                if (resizeHandle) {
+                    resizeHandle.classList.remove('active');
+                }
+                
+                // 移除辅助提示线
+                const helperLine = this.outputPanel.querySelector('.resize-helper-line');
+                if (helperLine) {
+                    this.outputPanel.removeChild(helperLine);
+                }
+                
+                // 恢复平滑过渡效果
+                this.outputPanel.style.transition = '';
+            }
             
             if (this.rafId) {
                 cancelAnimationFrame(this.rafId);
                 this.rafId = null;
             }
+            
+            // 添加防抖，防止过快调整布局
+            clearTimeout(this.resizeDebounceTimer);
+            this.resizeDebounceTimer = setTimeout(() => {
+                // 确保面板大小在合理范围内
+                if (!this.isVertical) {
+                    const currentHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
+                    if (currentHeight < 100) {
+                        this.outputPanel.classList.add('size-transition');
+                        this.outputPanel.style.height = '150px';
+                        this.lastHorizontalHeight = 150;
+                        this.updateHorizontalLayout(150);
+                        
+                        setTimeout(() => {
+                            this.outputPanel.classList.remove('size-transition');
+                        }, 300);
+                    }
+                }
+                
+                // 最终调整布局
+                layoutEditor();
+            }, 100);
         }
     }
 
@@ -295,9 +449,10 @@ export class OutputPanel {
                 this.outputPanel.style.width = `${newWidth}px`;
                 this.updateVerticalLayout(newWidth);
             } else {
+                // 修复计算方向：使鼠标向上移动减小高度，向下移动增加高度
                 const delta = e.clientY - this.startY;
                 const maxHeight = window.innerHeight * (isMobileDevice() ? 0.6 : 0.8);
-                const newHeight = Math.min(Math.max(this.startHeight - delta, 100), maxHeight);
+                const newHeight = Math.min(Math.max(this.startHeight + delta, 100), maxHeight);
                 this.outputPanel.style.height = `${newHeight}px`;
                 this.updateHorizontalLayout(newHeight);
             }
@@ -338,6 +493,7 @@ export class OutputPanel {
             
         fileList.style.height = remainingHeight;
         container.style.height = remainingHeight;
+        container.style.marginBottom = `${height}px`; // 确保容器边距正确设置
         
         // 在非移动设备上才调整聊天面板的高度
         if (!isMobileDevice()) {
@@ -370,14 +526,26 @@ export class OutputPanel {
 
     handleResize() {
         // 根据设备类型设置不同的最大高度比例
-        const maxHeightRatio = isMobileDevice() ? 0.6 : 0.4;
+        const maxHeightRatio = isMobileDevice() ? 0.7 : 0.4; // 增加移动设备可用高度比例
         const maxHeight = window.innerHeight * maxHeightRatio;
         const currentHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
 
         if (currentHeight > maxHeight) {
             this.outputPanel.style.height = `${maxHeight}px`;
+            this.lastHorizontalHeight = maxHeight; // 更新存储的高度值
             this.container.style.marginBottom = `${maxHeight}px`;
             this.updateHorizontalLayout(maxHeight);
+        }
+        
+        // 在窗口大小变化时，确保移动设备上的输出面板宽度不超过屏幕
+        if (this.isVertical && isMobileDevice()) {
+            const maxWidth = window.innerWidth * 0.8;
+            const currentWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
+            if (currentWidth > maxWidth) {
+                this.outputPanel.style.width = `${maxWidth}px`;
+                this.lastVerticalWidth = maxWidth;
+                this.updateVerticalLayout(maxWidth);
+            }
         }
     }
 
@@ -404,5 +572,51 @@ export class OutputPanel {
     clearOutputContent() {
         this.outputContent.innerHTML = '';
         this.outputContent.className = '';
+    }
+
+    // 新增: 双击/双触调整大小功能
+    handleDoubleTapResize(e) {
+        if (this.isVertical) {
+            // 在垂直模式下双击，切换到默认宽度
+            const defaultWidth = isMobileDevice() ? 
+                Math.min(320, window.innerWidth * 0.6) : 
+                this.lastVerticalWidth;
+            
+            // 添加过渡效果类名
+            this.outputPanel.classList.add('size-transition');
+            
+            this.outputPanel.style.width = `${defaultWidth}px`;
+            this.updateVerticalLayout(defaultWidth);
+        } else {
+            // 在水平模式下双击，切换到预设的三种高度之一
+            const currentHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
+            const smallHeight = Math.min(150, window.innerHeight * 0.2);
+            const mediumHeight = Math.min(300, window.innerHeight * 0.4);
+            const largeHeight = Math.min(450, window.innerHeight * 0.6);
+            
+            let newHeight;
+            if (currentHeight < smallHeight + 20) {
+                newHeight = mediumHeight;
+            } else if (currentHeight < mediumHeight + 20) {
+                newHeight = largeHeight;
+            } else {
+                newHeight = smallHeight;
+            }
+            
+            // 添加过渡效果类名
+            this.outputPanel.classList.add('size-transition');
+            
+            // 设置新高度
+            this.outputPanel.style.height = `${newHeight}px`;
+            this.lastHorizontalHeight = newHeight;
+            
+            // 更新其他元素
+            this.updateHorizontalLayout(newHeight);
+        }
+        
+        // 延迟清除过渡效果，以便后续手动调整不受影响
+        setTimeout(() => {
+            this.outputPanel.classList.remove('size-transition');
+        }, 300);
     }
 } 
