@@ -25,8 +25,8 @@ export class ChatManager {
         // 监听媒体查询变化
         window.matchMedia('(max-width: 768px)').addEventListener('change', (e) => {
             this.isMobile = e.matches;
-            this.updateResizeHandle();
-            this.handleResize();
+            // this.updateResizeHandle();
+            // this.handleResize();
             this.updateMobileLayout();
         });
 
@@ -308,84 +308,81 @@ export class ChatManager {
             resizeHandle.className = 'resize-handle';
             this.chatPanel.appendChild(resizeHandle);
         }
+        
+        // 在移动端隐藏调整大小的手柄
+        if (this.isMobile) {
+            resizeHandle.style.display = 'none';
+        } else {
+            resizeHandle.style.display = '';
+        }
     }
 
     handleMouseDown(e) {
-        if (this.isMobile) {
-            // 移动端不允许调整大小
-            return;
-        } else {
-            // 桌面端水平拖动
-            const leftEdge = this.chatPanel.getBoundingClientRect().left;
-            if (Math.abs(e.clientX - leftEdge) > 10) return;
-            
-            this.isResizing = true;
-            this.startX = e.clientX;
-            this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
-            this.chatPanel.classList.add('resizing');
-            document.documentElement.style.cursor = 'ew-resize';
-        }
+        // 桌面端水平拖动
+        const leftEdge = this.chatPanel.getBoundingClientRect().left;
+        if (Math.abs(e.clientX - leftEdge) > 10) return;
+        
+        this.isResizing = true;
+        this.startX = e.clientX;
+        this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
+        this.chatPanel.classList.add('resizing');
+        document.documentElement.style.cursor = 'ew-resize';
         e.preventDefault();
     }
 
     handleTouchStart(e) {
+        // 移动端不允许调整大小
+        if (this.isMobile) return;
+        
         if (e.touches.length !== 1) return;
         
         const touch = e.touches[0];
-        if (this.isMobile) {
-            // 移动端只允许头部拖动关闭，不允许调整大小
-            return;
-        } else {
-            // 桌面端水平拖动
-            const leftEdge = this.chatPanel.getBoundingClientRect().left;
-            if (Math.abs(touch.clientX - leftEdge) > 20) return;
-            
-            this.isResizing = true;
-            this.startX = touch.clientX;
-            this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
-            this.chatPanel.classList.add('resizing');
-        }
+        // 桌面端水平拖动
+        const leftEdge = this.chatPanel.getBoundingClientRect().left;
+        if (Math.abs(touch.clientX - leftEdge) > 20) return;
+        
+        this.isResizing = true;
+        this.startX = touch.clientX;
+        this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
+        this.chatPanel.classList.add('resizing');
         e.preventDefault();
     }
 
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
-        // 移动端不允许调整大小，所以只处理桌面端
-        if (!this.isMobile) {
-            // 桌面端水平调整大小
-            const width = this.startWidth - (e.clientX - this.startX);
-            if (width >= 450 && width <= window.innerWidth * 0.6) {
-                this.chatPanel.style.width = `${width}px`;
-                
-                // 使用响应式宽度设置函数
-                const fileList = document.getElementById('fileList');
-                const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-                
-                // 设置container的宽度和边距
-                setContainerWidth(this.container, fileListWidth, width, true);
-            }
+        // 桌面端水平调整大小
+        const width = this.startWidth - (e.clientX - this.startX);
+        if (width >= 450 && width <= window.innerWidth * 0.6) {
+            this.chatPanel.style.width = `${width}px`;
+            
+            // 使用响应式宽度设置函数
+            const fileList = document.getElementById('fileList');
+            const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+            
+            // 设置container的宽度和边距
+            setContainerWidth(this.container, fileListWidth, width, true);
         }
     }
 
     handleTouchMove(e) {
+        // 移动端不允许调整大小
+        if (this.isMobile) return;
+        
         if (!this.isResizing || e.touches.length !== 1) return;
         
         const touch = e.touches[0];
-        // 移动端不允许调整大小，所以只处理桌面端
-        if (!this.isMobile) {
-            // 桌面端水平调整大小
-            const width = this.startWidth - (touch.clientX - this.startX);
-            if (width >= 450 && width <= window.innerWidth * 0.6) {
-                this.chatPanel.style.width = `${width}px`;
-                
-                // 使用响应式宽度设置函数
-                const fileList = document.getElementById('fileList');
-                const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-                
-                // 设置container的宽度和边距
-                setContainerWidth(this.container, fileListWidth, width, true);
-            }
+        // 桌面端水平调整大小
+        const width = this.startWidth - (touch.clientX - this.startX);
+        if (width >= 450 && width <= window.innerWidth * 0.6) {
+            this.chatPanel.style.width = `${width}px`;
+            
+            // 使用响应式宽度设置函数
+            const fileList = document.getElementById('fileList');
+            const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+            
+            // 设置container的宽度和边距
+            setContainerWidth(this.container, fileListWidth, width, true);
         }
         e.preventDefault();
     }
@@ -409,18 +406,30 @@ export class ChatManager {
         this.isMobile = window.matchMedia('(max-width: 768px)').matches;
         
         if (this.isMobile) {
-            // 移动端适配，固定高度
+            // 移动端适配，固定高度和宽度
             const fixedHeight = window.innerHeight * 0.85; // 固定高度为屏幕高度的85%
             this.chatPanel.style.height = `${fixedHeight}px`;
             this.chatPanel.style.top = `calc(100vh - ${fixedHeight}px)`;
             
-            // 移动端下宽度始终为100%
+            // 移动端下宽度始终为100%，不允许调整
             this.chatPanel.style.width = '100%';
+            
+            // 移除拖拽手柄，确保移动端不能调整大小
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = 'none';
+            }
         } else {
             // 桌面端适配
             const maxWidthRatio = 0.4;
             const maxWidth = window.innerWidth * maxWidthRatio;
             const currentWidth = parseInt(getComputedStyle(this.chatPanel).width, 10);
+            
+            // 恢复拖拽手柄显示
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = '';
+            }
 
             if (currentWidth > maxWidth) {
                 const newWidth = maxWidth;
@@ -939,6 +948,12 @@ export class ChatManager {
             this.chatPanel.style.transform = 'translateY(100%)'; // 确保完全隐藏
             this.chatPanel.style.display = 'flex'; // 保持flex布局，但通过transform隐藏
             
+            // 隐藏调整大小的手柄
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = 'none';
+            }
+            
             // 确保容器宽度正确
             const container = document.getElementById('container');
             container.style.marginRight = '0';
@@ -951,6 +966,12 @@ export class ChatManager {
             this.chatPanel.style.display = 'flex';
             this.chatPanel.style.transform = '';
             this.minimizedChatButton.style.display = 'none';
+            
+            // 显示调整大小的手柄
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = '';
+            }
         }
         this.isInitialized = true;
     }
@@ -964,6 +985,12 @@ export class ChatManager {
             this.chatPanel.style.width = '100%';
             this.chatPanel.style.height = '85vh'; // 固定高度，不允许调整
             
+            // 隐藏调整大小的手柄
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = 'none';
+            }
+            
             // 如果当前是显示状态，确保样式正确
             if (this.chatPanel.style.display !== 'none') {
                 this.chatPanel.classList.add('active');
@@ -971,6 +998,13 @@ export class ChatManager {
         } else {
             // 桌面端恢复默认样式
             this.chatPanel.classList.remove('active');
+            
+            // 显示调整大小的手柄
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = '';
+            }
+            
             // 设置默认宽度
             const defaultWidth = 520;
             this.chatPanel.style.width = `${defaultWidth}px`;
@@ -988,6 +1022,12 @@ export class ChatManager {
         this.chatPanel.style.transform = 'translateY(100%)';
         this.chatPanel.style.display = 'flex';  // 设置为flex但使用transform隐藏
         this.chatPanel.classList.remove('active');
+        
+        // 隐藏调整大小的手柄
+        const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+        if (resizeHandle) {
+            resizeHandle.style.display = 'none';
+        }
         
         // 确保最小化按钮可见
         this.minimizedChatButton.style.display = 'block';
