@@ -312,15 +312,8 @@ export class ChatManager {
 
     handleMouseDown(e) {
         if (this.isMobile) {
-            // 移动端垂直拖动
-            const topEdge = this.chatPanel.getBoundingClientRect().top;
-            if (Math.abs(e.clientY - topEdge) > 10) return;
-            
-            this.isResizing = true;
-            this.startY = e.clientY;
-            this.startHeight = parseInt(document.defaultView.getComputedStyle(this.chatPanel).height, 10);
-            this.chatPanel.classList.add('resizing');
-            document.documentElement.style.cursor = 'ns-resize';
+            // 移动端不允许调整大小
+            return;
         } else {
             // 桌面端水平拖动
             const leftEdge = this.chatPanel.getBoundingClientRect().left;
@@ -340,14 +333,8 @@ export class ChatManager {
         
         const touch = e.touches[0];
         if (this.isMobile) {
-            // 移动端垂直拖动
-            const topEdge = this.chatPanel.getBoundingClientRect().top;
-            if (Math.abs(touch.clientY - topEdge) > 20) return;
-            
-            this.isResizing = true;
-            this.startY = touch.clientY;
-            this.startHeight = parseInt(document.defaultView.getComputedStyle(this.chatPanel).height, 10);
-            this.chatPanel.classList.add('resizing');
+            // 移动端只允许头部拖动关闭，不允许调整大小
+            return;
         } else {
             // 桌面端水平拖动
             const leftEdge = this.chatPanel.getBoundingClientRect().left;
@@ -364,17 +351,8 @@ export class ChatManager {
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
-        if (this.isMobile) {
-            // 移动端垂直调整大小
-            const height = this.startHeight - (e.clientY - this.startY);
-            const minHeight = 150; // 最小高度
-            const maxHeight = window.innerHeight * 0.8; // 最大高度
-            
-            if (height >= minHeight && height <= maxHeight) {
-                this.chatPanel.style.height = `${height}px`;
-                this.chatPanel.style.top = `calc(100vh - ${height}px)`;
-            }
-        } else {
+        // 移动端不允许调整大小，所以只处理桌面端
+        if (!this.isMobile) {
             // 桌面端水平调整大小
             const width = this.startWidth - (e.clientX - this.startX);
             if (width >= 450 && width <= window.innerWidth * 0.6) {
@@ -394,17 +372,8 @@ export class ChatManager {
         if (!this.isResizing || e.touches.length !== 1) return;
         
         const touch = e.touches[0];
-        if (this.isMobile) {
-            // 移动端垂直调整大小
-            const height = this.startHeight - (touch.clientY - this.startY);
-            const minHeight = 150; // 最小高度
-            const maxHeight = window.innerHeight * 0.8; // 最大高度
-            
-            if (height >= minHeight && height <= maxHeight) {
-                this.chatPanel.style.height = `${height}px`;
-                this.chatPanel.style.top = `calc(100vh - ${height}px)`;
-            }
-        } else {
+        // 移动端不允许调整大小，所以只处理桌面端
+        if (!this.isMobile) {
             // 桌面端水平调整大小
             const width = this.startWidth - (touch.clientX - this.startX);
             if (width >= 450 && width <= window.innerWidth * 0.6) {
@@ -440,14 +409,10 @@ export class ChatManager {
         this.isMobile = window.matchMedia('(max-width: 768px)').matches;
         
         if (this.isMobile) {
-            // 移动端适配
-            const maxHeight = window.innerHeight * 0.7;
-            const currentHeight = parseInt(getComputedStyle(this.chatPanel).height, 10);
-            
-            if (currentHeight > maxHeight) {
-                this.chatPanel.style.height = `${maxHeight}px`;
-                this.chatPanel.style.top = `calc(100vh - ${maxHeight}px)`;
-            }
+            // 移动端适配，固定高度
+            const fixedHeight = window.innerHeight * 0.85; // 固定高度为屏幕高度的85%
+            this.chatPanel.style.height = `${fixedHeight}px`;
+            this.chatPanel.style.top = `calc(100vh - ${fixedHeight}px)`;
             
             // 移动端下宽度始终为100%
             this.chatPanel.style.width = '100%';
@@ -995,9 +960,9 @@ export class ChatManager {
         if (!this.isInitialized) return;
         
         if (this.isMobile) {
-            // 移动端自适应
+            // 移动端自适应，高度固定
             this.chatPanel.style.width = '100%';
-            this.chatPanel.style.height = '100vh';
+            this.chatPanel.style.height = '85vh'; // 固定高度，不允许调整
             
             // 如果当前是显示状态，确保样式正确
             if (this.chatPanel.style.display !== 'none') {

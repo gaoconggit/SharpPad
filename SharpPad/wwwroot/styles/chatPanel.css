@@ -22,8 +22,9 @@
 @media (max-width: 768px) {
     #chatPanel {
         width: 100%;
-        height: 100vh;
-        top: 0;
+        height: 85vh; /* 修改为固定高度，不是100vh */
+        top: auto; /* 改为自动，从底部定位 */
+        bottom: 0; /* 从底部开始 */
         left: 0;
         right: 0;
         border-left: none;
@@ -102,7 +103,7 @@
     }
     
     .chat-messages {
-        max-height: calc(100vh - 140px);
+        max-height: calc(85vh - 140px); /* 调整为85vh匹配聊天面板高度 */
     }
 }
 
@@ -498,13 +499,7 @@ body.theme-light .think {
 
 @media (max-width: 768px) {
     #chatPanel .resize-handle {
-        left: 0;
-        right: 0;
-        height: 10px;
-        width: auto;
-        top: -5px;
-        bottom: auto;
-        cursor: ns-resize;
+        display: none; /* 移动端不显示调整大小的手柄 */
     }
 }
 
