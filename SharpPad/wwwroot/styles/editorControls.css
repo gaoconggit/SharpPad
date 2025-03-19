@@ -29,7 +29,7 @@
 }
 
 .theme-button {
-    right: 50px !important;
+    right: 45px !important;
 }
 
 /* 深色主题下的主题按钮样式 */
@@ -87,6 +87,6 @@
     }
     
     .theme-button {
-        right: -30px !important;
+        right: 0px !important;
     }
 } 

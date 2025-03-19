@@ -228,7 +228,7 @@ body.theme-light .chat-messages .assistant-message {
     background-color: #1e1e1e;
 }
 
-#runButton, #themeButton {
+#runButton {
     padding: 5px 15px;
     border: none;
     border-radius: 4px;
@@ -237,7 +237,18 @@ body.theme-light .chat-messages .assistant-message {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
-    margin-right: 3rem;
+    /* margin-right: 2.5rem; */
+}
+
+#themeButton {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: #0e639c;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
 }
 
 @media only screen and (max-width: 768px) {
