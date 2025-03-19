@@ -42,15 +42,14 @@ export class OutputPanel {
             this.minimizedOutputButton.style.display = 'block';
             this.container.style.marginBottom = '0';
             
-            // 调整其他面板的高度
+            // 调整其他面板的高度，但不影响聊天窗口
             const fileList = document.getElementById('fileList');
-            const chatPanel = document.getElementById('chatPanel');
             
             // 为移动设备和桌面设备设置不同的高度
             const fullHeight = isMobileDevice() ? '100%' : '100vh';
             fileList.style.height = fullHeight;
             this.container.style.height = fullHeight;
-            chatPanel.style.height = fullHeight;
+            // 移除对chatPanel高度的直接设置
             
             layoutEditor();
         });
@@ -62,7 +61,6 @@ export class OutputPanel {
                 this.lastHorizontalHeight = parseInt(getComputedStyle(this.outputPanel).height, 10);
                 
                 this.outputPanel.classList.add('vertical');
-                const chatPanel = document.getElementById('chatPanel');
                 const fileList = document.getElementById('fileList');
                 const container = document.getElementById('container');
 
@@ -70,7 +68,7 @@ export class OutputPanel {
                 const fullHeight = isMobileDevice() ? '100%' : '100vh';
                 fileList.style.height = fullHeight;
                 container.style.height = fullHeight;
-                chatPanel.style.height = fullHeight;
+                // 移除对聊天窗口高度的设置
                 this.outputPanel.style.height = fullHeight;
 
                 // 使用保存的垂直布局宽度，根据设备类型调整
@@ -80,8 +78,8 @@ export class OutputPanel {
                     
                 this.outputPanel.style.width = `${verticalWidth}px`;
 
-                // 根据聊天面板的显示状态设置位置
-                if (chatPanel.style.display === 'none') {
+                // 根据聊天面板的显示状态设置位置，但不改变聊天面板的布局
+                if (this.chatPanel.style.display === 'none') {
                     this.outputPanel.classList.add('chat-minimized');
                     this.outputPanel.style.right = '0';
                     
@@ -89,20 +87,19 @@ export class OutputPanel {
                     if (isMobileDevice()) {
                         container.style.marginRight = `${verticalWidth}px`;
                     } else {
-                        container.style.marginRight = '520px';
+                        container.style.marginRight = `${verticalWidth}px`;
                     }
                 } else {
                     this.outputPanel.classList.remove('chat-minimized');
                     
-                    // 在移动设备上可能需要调整面板位置
-                    if (isMobileDevice()) {
-                        // 在移动设备上，可能需要将输出面板放在页面底部或其他位置
-                        const chatWidth = parseInt(getComputedStyle(chatPanel).width, 10);
-                        this.outputPanel.style.right = `${chatWidth}px`;
-                        container.style.marginRight = `${chatWidth + verticalWidth}px`;
-                    } else {
+                    // 避免在移动设备上调整聊天面板的位置
+                    if (!isMobileDevice()) {
                         this.outputPanel.style.right = '520px';
-                        container.style.marginRight = '1040px';
+                        container.style.marginRight = `${520 + verticalWidth}px`;
+                    } else {
+                        // 移动设备上输出面板保持在右侧，不影响聊天面板
+                        this.outputPanel.style.right = '0';
+                        container.style.marginRight = `${verticalWidth}px`;
                     }
                 }
             } else {
@@ -116,10 +113,9 @@ export class OutputPanel {
                 this.outputPanel.style.right = '0'; // 重置right值
                 this.outputPanel.style.width = '100%'; // 重置宽度为100%
                 
-                // 恢复水平布局时的高度
+                // 恢复水平布局时的高度，但不影响聊天窗口
                 const fileList = document.getElementById('fileList');
                 const container = document.getElementById('container');
-                const chatPanel = document.getElementById('chatPanel');
                 
                 // 考虑移动设备高度计算
                 const remainingHeight = isMobileDevice() ? 
@@ -128,11 +124,10 @@ export class OutputPanel {
 
                 fileList.style.height = remainingHeight;
                 container.style.height = remainingHeight;
-                chatPanel.style.height = remainingHeight;
+                // 移除对聊天面板高度的设置
 
-                // 重置编辑器容器的右边距
-                container.style.marginRight = chatPanel.style.display === 'none' ? '0' : 
-                    (isMobileDevice() ? `${parseInt(getComputedStyle(chatPanel).width, 10)}px` : '520px');
+                // 重置编辑器容器的右边距，不考虑聊天面板
+                container.style.marginRight = '0';
             }
             layoutEditor();
         };
@@ -154,7 +149,6 @@ export class OutputPanel {
             
             const fileList = document.getElementById('fileList');
             const container = document.getElementById('container');
-            const chatPanel = document.getElementById('chatPanel');
             const isMobile = isMobileDevice();
 
             if (this.isVertical) {
@@ -162,19 +156,17 @@ export class OutputPanel {
                 const fullHeight = isMobile ? '100%' : '100vh';
                 fileList.style.height = fullHeight;
                 container.style.height = fullHeight;
-                // 在移动端不修改聊天面板的高度，保持其收起状态
-                if (!isMobile) {
-                    chatPanel.style.height = fullHeight;
-                }
+                // 移除对聊天面板高度的影响
                 this.outputPanel.style.height = fullHeight;
                 
-                // 调整编辑器容器的右边距，考虑移动设备
+                // 调整编辑器容器的右边距，不考虑聊天面板
                 if (isMobile) {
-                    // 在移动设备上，保持聊天面板的当前状态
                     const outputWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
                     container.style.marginRight = `${outputWidth}px`;
                 } else {
-                    container.style.marginRight = chatPanel.style.display === 'none' ? '520px' : '1040px';
+                    // 保持编辑器的右边距只受输出面板影响
+                    const outputWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
+                    container.style.marginRight = `${outputWidth}px`;
                 }
             } else {
                 // 恢复水平布局
@@ -187,10 +179,7 @@ export class OutputPanel {
                 
                 fileList.style.height = remainingHeight;
                 container.style.height = remainingHeight;
-                // 在移动端不修改聊天面板的高度，保持其收起状态
-                if (!isMobile) {
-                    chatPanel.style.height = remainingHeight;
-                }
+                // 移除对聊天面板高度的影响
                 container.style.marginBottom = `${height}px`;
             }
             
@@ -429,7 +418,9 @@ export class OutputPanel {
     }
 
     initializeChatPanelObserver() {
-        // 创建一个ResizeObserver来监视聊天面板的大小变化
+        // 移除ResizeObserver对聊天面板的监视，解除绑定
+        // 不再需要监视聊天面板的大小变化
+        /*
         const resizeObserver = new ResizeObserver(entries => {
             if (!entries[0]) return;
             
@@ -463,5 +454,6 @@ export class OutputPanel {
         
         // 保存引用以便稍后清理
         this.chatPanelResizeObserver = resizeObserver;
+        */
     }
 } 

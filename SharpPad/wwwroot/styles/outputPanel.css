@@ -38,6 +38,16 @@ body.theme-light #outputPanel.vertical {
     border-right: 1px solid #e0e0e0;
 }
 
+/* 移动端调整，不再依赖聊天窗口 */
+@media (max-width: 768px) {
+    #outputPanel.vertical {
+        width: 80%;
+        right: 0;
+        z-index: 998; /* 确保z-index比聊天窗口低，允许聊天窗口覆盖它 */
+    }
+}
+
+/* 现在这个类不再直接依赖聊天面板是否可见，而是由JavaScript控制 */
 #outputPanel.vertical.chat-minimized {
     right: 0;
 }
@@ -185,49 +195,41 @@ body.theme-light #toggleOutputLayout:hover {
     opacity: 1;
 }
 
-/* 移动设备上的按钮优化 */
+/* 移动端的布局调整 */
 @media (max-width: 768px) {
     #clearOutput, #copyOutput, #formatOutput {
-        min-width: 40px;
         padding: 4px 8px;
-        /* 增加触摸目标大小 */
-        height: 32px;
-        /* 确保按钮垂直居中对齐 */
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        font-size: 12px;
+        min-height: 22px;
+        flex-shrink: 0;
     }
     
-    /* 在移动设备上隐藏布局切换按钮 */
     #toggleOutputLayout {
-        display: none;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
     }
     
-    /* 改善移动设备上的触摸反馈 */
     #clearOutput:active, 
     #copyOutput:active, 
-    #formatOutput:active {
-        background-color: #555;
-        opacity: 1;
+    #formatOutput:active,
+    #toggleOutputLayout:active {
+        transform: scale(0.9);
     }
-
-    /* 确保垂直布局在移动设备上有合理的宽度 */
+    
+    /* 确保输出面板在移动设备上不再依赖聊天窗口的位置 */
     #outputPanel.vertical {
         width: 80%;
-        max-width: 300px;
+        right: 0 !important; /* 强制覆盖任何JavaScript设置的right值 */
     }
     
-    /* 调整输出工具栏在移动设备上的布局 */
     .output-toolbar {
-        display: flex;
-        align-items: center;
-        gap: 5px; /* 减小按钮之间的间距 */
+        gap: 5px;
     }
     
-    /* 确保在移动设备上输出面板头部有足够的空间 */
+    /* 调整标题区域的内边距以适应小屏幕 */
     .output-header {
         padding: 8px 10px;
-        flex-wrap: nowrap;
     }
 }
 
@@ -280,21 +282,30 @@ body.theme-light .minimized-output-button .icon-button:hover {
     transform: translateY(0);
 }
 
-/* 当输出面板在底部时，调整其他面板的高度 */
+/* 更新针对不同布局方式的容器边距设置 */
 #outputPanel:not(.vertical) ~ #fileList,
 #outputPanel:not(.vertical) ~ #container {
     height: calc(100vh - 200px);
 }
 
-/* 当输出面板在垂直位置时，调整编辑器容器的边距 */
+/* 当输出面板在垂直位置时，调整编辑器容器的边距 - 移除聊天面板的依赖 */
 #outputPanel.vertical ~ #container {
-    margin-right: 1040px;
+    margin-right: 520px; /* 只考虑输出面板的宽度 */
 }
 
-/* 当聊天面板最小化且输出面板垂直显示时 */
+/* 移动设备上覆盖container的margin-right，确保输出面板和编辑器可以适应移动屏幕 */
+@media (max-width: 768px) {
+    #outputPanel.vertical ~ #container {
+        margin-right: 80% !important; /* 使用百分比宽度适应不同的移动设备屏幕 */
+    }
+}
+
+/* 当聊天面板最小化且输出面板垂直显示时 - 这条规则现在过时了，应当注释掉 */
+/*
 #outputPanel.vertical.chat-minimized ~ #container {
     margin-right: 520px;
 }
+*/
 
 /* 调整大小相关样式 */
 #outputPanel .resize-handle {
