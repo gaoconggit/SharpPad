@@ -43,7 +43,8 @@ body.theme-light #outputPanel.vertical {
     #outputPanel.vertical {
         width: 80%;
         right: 0;
-        z-index: 998; /* 确保z-index比聊天窗口低，允许聊天窗口覆盖它 */
+        z-index: 998;
+        /* 确保z-index比聊天窗口低，允许聊天窗口覆盖它 */
     }
 }
 
@@ -159,7 +160,10 @@ body.theme-light .output-info {
     gap: 10px;
 }
 
-#clearOutput, #copyOutput, #formatOutput, #toggleOutputLayout {
+#clearOutput,
+#copyOutput,
+#formatOutput,
+#toggleOutputLayout {
     background-color: #444;
     border: none;
     color: #fff;
@@ -197,39 +201,50 @@ body.theme-light #toggleOutputLayout:hover {
 
 /* 移动端的布局调整 */
 @media (max-width: 768px) {
-    #clearOutput, #copyOutput, #formatOutput {
+
+    #clearOutput,
+    #copyOutput,
+    #formatOutput {
         padding: 4px 8px;
         font-size: 12px;
         min-height: 22px;
         flex-shrink: 0;
     }
-    
+
     #toggleOutputLayout {
         width: 24px;
         height: 24px;
         flex-shrink: 0;
+        display: none;
     }
-    
-    #clearOutput:active, 
-    #copyOutput:active, 
+
+    #clearOutput:active,
+    #copyOutput:active,
     #formatOutput:active,
     #toggleOutputLayout:active {
         transform: scale(0.9);
     }
-    
+
     /* 确保输出面板在移动设备上不再依赖聊天窗口的位置 */
     #outputPanel.vertical {
         width: 80%;
-        right: 0 !important; /* 强制覆盖任何JavaScript设置的right值 */
+        right: 0 !important;
+        /* 强制覆盖任何JavaScript设置的right值 */
     }
-    
+
     .output-toolbar {
         gap: 5px;
     }
-    
+
     /* 调整标题区域的内边距以适应小屏幕 */
     .output-header {
         padding: 8px 10px;
+    }
+
+    #outputPanel:not(.vertical) {
+        height: 30vh !important;
+        min-height: 10vh;
+        max-height: 40vh;
     }
 }
 
@@ -283,20 +298,22 @@ body.theme-light .minimized-output-button .icon-button:hover {
 }
 
 /* 更新针对不同布局方式的容器边距设置 */
-#outputPanel:not(.vertical) ~ #fileList,
-#outputPanel:not(.vertical) ~ #container {
+#outputPanel:not(.vertical)~#fileList,
+#outputPanel:not(.vertical)~#container {
     height: calc(100vh - 200px);
 }
 
 /* 当输出面板在垂直位置时，调整编辑器容器的边距 - 移除聊天面板的依赖 */
-#outputPanel.vertical ~ #container {
-    margin-right: 520px; /* 只考虑输出面板的宽度 */
+#outputPanel.vertical~#container {
+    margin-right: 520px;
+    /* 只考虑输出面板的宽度 */
 }
 
 /* 移动设备上覆盖container的margin-right，确保输出面板和编辑器可以适应移动屏幕 */
 @media (max-width: 768px) {
-    #outputPanel.vertical ~ #container {
-        margin-right: 80% !important; /* 使用百分比宽度适应不同的移动设备屏幕 */
+    #outputPanel.vertical~#container {
+        margin-right: 80% !important;
+        /* 使用百分比宽度适应不同的移动设备屏幕 */
     }
 }
 
@@ -310,48 +327,235 @@ body.theme-light .minimized-output-button .icon-button:hover {
 /* 调整大小相关样式 */
 #outputPanel .resize-handle {
     position: absolute;
+    top: 0;
     left: 0;
     right: 0;
-    height: 10px;
-    top: -5px;
+    height: 8px;
     cursor: ns-resize;
-    background: transparent;
-    z-index: 1001;
+    opacity: 0.5;
+    background-color: #444;
+    transition: opacity 0.2s, background-color 0.2s;
+    z-index: 1001; /* 确保在其他元素之上 */
 }
 
+body.theme-light #outputPanel .resize-handle {
+    background-color: #ccc;
+}
+
+/* 添加额外的视觉指示器样式 */
+#outputPanel .resize-handle-indicator {
+    position: absolute;
+    top: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#outputPanel .resize-handle-indicator::before,
+#outputPanel .resize-handle-indicator::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    background-color: #999;
+    margin: 0 2px;
+    border-radius: 1px;
+}
+
+body.theme-light #outputPanel .resize-handle-indicator::before,
+body.theme-light #outputPanel .resize-handle-indicator::after {
+    background-color: #666;
+}
+
+#outputPanel .resize-handle:hover,
+#outputPanel .resize-handle.active {
+    opacity: 0.8;
+    background-color: #666;
+}
+
+#outputPanel .resize-handle:hover .resize-handle-indicator::before,
+#outputPanel .resize-handle:hover .resize-handle-indicator::after,
+#outputPanel .resize-handle.active .resize-handle-indicator::before,
+#outputPanel .resize-handle.active .resize-handle-indicator::after {
+    background-color: #bbb;
+}
+
+body.theme-light #outputPanel .resize-handle:hover,
+body.theme-light #outputPanel .resize-handle.active {
+    background-color: #aaa;
+}
+
+body.theme-light #outputPanel .resize-handle:hover .resize-handle-indicator::before,
+body.theme-light #outputPanel .resize-handle:hover .resize-handle-indicator::after,
+body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::before,
+body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::after {
+    background-color: #444;
+}
+
+/* 增加移动设备上的调整手柄尺寸和可视性 */
+@media (max-width: 768px) {
+    #outputPanel .resize-handle {
+        height: 12px; /* 更大的触摸区域 */
+        opacity: 0.7; /* 默认更明显 */
+    }
+    
+    #outputPanel .resize-handle-indicator {
+        top: 3px;
+        width: 60px;
+    }
+    
+    #outputPanel .resize-handle-indicator::before,
+    #outputPanel .resize-handle-indicator::after {
+        width: 25px;
+        height: 3px;
+    }
+    
+    body.theme-light #outputPanel .resize-handle-indicator::before,
+    body.theme-light #outputPanel .resize-handle-indicator::after {
+        background-color: #666;
+    }
+    
+    #outputPanel .resize-handle.active .resize-handle-indicator::before,
+    #outputPanel .resize-handle.active .resize-handle-indicator::after {
+        background-color: #bbb;
+    }
+    
+    body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::before,
+    body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::after {
+        background-color: #444;
+    }
+}
+
+/* 垂直布局的调整手柄 */
 #outputPanel.vertical .resize-handle {
-    left: -5px;
-    right: auto;
-    width: 10px;
-    height: 100%;
     top: 0;
+    bottom: 0;
+    right: auto;
+    left: 0;
+    width: 8px;
+    height: auto;
     cursor: ew-resize;
 }
 
+/* 垂直布局的视觉指示器 */
+#outputPanel.vertical .resize-handle-indicator {
+    top: 50%;
+    left: 1px;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 40px;
+    flex-direction: column;
+}
+
+#outputPanel.vertical .resize-handle-indicator::before,
+#outputPanel.vertical .resize-handle-indicator::after {
+    width: 2px;
+    height: 20px;
+    margin: 2px 0;
+}
+
+/* 移动设备上垂直布局的调整手柄 */
+@media (max-width: 768px) {
+    #outputPanel.vertical .resize-handle {
+        width: 12px;
+    }
+    
+    #outputPanel.vertical .resize-handle-indicator {
+        left: 3px;
+        height: 60px;
+    }
+    
+    #outputPanel.vertical .resize-handle-indicator::before,
+    #outputPanel.vertical .resize-handle-indicator::after {
+        width: 3px;
+        height: 25px;
+    }
+}
+
+/* 调整辅助线样式 */
+.resize-helper-line {
+    position: absolute;
+    background-color: rgba(100, 149, 237, 0.6);
+    pointer-events: none;
+    z-index: 1001;
+}
+
+.resize-helper-line.horizontal {
+    left: 0;
+    right: 0;
+    height: 2px;
+    top: 0;
+}
+
+.resize-helper-line.vertical {
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    left: 0;
+}
+
+/* 调整中的面板样式 */
 #outputPanel.resizing {
     transition: none !important;
+    pointer-events: all;
 }
 
+/* 设置调整中的面板位置 */
 #outputPanel.resizing .resize-handle {
-    background: transparent;
+    opacity: 1;
+    background-color: #666;
 }
 
-#outputPanel.resizing {
-    border-top: 2px solid #0078d4;
+body.theme-light #outputPanel.resizing .resize-handle {
+    background-color: #aaa;
 }
 
-body.theme-light #outputPanel.resizing {
-    border-top: 2px solid #0066b8;
+/* 调整时指示器的样式 */
+#outputPanel.resizing .resize-handle-indicator::before,
+#outputPanel.resizing .resize-handle-indicator::after {
+    background-color: #bbb;
 }
 
-#outputPanel.vertical.resizing {
-    border-top: none;
-    border-left: 2px solid #0078d4;
+body.theme-light #outputPanel.resizing .resize-handle-indicator::before,
+body.theme-light #outputPanel.resizing .resize-handle-indicator::after {
+    background-color: #444;
 }
 
-body.theme-light #outputPanel.vertical.resizing {
-    border-top: none;
-    border-left: 2px solid #0066b8;
+/* 移动端双击/双触反馈 */
+@media (max-width: 768px) {
+    /* 显示调整反馈 */
+    #outputPanel.size-transition {
+        transition: height 0.3s ease-in-out !important;
+    }
+    
+    #outputPanel.vertical.size-transition {
+        transition: width 0.3s ease-in-out !important;
+    }
+    
+    /* 确保输出面板在移动设备上有足够的最小高度，方便用户调整 */
+    #outputPanel:not(.vertical) {
+        min-height: 50px;
+    }
+}
+
+/* 确保调整大小时平滑过渡 */
+#outputPanel,
+#container,
+#fileList,
+#chatPanel {
+    transition: height 0.2s ease, width 0.2s ease, margin 0.2s ease;
+}
+
+/* 拖动时禁用过渡效果 */
+#outputPanel.resizing,
+#outputPanel.resizing ~ #container,
+#outputPanel.resizing ~ #fileList,
+#outputPanel.resizing ~ #chatPanel {
+    transition: none !important;
 }
 
 body.theme-dark .output-error {
