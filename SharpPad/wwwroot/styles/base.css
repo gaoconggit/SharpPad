@@ -174,7 +174,8 @@ body.theme-light .chat-messages .assistant-message {
 }
 
 #container {
-    width: calc(100% - 520px);
+    width: calc(100% - 290px - 520px);
+    margin-left: 290px;
     margin-right: 520px;
     position: fixed;
     top: 0;
