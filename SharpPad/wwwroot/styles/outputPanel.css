@@ -439,6 +439,14 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
     width: 8px;
     height: auto;
     cursor: ew-resize;
+    z-index: 1001;
+    opacity: 0.5;
+    background-color: #444;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+body.theme-light #outputPanel.vertical .resize-handle {
+    background-color: #ccc;
 }
 
 /* 垂直布局的视觉指示器 */
@@ -449,19 +457,57 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
     width: 6px;
     height: 40px;
     flex-direction: column;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #outputPanel.vertical .resize-handle-indicator::before,
 #outputPanel.vertical .resize-handle-indicator::after {
+    content: '';
+    display: block;
     width: 2px;
-    height: 20px;
+    height: 16px;
+    background-color: #999;
     margin: 2px 0;
+    border-radius: 1px;
+}
+
+body.theme-light #outputPanel.vertical .resize-handle-indicator::before,
+body.theme-light #outputPanel.vertical .resize-handle-indicator::after {
+    background-color: #666;
+}
+
+#outputPanel.vertical .resize-handle:hover,
+#outputPanel.vertical .resize-handle.active {
+    opacity: 0.8;
+    background-color: #666;
+}
+
+#outputPanel.vertical .resize-handle:hover .resize-handle-indicator::before,
+#outputPanel.vertical .resize-handle:hover .resize-handle-indicator::after,
+#outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
+#outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
+    background-color: #bbb;
+}
+
+body.theme-light #outputPanel.vertical .resize-handle:hover,
+body.theme-light #outputPanel.vertical .resize-handle.active {
+    background-color: #aaa;
+}
+
+body.theme-light #outputPanel.vertical .resize-handle:hover .resize-handle-indicator::before,
+body.theme-light #outputPanel.vertical .resize-handle:hover .resize-handle-indicator::after,
+body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
+body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
+    background-color: #444;
 }
 
 /* 移动设备上垂直布局的调整手柄 */
 @media (max-width: 768px) {
     #outputPanel.vertical .resize-handle {
         width: 12px;
+        opacity: 0.7;
     }
     
     #outputPanel.vertical .resize-handle-indicator {
@@ -472,16 +518,33 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
     #outputPanel.vertical .resize-handle-indicator::before,
     #outputPanel.vertical .resize-handle-indicator::after {
         width: 3px;
-        height: 25px;
+        height: 24px;
+        margin: 3px 0;
+    }
+    
+    body.theme-light #outputPanel.vertical .resize-handle-indicator::before,
+    body.theme-light #outputPanel.vertical .resize-handle-indicator::after {
+        background-color: #666;
+    }
+    
+    #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
+    #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
+        background-color: #bbb;
+    }
+    
+    body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::before,
+    body.theme-light #outputPanel.vertical .resize-handle.active .resize-handle-indicator::after {
+        background-color: #444;
     }
 }
 
 /* 调整辅助线样式 */
 .resize-helper-line {
     position: absolute;
-    background-color: rgba(100, 149, 237, 0.6);
+    background-color: rgba(100, 149, 237, 0.7);
     pointer-events: none;
     z-index: 1001;
+    box-shadow: 0 0 4px rgba(100, 149, 237, 0.5);
 }
 
 .resize-helper-line.horizontal {
@@ -498,10 +561,30 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
     left: 0;
 }
 
+body.theme-light .resize-helper-line {
+    background-color: rgba(0, 120, 212, 0.7);
+    box-shadow: 0 0 4px rgba(0, 120, 212, 0.5);
+}
+
 /* 调整中的面板样式 */
 #outputPanel.resizing {
     transition: none !important;
     pointer-events: all;
+}
+
+#outputPanel.vertical.resizing:after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(100, 149, 237, 0.5);
+    pointer-events: none;
+}
+
+body.theme-light #outputPanel.vertical.resizing:after {
+    background-color: rgba(0, 120, 212, 0.5);
 }
 
 /* 设置调整中的面板位置 */
@@ -556,6 +639,30 @@ body.theme-light #outputPanel.resizing .resize-handle-indicator::after {
 #outputPanel.resizing ~ #fileList,
 #outputPanel.resizing ~ #chatPanel {
     transition: none !important;
+}
+
+/* 垂直调整手柄的特殊效果 */
+html.ew-resizing {
+    cursor: ew-resize !important;
+}
+
+html.ew-resizing #outputPanel.vertical .resize-handle {
+    opacity: 1;
+    background-color: #666;
+}
+
+body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle {
+    background-color: #aaa;
+}
+
+html.ew-resizing #outputPanel.vertical .resize-handle-indicator::before,
+html.ew-resizing #outputPanel.vertical .resize-handle-indicator::after {
+    background-color: #bbb;
+}
+
+body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle-indicator::before,
+body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle-indicator::after {
+    background-color: #444;
 }
 
 body.theme-dark .output-error {

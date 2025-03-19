@@ -259,6 +259,8 @@ export class OutputPanel {
                 const helperLine = document.createElement('div');
                 helperLine.className = 'resize-helper-line vertical';
                 this.outputPanel.appendChild(helperLine);
+                // 为垂直模式添加额外的反馈效果
+                document.documentElement.classList.add('ew-resizing');
             }
         }
     }
@@ -347,6 +349,9 @@ export class OutputPanel {
                     this.outputPanel.removeChild(helperLine);
                 }
                 
+                // 移除垂直模式的额外反馈效果
+                document.documentElement.classList.remove('ew-resizing');
+                
                 // 恢复平滑过渡效果
                 this.outputPanel.style.transition = '';
             }
@@ -392,6 +397,8 @@ export class OutputPanel {
         if (this.isVertical) {
             this.startX = e.clientX;
             this.startWidth = parseInt(document.defaultView.getComputedStyle(this.outputPanel).width, 10);
+            // 为垂直模式添加额外的反馈效果
+            document.documentElement.classList.add('ew-resizing');
         } else {
             this.startY = e.clientY;
             this.startHeight = parseInt(document.defaultView.getComputedStyle(this.outputPanel).height, 10);
@@ -482,6 +489,9 @@ export class OutputPanel {
         this.isResizing = false;
         this.outputPanel.classList.remove('resizing');
         document.documentElement.style.cursor = '';
+        
+        // 移除垂直模式的额外反馈效果
+        document.documentElement.classList.remove('ew-resizing');
 
         // 取消任何待处理的动画帧
         if (this.rafId) {
@@ -599,6 +609,8 @@ export class OutputPanel {
             if (helperLine) {
                 if (isVertical) {
                     helperLine.style.left = '0';
+                    // 为垂直模式提供更明显的视觉指示
+                    helperLine.style.opacity = '1';
                 } else {
                     helperLine.style.top = '0';
                 }

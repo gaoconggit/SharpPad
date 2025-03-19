@@ -30,6 +30,7 @@
     height: 10px;
     top: -5px;
     cursor: ns-resize;
+    background: transparent;
 }
 
 /* 聊天输入框调整手柄 */
@@ -51,6 +52,11 @@
 
 #outputPanel.resizing {
     border-top: 2px solid #0078d4;
+}
+
+#outputPanel.vertical.resizing {
+    border-top: none;
+    border-left: 2px solid #0078d4;
 }
 
 #chatPanel.resizing {
