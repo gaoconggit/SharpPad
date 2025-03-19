@@ -328,7 +328,7 @@ export class OutputPanel {
             } else {
                 // 改进移动端高度调整的计算方式
                 // 修复计算方向：使拖动方向和调整方向一致
-                const delta = (e.touches[0].clientY - this.startY) * moveSpeed;
+                const delta = (this.startY - e.touches[0].clientY) * moveSpeed;
                 // 为移动设备调整最小和最大高度限制
                 const minHeight = isMobileDevice() ? 150 : 100;
                 const maxHeight = window.innerHeight * (isMobileDevice() ? 0.7 : 0.8);
@@ -449,8 +449,8 @@ export class OutputPanel {
                 this.outputPanel.style.width = `${newWidth}px`;
                 this.updateVerticalLayout(newWidth);
             } else {
-                // 修复计算方向：使鼠标向上移动减小高度，向下移动增加高度
-                const delta = e.clientY - this.startY;
+                // 修复计算方向：使鼠标向上移动增加高度，向下移动减小高度
+                const delta = this.startY - e.clientY;
                 const maxHeight = window.innerHeight * (isMobileDevice() ? 0.6 : 0.8);
                 const newHeight = Math.min(Math.max(this.startHeight + delta, 100), maxHeight);
                 this.outputPanel.style.height = `${newHeight}px`;
