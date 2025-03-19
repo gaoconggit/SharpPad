@@ -1,4 +1,4 @@
-import { layoutEditor, showNotification } from '../utils/common.js';
+import { layoutEditor, showNotification, isMobileDevice, getResponsiveSize, setContainerWidth } from '../utils/common.js';
 import { fileListResizer } from '../fileSystem/fileListResizer.js';
 
 export class ChatManager {
@@ -15,14 +15,32 @@ export class ChatManager {
         this.modelSettingsModal = document.getElementById('modelSettingsModal');
         this.isResizing = false;
         this.startX = 0;
-        this.startWidth = 0;
-        this.isInputResizing = false;
         this.startY = 0;
+        this.startWidth = 0;
         this.startHeight = 0;
+        this.isInputResizing = false;
+        this.isMobile = window.matchMedia('(max-width: 768px)').matches;
+        this.isInitialized = false;
+        
+        // 监听媒体查询变化
+        window.matchMedia('(max-width: 768px)').addEventListener('change', (e) => {
+            this.isMobile = e.matches;
+            this.updateResizeHandle();
+            this.handleResize();
+            this.updateMobileLayout();
+        });
+
+        // 立即初始化移动端布局，确保在构造函数中就应用正确的状态
+        this.applyMobileInitialState();
 
         this.initializeEventListeners();
         this.loadChatHistory();
         this.initializeModels();
+        this.updateResizeHandle();
+        this.initializeMobileLayout();
+        
+        // 初始化chatPanel显示状态监听器
+        this.initializeChatPanelObserver();
     }
 
     initializeEventListeners() {
@@ -36,6 +54,11 @@ export class ChatManager {
         this.chatPanel.addEventListener('mousedown', this.handleMouseDown.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        
+        // 添加触摸事件支持
+        this.chatPanel.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+        document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+        document.addEventListener('touchend', this.handleTouchEnd.bind(this));
 
         // 聊天输入框大小调整
         const resizeHandle = document.querySelector('.chat-input-resize-handle');
@@ -69,18 +92,71 @@ export class ChatManager {
             }
         });
 
-        // 切换聊天窗口显示/隐藏
+        // 切换聊天窗口 - 修改关闭逻辑
         this.toggleChat.addEventListener('click', () => {
-            this.chatPanel.style.display = 'none';
-            this.minimizedChatButton.style.display = 'block';
-            fileListResizer.updateContainerWidth();
+            if (this.isMobile) {
+                // 移动端收起
+                this.chatPanel.classList.remove('active');
+                
+                // 等待过渡动画完成后再设置transform
+                const transitionEndHandler = () => {
+                    this.chatPanel.style.transform = 'translateY(100%)'; // 确保完全隐藏
+                    this.chatPanel.removeEventListener('transitionend', transitionEndHandler);
+                    
+                    // 确保浮动按钮显示
+                    setTimeout(() => {
+                        if (!this.chatPanel.classList.contains('active')) {
+                            this.minimizedChatButton.style.display = 'block';
+                        }
+                    }, 300);
+                };
+                
+                this.chatPanel.addEventListener('transitionend', transitionEndHandler);
+                
+                // 移除任何可能导致部分显示的样式
+                this.chatPanel.classList.remove('minimized');
+                
+                // 通知其他组件布局变化
+                fileListResizer?.updateContainerWidth();
+            } else {
+                // 桌面端正常隐藏
+                this.chatPanel.style.display = 'none';
+                this.minimizedChatButton.style.display = 'block';
+                fileListResizer.updateContainerWidth();
+            }
         });
 
-        // 恢复聊天窗口
+        // 恢复聊天窗口 - 修改处理逻辑支持移动端全屏
         this.minimizedChatButton.querySelector('.restore-chat').addEventListener('click', () => {
-            this.chatPanel.style.display = 'flex';
-            this.minimizedChatButton.style.display = 'none';
-            fileListResizer.updateContainerWidth();
+            if (this.isMobile) {
+                // 移动端全屏显示
+                this.chatPanel.style.display = 'flex';
+                // 先清除transform样式以便过渡效果正常工作
+                this.chatPanel.style.transform = 'translateY(100%)';
+                
+                // 强制重排以确保过渡效果
+                void this.chatPanel.offsetWidth;
+                
+                // 添加active类并清除transform
+                setTimeout(() => {
+                    this.chatPanel.classList.add('active');
+                    this.chatPanel.style.transform = '';
+                    // 确保隐藏最小化按钮
+                    this.minimizedChatButton.style.setProperty('display', 'none', 'important');
+                }, 10);
+                
+                // 立即隐藏最小化按钮，避免过渡期间可见
+                this.minimizedChatButton.style.setProperty('display', 'none', 'important');
+                
+                // 通知其他组件布局变化
+                fileListResizer?.updateContainerWidth();
+            } else {
+                // 桌面端正常显示
+                this.chatPanel.style.display = 'flex';
+                this.chatPanel.style.transform = '';
+                this.minimizedChatButton.style.setProperty('display', 'none', 'important');
+                fileListResizer.updateContainerWidth();
+            }
         });
 
         //模型设置
@@ -135,31 +211,214 @@ export class ChatManager {
 
         // 暴露删除模型的方法到全局
         window.deleteModel = (modelId, showConfirm = true) => this.deleteModel(modelId, showConfirm);
+
+        // 添加测试方法到全局，用于检查聊天面板状态
+        window.checkChatPanelState = () => {
+            const chatManager = this;
+            const chatPanel = this.chatPanel;
+            const minimizedButton = this.minimizedChatButton;
+            
+            console.log('Chat Panel State Check:');
+            console.log('Display:', chatPanel.style.display);
+            console.log('Transform:', chatPanel.style.transform);
+            console.log('Has active class:', chatPanel.classList.contains('active'));
+            console.log('Has minimized class:', chatPanel.classList.contains('minimized'));
+            console.log('Minimized button display:', minimizedButton.style.display);
+            
+            // 检查状态是否一致
+            const isChatVisible = (chatPanel.style.display !== 'none' && 
+                !chatPanel.classList.contains('minimized') && 
+                chatPanel.style.transform !== 'translateY(100%)') ||
+                chatPanel.classList.contains('active');
+                
+            const isStateConsistent = isChatVisible ? 
+                minimizedButton.style.display === 'none' : 
+                minimizedButton.style.display === 'block';
+                
+            console.log('State consistent:', isStateConsistent);
+            
+            if (!isStateConsistent) {
+                console.warn('Chat panel and minimized button state inconsistency detected!');
+                // 自动修复状态
+                if (isChatVisible) {
+                    minimizedButton.style.display = 'none';
+                } else {
+                    minimizedButton.style.display = 'block';
+                }
+                console.log('State auto-corrected.');
+            }
+            
+            return {
+                chatVisible: isChatVisible,
+                stateConsistent: isStateConsistent
+            };
+        };
+
+        // 添加触摸手势支持 - 滑动收起面板
+        let startY = 0;
+        let startTime = 0;
+        
+        this.chatPanel.addEventListener('touchstart', (e) => {
+            // 仅在聊天头部区域允许滑动
+            if (e.target.closest('.chat-header')) {
+                startY = e.touches[0].clientY;
+                startTime = Date.now();
+            }
+        });
+        
+        this.chatPanel.addEventListener('touchmove', (e) => {
+            if (startY > 0 && this.isMobile) {
+                const currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                
+                // 只允许向下滑动关闭
+                if (deltaY > 0) {
+                    // 添加阻尼效果，最多移动屏幕高度的70%
+                    const dampenedDelta = Math.min(deltaY * 0.5, window.innerHeight * 0.7);
+                    this.chatPanel.style.transform = `translateY(${dampenedDelta}px)`;
+                    e.preventDefault(); // 防止页面滚动
+                }
+            }
+        });
+        
+        this.chatPanel.addEventListener('touchend', (e) => {
+            if (startY > 0 && this.isMobile) {
+                const currentY = e.changedTouches[0].clientY;
+                const deltaY = currentY - startY;
+                const deltaTime = Date.now() - startTime;
+                
+                // 如果用户滑动超过屏幕高度的20%或者速度足够快，则关闭面板
+                if (deltaY > window.innerHeight * 0.2 || (deltaY > 80 && deltaTime < 300)) {
+                    this.toggleChat.click();
+                } else {
+                    // 否则恢复面板位置
+                    this.chatPanel.style.transform = '';
+                }
+                
+                startY = 0; // 重置起始位置
+            }
+        });
+    }
+
+    updateResizeHandle() {
+        // 添加或更新调整大小的手柄
+        let resizeHandle = this.chatPanel.querySelector('.resize-handle');
+        if (!resizeHandle) {
+            resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            this.chatPanel.appendChild(resizeHandle);
+        }
     }
 
     handleMouseDown(e) {
-        const leftEdge = this.chatPanel.getBoundingClientRect().left;
-        if (Math.abs(e.clientX - leftEdge) > 10) return;
+        if (this.isMobile) {
+            // 移动端垂直拖动
+            const topEdge = this.chatPanel.getBoundingClientRect().top;
+            if (Math.abs(e.clientY - topEdge) > 10) return;
+            
+            this.isResizing = true;
+            this.startY = e.clientY;
+            this.startHeight = parseInt(document.defaultView.getComputedStyle(this.chatPanel).height, 10);
+            this.chatPanel.classList.add('resizing');
+            document.documentElement.style.cursor = 'ns-resize';
+        } else {
+            // 桌面端水平拖动
+            const leftEdge = this.chatPanel.getBoundingClientRect().left;
+            if (Math.abs(e.clientX - leftEdge) > 10) return;
+            
+            this.isResizing = true;
+            this.startX = e.clientX;
+            this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
+            this.chatPanel.classList.add('resizing');
+            document.documentElement.style.cursor = 'ew-resize';
+        }
+        e.preventDefault();
+    }
 
-        this.isResizing = true;
-        this.startX = e.clientX;
-        this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
-        this.chatPanel.classList.add('resizing');
-        document.documentElement.style.cursor = 'ew-resize';
+    handleTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        
+        const touch = e.touches[0];
+        if (this.isMobile) {
+            // 移动端垂直拖动
+            const topEdge = this.chatPanel.getBoundingClientRect().top;
+            if (Math.abs(touch.clientY - topEdge) > 20) return;
+            
+            this.isResizing = true;
+            this.startY = touch.clientY;
+            this.startHeight = parseInt(document.defaultView.getComputedStyle(this.chatPanel).height, 10);
+            this.chatPanel.classList.add('resizing');
+        } else {
+            // 桌面端水平拖动
+            const leftEdge = this.chatPanel.getBoundingClientRect().left;
+            if (Math.abs(touch.clientX - leftEdge) > 20) return;
+            
+            this.isResizing = true;
+            this.startX = touch.clientX;
+            this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
+            this.chatPanel.classList.add('resizing');
+        }
         e.preventDefault();
     }
 
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
-        const width = this.startWidth - (e.clientX - this.startX);
-        if (width >= 450 && width <= window.innerWidth * 0.6) {
-            this.chatPanel.style.width = `${width}px`;
-            this.container.style.marginRight = `${width}px`;
-            const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-            this.container.style.width = `calc(100% - ${fileListWidth}px - ${width}px)`;
-            layoutEditor();
+        if (this.isMobile) {
+            // 移动端垂直调整大小
+            const height = this.startHeight - (e.clientY - this.startY);
+            const minHeight = 150; // 最小高度
+            const maxHeight = window.innerHeight * 0.8; // 最大高度
+            
+            if (height >= minHeight && height <= maxHeight) {
+                this.chatPanel.style.height = `${height}px`;
+                this.chatPanel.style.top = `calc(100vh - ${height}px)`;
+            }
+        } else {
+            // 桌面端水平调整大小
+            const width = this.startWidth - (e.clientX - this.startX);
+            if (width >= 450 && width <= window.innerWidth * 0.6) {
+                this.chatPanel.style.width = `${width}px`;
+                
+                // 使用响应式宽度设置函数
+                const fileList = document.getElementById('fileList');
+                const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+                
+                // 设置container的宽度和边距
+                setContainerWidth(this.container, fileListWidth, width, true);
+            }
         }
+    }
+
+    handleTouchMove(e) {
+        if (!this.isResizing || e.touches.length !== 1) return;
+        
+        const touch = e.touches[0];
+        if (this.isMobile) {
+            // 移动端垂直调整大小
+            const height = this.startHeight - (touch.clientY - this.startY);
+            const minHeight = 150; // 最小高度
+            const maxHeight = window.innerHeight * 0.8; // 最大高度
+            
+            if (height >= minHeight && height <= maxHeight) {
+                this.chatPanel.style.height = `${height}px`;
+                this.chatPanel.style.top = `calc(100vh - ${height}px)`;
+            }
+        } else {
+            // 桌面端水平调整大小
+            const width = this.startWidth - (touch.clientX - this.startX);
+            if (width >= 450 && width <= window.innerWidth * 0.6) {
+                this.chatPanel.style.width = `${width}px`;
+                
+                // 使用响应式宽度设置函数
+                const fileList = document.getElementById('fileList');
+                const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+                
+                // 设置container的宽度和边距
+                setContainerWidth(this.container, fileListWidth, width, true);
+            }
+        }
+        e.preventDefault();
     }
 
     handleMouseUp() {
@@ -170,17 +429,46 @@ export class ChatManager {
         }
     }
 
-    handleResize() {
-        const maxWidth = window.innerWidth * 0.4;
-        const currentWidth = parseInt(getComputedStyle(this.chatPanel).width, 10);
+    handleTouchEnd() {
+        if (this.isResizing) {
+            this.isResizing = false;
+            this.chatPanel.classList.remove('resizing');
+        }
+    }
 
-        if (currentWidth > maxWidth) {
-            const newWidth = maxWidth;
-            this.chatPanel.style.width = `${newWidth}px`;
-            this.container.style.marginRight = `${newWidth}px`;
-            const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-            this.container.style.width = `calc(100% - ${fileListWidth}px - ${newWidth}px)`;
-            layoutEditor();
+    handleResize() {
+        this.isMobile = window.matchMedia('(max-width: 768px)').matches;
+        
+        if (this.isMobile) {
+            // 移动端适配
+            const maxHeight = window.innerHeight * 0.7;
+            const currentHeight = parseInt(getComputedStyle(this.chatPanel).height, 10);
+            
+            if (currentHeight > maxHeight) {
+                this.chatPanel.style.height = `${maxHeight}px`;
+                this.chatPanel.style.top = `calc(100vh - ${maxHeight}px)`;
+            }
+            
+            // 移动端下宽度始终为100%
+            this.chatPanel.style.width = '100%';
+        } else {
+            // 桌面端适配
+            const maxWidthRatio = 0.4;
+            const maxWidth = window.innerWidth * maxWidthRatio;
+            const currentWidth = parseInt(getComputedStyle(this.chatPanel).width, 10);
+
+            if (currentWidth > maxWidth) {
+                const newWidth = maxWidth;
+                this.chatPanel.style.width = `${newWidth}px`;
+                
+                // 使用响应式宽度设置函数
+                const fileList = document.getElementById('fileList');
+                const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
+                const isChatVisible = this.chatPanel.style.display !== 'none';
+                
+                // 设置container的宽度和边距
+                setContainerWidth(this.container, fileListWidth, newWidth, isChatVisible);
+            }
         }
     }
 
@@ -676,7 +964,137 @@ export class ChatManager {
             }
         }
     }
+
+    // 初始化移动端布局
+    initializeMobileLayout() {
+        if (this.isMobile) {
+            // 移动端默认收起聊天面板
+            this.minimizedChatButton.style.display = 'block';
+            this.chatPanel.classList.remove('active', 'minimized'); // 移除可能导致部分显示的类
+            this.chatPanel.style.transform = 'translateY(100%)'; // 确保完全隐藏
+            this.chatPanel.style.display = 'flex'; // 保持flex布局，但通过transform隐藏
+            
+            // 确保容器宽度正确
+            const container = document.getElementById('container');
+            container.style.marginRight = '0';
+            container.style.width = '100%';
+            
+            // 告知其他组件聊天面板已隐藏
+            fileListResizer?.updateContainerWidth();
+        } else {
+            // 桌面端默认显示
+            this.chatPanel.style.display = 'flex';
+            this.chatPanel.style.transform = '';
+            this.minimizedChatButton.style.display = 'none';
+        }
+        this.isInitialized = true;
+    }
+
+    // 更新移动端布局
+    updateMobileLayout() {
+        if (!this.isInitialized) return;
+        
+        if (this.isMobile) {
+            // 移动端自适应
+            this.chatPanel.style.width = '100%';
+            this.chatPanel.style.height = '100vh';
+            
+            // 如果当前是显示状态，确保样式正确
+            if (this.chatPanel.style.display !== 'none') {
+                this.chatPanel.classList.add('active');
+            }
+        } else {
+            // 桌面端恢复默认样式
+            this.chatPanel.classList.remove('active');
+            // 设置默认宽度
+            const defaultWidth = 520;
+            this.chatPanel.style.width = `${defaultWidth}px`;
+        }
+    }
+
+    // 立即应用移动端初始状态
+    applyMobileInitialState() {
+        if (!this.isMobile) return;
+        
+        const isMobileScreenSize = window.innerWidth <= 768;
+        if (!isMobileScreenSize) return;
+        
+        // 确保聊天面板初始状态是隐藏的（如果是移动设备）
+        this.chatPanel.style.transform = 'translateY(100%)';
+        this.chatPanel.style.display = 'flex';  // 设置为flex但使用transform隐藏
+        this.chatPanel.classList.remove('active');
+        
+        // 确保最小化按钮可见
+        this.minimizedChatButton.style.display = 'block';
+        
+        // 更新编辑器容器宽度
+        fileListResizer?.updateContainerWidth();
+    }
+
+    // 添加chatPanel显示状态监听器
+    initializeChatPanelObserver() {
+        // 创建一个MutationObserver实例来监听chatPanel的style属性变化
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
+                    // 检查chatPanel的显示状态
+                    if ((this.chatPanel.style.display !== 'none' && 
+                        !this.chatPanel.classList.contains('minimized') && 
+                        this.chatPanel.style.transform !== 'translateY(100%)') ||
+                        this.chatPanel.classList.contains('active')) {
+                        // 当chatPanel显示时，隐藏minimized-chat-button
+                        this.minimizedChatButton.style.setProperty('display', 'none', 'important');
+                    } else if (this.chatPanel.style.display === 'none' || 
+                              this.chatPanel.style.transform === 'translateY(100%)') {
+                        // 当chatPanel隐藏时，显示minimized-chat-button
+                        this.minimizedChatButton.style.display = 'block';
+                    }
+                }
+            });
+        });
+        
+        // 开始监听chatPanel的属性变化
+        observer.observe(this.chatPanel, { 
+            attributes: true, 
+            attributeFilter: ['style', 'class'] 
+        });
+        
+        // 初始化时立即检查并设置状态
+        if ((this.chatPanel.style.display !== 'none' && 
+            !this.chatPanel.classList.contains('minimized') && 
+            this.chatPanel.style.transform !== 'translateY(100%)') ||
+            this.chatPanel.classList.contains('active')) {
+            // 当chatPanel显示时，隐藏minimized-chat-button
+            this.minimizedChatButton.style.display = 'none';
+        } else {
+            // 当chatPanel隐藏时，显示minimized-chat-button
+            this.minimizedChatButton.style.display = 'block';
+        }
+    }
 }
 
 // 初始化聊天管理器
 const chatManager = new ChatManager(); 
+
+// 立即处理移动端首次加载
+document.addEventListener('DOMContentLoaded', () => {
+    // 立即检查是否为移动设备并设置初始状态
+    if (window.matchMedia('(max-width: 768px)').matches) {
+        const chatPanel = document.getElementById('chatPanel');
+        const minimizedChatButton = document.querySelector('.minimized-chat-button');
+        
+        // 确保聊天面板隐藏
+        chatPanel.style.display = 'flex';  // 保持flex布局，但通过transform隐藏
+        chatPanel.style.transform = 'translateY(100%)';
+        chatPanel.classList.remove('active', 'minimized'); // 移除可能导致部分显示的类
+        
+        // 显示浮动按钮
+        minimizedChatButton.style.display = 'block';
+        
+        // 防止可能的闪烁
+        document.documentElement.style.setProperty('--chat-transition-delay', '0s');
+        setTimeout(() => {
+            document.documentElement.style.removeProperty('--chat-transition-delay');
+        }, 1000);
+    }
+}); 

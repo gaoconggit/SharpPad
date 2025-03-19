@@ -1,4 +1,4 @@
-import { layoutEditor } from '../utils/common.js';
+import { layoutEditor, isMobileDevice, getResponsiveSize, setContainerWidth } from '../utils/common.js';
 
 export class FileListResizer {
     constructor() {
@@ -48,20 +48,16 @@ export class FileListResizer {
         }
 
         this.rafId = requestAnimationFrame(() => {
-            const width = Math.min(Math.max(this.startWidth + (e.clientX - this.startX), 290), window.innerWidth * 0.4);
+            // 根据设备类型设置最小宽度和最大宽度
+            const minWidth = isMobileDevice() ? 200 : 290;
+            const maxWidth = window.innerWidth * (isMobileDevice() ? 0.3 : 0.4);
+            
+            const width = Math.min(Math.max(this.startWidth + (e.clientX - this.startX), minWidth), maxWidth);
             this.fileList.style.width = `${width}px`;
 
             // 根据聊天面板的状态调整容器宽度
-            if (this.chatPanelDisplay !== 'none') {
-                this.container.style.width = `calc(100% - ${width}px - ${this.chatPanelWidth}px)`;
-                this.container.style.marginRight = `${this.chatPanelWidth}px`;
-            } else {
-                this.container.style.width = `calc(100% - ${width}px)`;
-                this.container.style.marginRight = '0';
-            }
-            
-            this.container.style.marginLeft = `${width}px`;
-            layoutEditor();
+            const isChatVisible = this.chatPanelDisplay !== 'none';
+            setContainerWidth(this.container, width, this.chatPanelWidth, isChatVisible);
         });
     }
 
@@ -88,17 +84,10 @@ export class FileListResizer {
     updateContainerWidth() {
         const fileListWidth = parseInt(getComputedStyle(this.fileList).width, 10);
         const chatPanelWidth = parseInt(getComputedStyle(this.chatPanel).width, 10);
-        const chatPanelDisplay = getComputedStyle(this.chatPanel).display;
-
-        if (chatPanelDisplay !== 'none') {
-            this.container.style.width = `calc(100% - ${fileListWidth}px - ${chatPanelWidth}px)`;
-            this.container.style.marginRight = `${chatPanelWidth}px`;
-        } else {
-            this.container.style.width = `calc(100% - ${fileListWidth}px)`;
-            this.container.style.marginRight = '0';
-        }
-        this.container.style.marginLeft = `${fileListWidth}px`;
-        layoutEditor();
+        const isChatVisible = getComputedStyle(this.chatPanel).display !== 'none';
+        
+        // 使用响应式宽度设置函数
+        setContainerWidth(this.container, fileListWidth, chatPanelWidth, isChatVisible);
     }
 }
 

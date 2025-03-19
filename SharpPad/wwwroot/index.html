@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="styles/scrollbar.css">
     <link rel="stylesheet" href="styles/resizeHandles.css">
     <link rel="stylesheet" href="styles/codeHighlight.css">
+    <link rel="stylesheet" href="styles/editorControls.css">
     <link rel="stylesheet" href="markdown/markdown.css">
     <link rel="stylesheet" href="all.min.css">
 </head>
@@ -32,6 +33,7 @@
         </ul>
     </div>
     <div id="container">
+        <button class="editor-control-button theme-button" id="themeButton" title="切换主题"></button>
         <div class="button-container">
             <a href="https://github.com/gaoconggit/SharpPad" target="_blank" rel="noopener noreferrer" title="Visit SharpPad on GitHub" style="display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; text-decoration: none; color: inherit; padding: 5px 10px; border-radius: 4px; transition: background-color 0.2s ease; font-weight: 500;">
                 <svg height="22" aria-hidden="true" viewBox="0 0 24 24" version="1.1" width="22" data-view-component="true" class="octicon octicon-mark-github v-align-middle" style="margin-right: 6px;">
@@ -79,7 +81,7 @@
         </div>
         <div id="outputContent"></div>
     </div>
-    <div id="chatPanel">
+    <div id="chatPanel" style="display: flex; transform: translateY(100%);">
         <div class="resize-handle"></div>
         <div class="chat-header">
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -99,9 +101,10 @@
             <textarea id="chatInput" placeholder="输入消息...(按Enter发送/Shift+Enter换行)" rows="3"></textarea>
         </div>
     </div>
-    <div class="minimized-chat-button" style="display: none;">
-        <button class="icon-button restore-chat" title="恢复聊天窗口">
-            <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+    <div class="minimized-chat-button">
+        <button class="icon-button restore-chat" title="聊天">
+            <span class="desktop-icon" style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+            <span class="mobile-icon">💬</span>
         </button>
     </div>
     <div class="notification" id="notification"></div>

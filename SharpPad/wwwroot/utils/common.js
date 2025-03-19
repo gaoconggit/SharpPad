@@ -36,6 +36,67 @@ export function layoutEditor() {
     }
 }
 
+// 检测设备类型
+export function isMobileDevice() {
+    // 使用多种方法来检测移动设备
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    const touchPoints = navigator.maxTouchPoints || 0;
+    
+    // 检查屏幕宽度是否小于特定值（例如768px作为平板/移动设备的分界点）
+    const smallScreen = window.innerWidth < 768;
+    
+    return mobileRegex.test(userAgent) || touchPoints > 0 || smallScreen;
+}
+
+// 根据设备类型获取合适的尺寸
+export function getResponsiveSize(defaultSize, mobileSize) {
+    return isMobileDevice() ? mobileSize : defaultSize;
+}
+
+// 响应式设置container宽度
+export function setContainerWidth(container, fileListWidth, chatPanelWidth, chatPanelVisible) {
+    // 使用媒体查询检测移动设备
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    
+    if (isMobile) {
+        // 移动设备适配
+        if (chatPanelVisible) {
+            // 移动设备上聊天面板设置为全屏宽度，主容器隐藏或调整到最小
+            container.style.width = '100%';
+            container.style.marginRight = '0';
+            
+            // 根据聊天面板的位置决定编辑器的样式
+            // 如果聊天面板在屏幕下半部分
+            container.style.height = 'calc(50vh - 1px)';
+            container.style.marginBottom = '0';
+        } else {
+            // 聊天面板不可见时，编辑器占满全屏
+            container.style.width = '100%';
+            container.style.height = '100vh';
+            container.style.marginRight = '0';
+            container.style.marginBottom = '0';
+        }
+        
+        // 在移动设备上，文件列表可能会是覆盖式的，而不是并排
+        container.style.marginLeft = '0';
+    } else {
+        // 桌面设备使用原来的布局逻辑
+        if (chatPanelVisible) {
+            container.style.width = `calc(100% - ${fileListWidth}px - ${chatPanelWidth}px)`;
+            container.style.marginRight = `${chatPanelWidth}px`;
+        } else {
+            container.style.width = `calc(100% - ${fileListWidth}px)`;
+            container.style.marginRight = '0';
+        }
+        container.style.marginLeft = `${fileListWidth}px`;
+        container.style.height = '100vh';
+    }
+    
+    // 重新布局编辑器
+    layoutEditor();
+}
+
 export function showNotification(message, type = 'info') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
@@ -115,4 +176,4 @@ export function getSelectedModel() {
     }
     return modelConfig;
 }
-// End of Selectio
+// End of Selection

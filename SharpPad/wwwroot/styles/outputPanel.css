@@ -55,6 +55,7 @@ body.theme-light #outputPanel.vertical {
     position: relative;
     z-index: 1000;
     transition: padding 0.2s;
+    flex-wrap: nowrap;
 }
 
 body.theme-light .output-header {
@@ -141,6 +142,13 @@ body.theme-light .output-info {
     gap: 10px;
 }
 
+/* 添加输出工具栏的基础样式 */
+.output-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 #clearOutput, #copyOutput, #formatOutput, #toggleOutputLayout {
     background-color: #444;
     border: none;
@@ -153,6 +161,12 @@ body.theme-light .output-info {
     transition: opacity 0.2s;
     height: 26px;
     min-width: 50px;
+    /* 确保良好的触摸区域大小 */
+    touch-action: manipulation;
+    /* 确保按钮内容垂直居中 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 body.theme-light #clearOutput,
@@ -169,6 +183,52 @@ body.theme-light #formatOutput:hover,
 body.theme-light #toggleOutputLayout:hover {
     background-color: #d0d0d0;
     opacity: 1;
+}
+
+/* 移动设备上的按钮优化 */
+@media (max-width: 768px) {
+    #clearOutput, #copyOutput, #formatOutput {
+        min-width: 40px;
+        padding: 4px 8px;
+        /* 增加触摸目标大小 */
+        height: 32px;
+        /* 确保按钮垂直居中对齐 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* 在移动设备上隐藏布局切换按钮 */
+    #toggleOutputLayout {
+        display: none;
+    }
+    
+    /* 改善移动设备上的触摸反馈 */
+    #clearOutput:active, 
+    #copyOutput:active, 
+    #formatOutput:active {
+        background-color: #555;
+        opacity: 1;
+    }
+
+    /* 确保垂直布局在移动设备上有合理的宽度 */
+    #outputPanel.vertical {
+        width: 80%;
+        max-width: 300px;
+    }
+    
+    /* 调整输出工具栏在移动设备上的布局 */
+    .output-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 5px; /* 减小按钮之间的间距 */
+    }
+    
+    /* 确保在移动设备上输出面板头部有足够的空间 */
+    .output-header {
+        padding: 8px 10px;
+        flex-wrap: nowrap;
+    }
 }
 
 .minimized-output-button {
@@ -222,8 +282,7 @@ body.theme-light .minimized-output-button .icon-button:hover {
 
 /* 当输出面板在底部时，调整其他面板的高度 */
 #outputPanel:not(.vertical) ~ #fileList,
-#outputPanel:not(.vertical) ~ #container,
-#outputPanel:not(.vertical) ~ #chatPanel {
+#outputPanel:not(.vertical) ~ #container {
     height: calc(100vh - 200px);
 }
 
