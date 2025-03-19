@@ -241,7 +241,7 @@ body.theme-light .chat-messages .assistant-message {
 
 @media only screen and (max-width: 768px) {
     #runButton {
-        margin-right: 4.5rem;
+        margin-right: 2.5rem;
     }
 }
 
