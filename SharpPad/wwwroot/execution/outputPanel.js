@@ -192,23 +192,6 @@ export class OutputPanel {
 
         // 窗口大小变化事件
         window.addEventListener('resize', this.handleResize.bind(this));
-
-        // 监听聊天面板的显示状态变化
-        const chatPanel = document.getElementById('chatPanel');
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                    if (this.isVertical) {
-                        if (chatPanel.style.display === 'none') {
-                            this.outputPanel.classList.add('chat-minimized');
-                        } else {
-                            this.outputPanel.classList.remove('chat-minimized');
-                        }
-                    }
-                }
-            });
-        });
-        observer.observe(chatPanel, { attributes: true });
         
         // 为移动设备添加触摸事件支持
         if ('ontouchstart' in window) {
@@ -355,7 +338,13 @@ export class OutputPanel {
             
         fileList.style.height = remainingHeight;
         container.style.height = remainingHeight;
-        chatPanel.style.height = remainingHeight;
+        
+        // 在非移动设备上才调整聊天面板的高度
+        if (!isMobileDevice()) {
+            chatPanel.style.height = remainingHeight;
+        }
+        // 移动设备上，保持聊天面板的原有高度设置，不受输出面板影响
+        
         layoutEditor();
     }
 
@@ -415,45 +404,5 @@ export class OutputPanel {
     clearOutputContent() {
         this.outputContent.innerHTML = '';
         this.outputContent.className = '';
-    }
-
-    initializeChatPanelObserver() {
-        // 移除ResizeObserver对聊天面板的监视，解除绑定
-        // 不再需要监视聊天面板的大小变化
-        /*
-        const resizeObserver = new ResizeObserver(entries => {
-            if (!entries[0]) return;
-            
-            const chatPanelWidth = entries[0].contentRect.width;
-            const outputPanelWidth = parseInt(getComputedStyle(this.outputPanel).width, 10);
-            
-            // 检测是否为移动设备
-            const isMobile = window.matchMedia('(max-width: 768px)').matches;
-            
-            if (isMobile) {
-                // 移动设备上的调整
-                if (this.outputPanel.classList.contains('vertical')) {
-                    // 如果输出面板是垂直的，调整位置
-                    this.outputPanel.style.right = '0';
-                    this.container.style.marginRight = '0';
-                } else {
-                    // 如果输出面板在底部，调整高度关系
-                    this.container.style.height = 'calc(50vh - 40vh)';
-                }
-            } else {
-                // 桌面设备上的调整
-                // 更新容器的右边距
-                this.container.style.marginRight = `${chatPanelWidth + outputPanelWidth}px`;
-                
-                // 更新输出面板的位置
-                this.outputPanel.style.right = `${chatPanelWidth}px`;
-            }
-        });
-        
-        resizeObserver.observe(this.chatPanel);
-        
-        // 保存引用以便稍后清理
-        this.chatPanelResizeObserver = resizeObserver;
-        */
     }
 } 
