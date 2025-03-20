@@ -30,7 +30,7 @@
         right: 0;
         border-left: none;
         border-top: none;
-        z-index: 10000; /* 增加 z-index 确保高于所有其他元素 */
+        z-index: 999; /* 增加 z-index 确保高于所有其他元素 */
         transform: translateY(100%) !important;
         transition: transform var(--chat-transition-delay) ease;
         padding-bottom: env(safe-area-inset-bottom); /* 适应iPhone底部安全区域 */
@@ -92,6 +92,36 @@
     
     .chat-messages {
         max-height: calc(85vh - 140px); /* 调整为85vh匹配聊天面板高度 */
+    }
+    
+    /* 防止输入框聚焦时页面被顶上去 */
+    .chat-input-area textarea,
+    .chat-input-area input {
+        position: relative;
+        font-size: 16px; /* 避免iOS自动缩放 */
+        transform: translateZ(0); /* 启用硬件加速 */
+    }
+    
+    /* 修复Chrome移动版输入问题 */
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        overscroll-behavior: none; /* 防止页面弹性滚动 */
+    }
+    
+    /* 确保内容可滚动 */
+    .chat-messages {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* 平滑滚动 */
+    }
+    
+    /* 防止虚拟键盘弹出时视口大小变化 */
+    @supports (-webkit-touch-callout: none) {
+        .chat-input-area {
+            padding-bottom: max(12px, env(safe-area-inset-bottom, 34px));
+        }
     }
 }
 

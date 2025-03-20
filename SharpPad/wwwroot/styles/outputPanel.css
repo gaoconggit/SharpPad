@@ -335,11 +335,14 @@ body.theme-light .minimized-output-button .icon-button:hover {
     opacity: 0.5;
     background-color: #444;
     transition: opacity 0.2s, background-color 0.2s;
-    z-index: 1001; /* 确保在其他元素之上 */
+    z-index: 1001;
+    /* 确保在其他元素之上 */
 }
 
 body.theme-light #outputPanel .resize-handle {
-    background-color: #ccc;
+    background-color: rgba(150, 150, 150, 0.3);
+    opacity: 0.3;
+    height: 7px;
 }
 
 /* 添加额外的视觉指示器样式 */
@@ -386,7 +389,8 @@ body.theme-light #outputPanel .resize-handle-indicator::after {
 
 body.theme-light #outputPanel .resize-handle:hover,
 body.theme-light #outputPanel .resize-handle.active {
-    background-color: #aaa;
+    background-color: rgba(150, 150, 150, 0.5);
+    opacity: 0.5;
 }
 
 body.theme-light #outputPanel .resize-handle:hover .resize-handle-indicator::before,
@@ -399,31 +403,33 @@ body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::af
 /* 增加移动设备上的调整手柄尺寸和可视性 */
 @media (max-width: 768px) {
     #outputPanel .resize-handle {
-        height: 12px; /* 更大的触摸区域 */
-        opacity: 0.7; /* 默认更明显 */
+        height: 12px;
+        /* 更大的触摸区域 */
+        opacity: 0.7;
+        /* 默认更明显 */
     }
-    
+
     #outputPanel .resize-handle-indicator {
         top: 3px;
         width: 60px;
     }
-    
+
     #outputPanel .resize-handle-indicator::before,
     #outputPanel .resize-handle-indicator::after {
         width: 25px;
         height: 3px;
     }
-    
+
     body.theme-light #outputPanel .resize-handle-indicator::before,
     body.theme-light #outputPanel .resize-handle-indicator::after {
         background-color: #666;
     }
-    
+
     #outputPanel .resize-handle.active .resize-handle-indicator::before,
     #outputPanel .resize-handle.active .resize-handle-indicator::after {
         background-color: #bbb;
     }
-    
+
     body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::before,
     body.theme-light #outputPanel .resize-handle.active .resize-handle-indicator::after {
         background-color: #444;
@@ -470,7 +476,7 @@ body.theme-light #outputPanel.vertical.resizing {
         width: 10px;
         opacity: 0.5;
     }
-    
+
     #outputPanel.vertical .resize-handle-indicator {
         display: none;
     }
@@ -540,15 +546,16 @@ body.theme-light #outputPanel.resizing .resize-handle-indicator {
 
 /* 移动端双击/双触反馈 */
 @media (max-width: 768px) {
+
     /* 显示调整反馈 */
     #outputPanel.size-transition {
         transition: height 0.3s ease-in-out !important;
     }
-    
+
     #outputPanel.vertical.size-transition {
         transition: width 0.3s ease-in-out !important;
     }
-    
+
     /* 确保输出面板在移动设备上有足够的最小高度，方便用户调整 */
     #outputPanel:not(.vertical) {
         min-height: 50px;
@@ -565,9 +572,9 @@ body.theme-light #outputPanel.resizing .resize-handle-indicator {
 
 /* 拖动时禁用过渡效果 */
 #outputPanel.resizing,
-#outputPanel.resizing ~ #container,
-#outputPanel.resizing ~ #fileList,
-#outputPanel.resizing ~ #chatPanel {
+#outputPanel.resizing~#container,
+#outputPanel.resizing~#fileList,
+#outputPanel.resizing~#chatPanel {
     transition: none !important;
 }
 

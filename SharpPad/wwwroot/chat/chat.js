@@ -150,6 +150,12 @@ export class ChatManager {
                 
                 // 通知其他组件布局变化
                 fileListResizer?.updateContainerWidth();
+
+                //收起输出面板,不是display:none
+                const outputPanel = document.getElementById('outputPanel');
+                outputPanel.style.display = 'none';
+                document.querySelector('.minimized-output-button').style.display = 'block';
+                
             } else {
                 // 桌面端正常显示
                 this.chatPanel.style.display = 'flex';
