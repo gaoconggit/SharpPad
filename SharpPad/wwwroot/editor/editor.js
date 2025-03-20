@@ -7,8 +7,8 @@ export class Editor {
         this.editor = null;
         this.defaultCode = DEFAULT_CODE;
         
-        // 从localStorage读取主题设置，如果没有则默认为light主题
-        this.currentTheme = localStorage.getItem('editorTheme') || 'vs-light';
+        // 从localStorage读取主题设置，如果没有则默认为dark主题
+        this.currentTheme = localStorage.getItem('editorTheme') || 'vs-dark';
         
         // 设置初始主题
         document.body.classList.remove('theme-dark', 'theme-light');
