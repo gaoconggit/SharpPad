@@ -492,6 +492,16 @@ body.theme-light .checkbox-label {
 
 .checkbox-label input[type="checkbox"] {
     width: auto;
-    height: auto;
-    margin: 0;
+    margin-right: 8px;
+}
+
+.setting-description {
+    margin-top: 5px;
+    color: #999;
+    font-size: 12px;
+    padding-left: 22px;
+}
+
+body.theme-light .setting-description {
+    color: #666;
 } 

@@ -60,6 +60,8 @@
                 <option value="2">C# 2</option>
                 <option value="1">C# 1</option>
             </select>
+            <!--系统设置按钮-->
+            <button id="systemSettingsBtn" title="系统设置">⚙️</button>
             <div style="flex-grow: 1;"></div>
             <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
             <div style="flex-grow: 0.1;"></div>
@@ -274,6 +276,28 @@
                 </div>
                 <div class="form-actions">
                     <button onclick="saveEditModel(document.getElementById('editModelId').value)" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统设置对话框 -->
+    <div id="systemSettingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>系统设置</h2>
+                <button class="close-button" onclick="closeSystemSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="disableGptComplete">
+                        禁用GPT自动补全
+                    </label>
+                    <div class="setting-description">禁用此功能后，将不会自动触发GPT代码补全，但您仍可以使用快捷键 Ctrl+Shift+Space 手动触发</div>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveSystemSettings()" class="save-button">保存</button>
                 </div>
             </div>
         </div>

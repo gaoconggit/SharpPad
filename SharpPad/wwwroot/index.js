@@ -5,6 +5,17 @@ const monacoConfig = {
     }
 };
 
+// 系统设置配置
+const systemSettings = {
+    // 禁用GPT补全
+    disableGptComplete: false
+};
+
+// 获取系统设置
+export function getSystemSettings() {
+    return systemSettings;
+}
+
 // 动态加载 Monaco Editor
 function loadMonaco() {
     return new Promise((resolve) => {
@@ -31,6 +42,9 @@ import { showNotification } from './utils/common.js';
 
 // 初始化应用
 async function initializeApp() {
+    // 初始化系统设置
+    loadSystemSettings();
+    
     // 初始化文件系统
     const fileManager = new FileManager();
     window.fileManager = fileManager; // 暴露到全局作用域
@@ -369,6 +383,35 @@ async function initializeApp() {
 
     fileManager.loadFileList();
 
+    // 系统设置相关的全局函数
+    window.closeSystemSettings = () => {
+        document.getElementById('systemSettingsModal').style.display = 'none';
+    };
+    
+    window.saveSystemSettings = () => {
+        const disableGptComplete = document.getElementById('disableGptComplete').checked;
+        
+        // 检查是否有设置变化
+        const settingsChanged = systemSettings.disableGptComplete !== disableGptComplete;   
+        
+        // 保存设置到全局对象
+        systemSettings.disableGptComplete = disableGptComplete;     
+        
+        // 保存到localStorage
+        localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
+        
+        // 更新编辑器GPT自动补全设置
+        if (settingsChanged && window.editor) {
+            window.editor.updateGptAutoCompleteSetting(disableGptComplete);
+        }
+
+        // 显示通知
+        showNotification('系统设置已保存', 'success');
+
+        // 关闭对话框
+        window.closeSystemSettings();
+    };
+
     // 等待 Monaco Editor 加载完成
     await loadMonaco();
 
@@ -387,8 +430,28 @@ async function initializeApp() {
     const outputPanel = new OutputPanel();
     const codeRunner = new CodeRunner();
 
+    // 系统设置按钮事件
+    document.getElementById('systemSettingsBtn').addEventListener('click', () => {
+        // 打开之前先更新UI
+        document.getElementById('disableGptComplete').checked = systemSettings.disableGptComplete;
+        document.getElementById('systemSettingsModal').style.display = 'block';
+    });
+
     // 将编辑器实例暴露给全局，以便其他模块使用
     window.editor = editor;
+}
+
+// 从 localStorage 加载系统设置
+function loadSystemSettings() {
+    try {
+        const savedSettings = localStorage.getItem('systemSettings');
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            Object.assign(systemSettings, parsed);
+        }
+    } catch (error) {
+        console.error('加载系统设置出错:', error);
+    }
 }
 
 // 启动应用
