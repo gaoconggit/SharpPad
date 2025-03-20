@@ -123,6 +123,10 @@
             padding-bottom: max(12px, env(safe-area-inset-bottom, 34px));
         }
     }
+
+    .chat-toolbar {
+        margin-right: 5vh;
+    }
 }
 
 body.theme-light #chatPanel {
