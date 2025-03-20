@@ -22,7 +22,8 @@
 @media (max-width: 768px) {
     #chatPanel {
         width: 100%;
-        height: 93.5vh; 
+        height: 100%; /* 使用100%高度而不是固定的vh值，避免键盘弹出时高度变化 */
+        position: fixed; /* 确保固定定位 */
         top: auto; /* 改为自动，从底部定位 */
         bottom: 0; /* 从底部开始 */
         left: 0;
@@ -33,8 +34,8 @@
         transform: translateY(100%) !important;
         transition: transform var(--chat-transition-delay) ease;
         padding-bottom: env(safe-area-inset-bottom); /* 适应iPhone底部安全区域 */
+        max-height: 94vh; /* 设置最大高度，防止过高 */
     }
-    
     /* 当聊天面板显示时的样式 */
     #chatPanel.active {
         transform: translateY(0) !important;
@@ -86,6 +87,7 @@
     .chat-input-area {
         padding: 12px;
         padding-bottom: max(12px, env(safe-area-inset-bottom)); /* 适应iPhone底部安全区域 */
+        touch-action: manipulation; /* 禁用手机上点击后放大的效果 */
     }
     
     .chat-messages {
