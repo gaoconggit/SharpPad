@@ -305,6 +305,7 @@ body.theme-light #systemSettingsBtn:active {
         border-radius: 4px;
         margin: 0 4px;
         -webkit-tap-highlight-color: transparent;
+        display: none;
     }
     
     #systemSettingsBtn:active {

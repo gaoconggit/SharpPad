@@ -399,11 +399,6 @@ async function initializeApp() {
         
         // 保存到localStorage
         localStorage.setItem('systemSettings', JSON.stringify(systemSettings));
-        
-        // 更新编辑器GPT自动补全设置
-        if (settingsChanged && window.editor) {
-            window.editor.updateGptAutoCompleteSetting(disableGptComplete);
-        }
 
         // 显示通知
         showNotification('系统设置已保存', 'success');
