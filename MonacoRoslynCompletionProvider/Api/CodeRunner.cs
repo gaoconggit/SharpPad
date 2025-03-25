@@ -52,7 +52,6 @@ namespace MonacoRoslynCompletionProvider.Api
                     documentationMode: DocumentationMode.Parse
                 );
 
-                // 生成唯一程序集名称，使用 Guid 避免并发冲突
                 string assemblyName = "DynamicCode";
 
                 // 解析代码
