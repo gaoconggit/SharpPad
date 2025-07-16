@@ -72,3 +72,7 @@
 
  - 感谢 [monacopilot](https://github.com/arshad-yaseen/monacopilot) 提供的 GPT 自动完成功能。
 
+##
+[![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
+
