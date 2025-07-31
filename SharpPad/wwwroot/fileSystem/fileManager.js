@@ -343,8 +343,37 @@ class FileManager {
         e.preventDefault();
         const menu = document.getElementById('folderContextMenu');
         menu.style.display = 'block';
+        
+        // 先设置初始位置以获取菜单尺寸
         menu.style.left = e.pageX + 'px';
         menu.style.top = e.pageY + 'px';
+        
+        // 获取菜单尺寸和视窗尺寸
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // 计算调整后的位置
+        let left = e.pageX;
+        let top = e.pageY;
+        
+        // 如果菜单右边界超出视窗，则向左调整
+        if (left + menuRect.width > viewportWidth) {
+            left = viewportWidth - menuRect.width - 5; // 5px 的边距
+        }
+        
+        // 如果菜单下边界超出视窗，则向上调整
+        if (top + menuRect.height > viewportHeight) {
+            top = viewportHeight - menuRect.height - 5; // 5px 的边距
+        }
+        
+        // 确保菜单不会超出左边界和上边界
+        if (left < 5) left = 5;
+        if (top < 5) top = 5;
+        
+        // 应用调整后的位置
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
         menu.setAttribute('data-folder-id', folder.id);
     }
 
@@ -421,8 +450,37 @@ class FileManager {
         e.preventDefault();
         const menu = document.getElementById('fileContextMenu');
         menu.style.display = 'block';
+        
+        // 先设置初始位置以获取菜单尺寸
         menu.style.left = e.pageX + 'px';
         menu.style.top = e.pageY + 'px';
+        
+        // 获取菜单尺寸和视窗尺寸
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // 计算调整后的位置
+        let left = e.pageX;
+        let top = e.pageY;
+        
+        // 如果菜单右边界超出视窗，则向左调整
+        if (left + menuRect.width > viewportWidth) {
+            left = viewportWidth - menuRect.width - 5; // 5px 的边距
+        }
+        
+        // 如果菜单下边界超出视窗，则向上调整
+        if (top + menuRect.height > viewportHeight) {
+            top = viewportHeight - menuRect.height - 5; // 5px 的边距
+        }
+        
+        // 确保菜单不会超出左边界和上边界
+        if (left < 5) left = 5;
+        if (top < 5) top = 5;
+        
+        // 应用调整后的位置
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
         menu.setAttribute('data-target-file-id', file.id);
     }
 
