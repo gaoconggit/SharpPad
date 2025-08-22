@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SharpPad.Desktop.ViewModels"
+        xmlns:webview="clr-namespace:AvaloniaWebView;assembly=Avalonia.WebView"
+        x:Class="SharpPad.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/favicon.ico"
+        Title="SharpPad Desktop"
+        Width="1200"
+        Height="800"
+        MinWidth="800"
+        MinHeight="600"
+        WindowState="Maximized">
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <!-- Menu Bar -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="文件(_F)">
+        <MenuItem Header="新建(_N)" Command="{Binding NewFileCommand}" InputGesture="Ctrl+N"/>
+        <MenuItem Header="打开(_O)" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
+        <MenuItem Header="保存(_S)" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S"/>
+        <Separator/>
+        <MenuItem Header="退出(_X)" Command="{Binding ExitCommand}" InputGesture="Alt+F4"/>
+      </MenuItem>
+      <MenuItem Header="编辑(_E)">
+        <MenuItem Header="撤销(_U)" InputGesture="Ctrl+Z"/>
+        <MenuItem Header="重做(_R)" InputGesture="Ctrl+Y"/>
+        <Separator/>
+        <MenuItem Header="查找(_F)" InputGesture="Ctrl+F"/>
+        <MenuItem Header="替换(_H)" InputGesture="Ctrl+H"/>
+      </MenuItem>
+      <MenuItem Header="运行(_R)">
+        <MenuItem Header="运行代码(_R)" InputGesture="F5"/>
+        <MenuItem Header="停止运行(_S)" InputGesture="Shift+F5"/>
+      </MenuItem>
+      <MenuItem Header="帮助(_H)">
+        <MenuItem Header="关于(_A)" Command="{Binding AboutCommand}"/>
+      </MenuItem>
+    </Menu>
+
+    <!-- Main Content - WebView -->
+	  <webview:WebView Grid.Row="1" 
+                     x:Name="MainWebView"
+                     Url="{Binding WebUrl}"
+                     IsVisible="{Binding IsWebViewVisible}" />
+
+    <!-- Loading Indicator -->
+    <Border Grid.Row="1" 
+            Background="White"
+            IsVisible="{Binding !IsWebViewVisible}">
+      <StackPanel HorizontalAlignment="Center" 
+                  VerticalAlignment="Center">
+        <TextBlock Text="正在启动 SharpPad..." 
+                   FontSize="16" 
+                   Margin="0,0,0,10"/>
+        <ProgressBar IsIndeterminate="True" 
+                     Width="200" 
+                     Height="4"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>
