@@ -26,4 +26,53 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
+
+  <!-- Copy wwwroot and appsettings.json from SharpPad project to publish output -->
+  <Target Name="CopySharpPadAssets" AfterTargets="Publish">
+    <ItemGroup>
+      <SharpPadWwwroot Include="..\SharpPad\wwwroot\**\*" />
+      <SharpPadConfig Include="..\SharpPad\appsettings.json" />
+		<SharpPadWwwroot Include="..\SharpPad\Dll\**\*" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(SharpPadWwwroot)" 
+          DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(SharpPadConfig)" 
+          DestinationFolder="$(PublishDir)" />
+  </Target>
+
+  <!-- Remove unnecessary language packages, keep only Chinese -->
+  <Target Name="RemoveUnnecessaryLanguages" AfterTargets="CopySharpPadAssets">
+    <ItemGroup>
+      <FilesToDelete Include="$(PublishDir)**\cs\*" />
+      <FilesToDelete Include="$(PublishDir)**\de\*" />
+      <FilesToDelete Include="$(PublishDir)**\es\*" />
+      <FilesToDelete Include="$(PublishDir)**\fr\*" />
+      <FilesToDelete Include="$(PublishDir)**\it\*" />
+      <FilesToDelete Include="$(PublishDir)**\ja\*" />
+      <FilesToDelete Include="$(PublishDir)**\ko\*" />
+      <FilesToDelete Include="$(PublishDir)**\pl\*" />
+      <FilesToDelete Include="$(PublishDir)**\pt-BR\*" />
+      <FilesToDelete Include="$(PublishDir)**\ru\*" />
+      <FilesToDelete Include="$(PublishDir)**\tr\*" />
+      <FilesToDelete Include="$(PublishDir)**\zh-Hant\*" />
+      
+      <!-- Root level language directories -->
+      <DirectoriesToDelete Include="$(PublishDir)cs" />
+      <DirectoriesToDelete Include="$(PublishDir)de" />
+      <DirectoriesToDelete Include="$(PublishDir)es" />
+      <DirectoriesToDelete Include="$(PublishDir)fr" />
+      <DirectoriesToDelete Include="$(PublishDir)it" />
+      <DirectoriesToDelete Include="$(PublishDir)ja" />
+      <DirectoriesToDelete Include="$(PublishDir)ko" />
+      <DirectoriesToDelete Include="$(PublishDir)pl" />
+      <DirectoriesToDelete Include="$(PublishDir)pt-BR" />
+      <DirectoriesToDelete Include="$(PublishDir)ru" />
+      <DirectoriesToDelete Include="$(PublishDir)tr" />
+      <DirectoriesToDelete Include="$(PublishDir)zh-Hant" />
+    </ItemGroup>
+    
+    <Delete Files="@(FilesToDelete)" ContinueOnError="true" />
+    <RemoveDir Directories="@(DirectoriesToDelete)" ContinueOnError="true" />
+  </Target>
 </Project>

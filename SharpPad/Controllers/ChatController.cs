@@ -9,6 +9,8 @@ using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using SharpPad.Dto;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace SharpPad.Controllers
 {

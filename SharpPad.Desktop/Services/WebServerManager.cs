@@ -31,13 +31,36 @@ public sealed class WebServerManager
                 return;
         }
 
-        // 设置正确的内容根路径指向SharpPad项目
-        var sharpPadProjectPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "SharpPad");
-        var absoluteSharpPadPath = Path.GetFullPath(sharpPadProjectPath);
+        // 设置正确的内容根路径
+        // 优先使用发布后的本地路径，如果不存在则使用开发环境路径
+        var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        var publishedConfigPath = Path.Combine(baseDirectory, "appsettings.json");
+        var publishedWwwrootPath = Path.Combine(baseDirectory, "wwwroot");
         
-        // 从SharpPad项目的appsettings.json读取配置
+        string configBasePath;
+        string contentRootPath;
+        string webRootPath;
+        
+        if (File.Exists(publishedConfigPath) && Directory.Exists(publishedWwwrootPath))
+        {
+            // 发布后的路径结构
+            configBasePath = baseDirectory;
+            contentRootPath = baseDirectory;
+            webRootPath = publishedWwwrootPath;
+        }
+        else
+        {
+            // 开发环境路径结构
+            var sharpPadProjectPath = Path.Combine(baseDirectory, "..", "..", "..", "..", "SharpPad");
+            var absoluteSharpPadPath = Path.GetFullPath(sharpPadProjectPath);
+            configBasePath = absoluteSharpPadPath;
+            contentRootPath = absoluteSharpPadPath;
+            webRootPath = Path.Combine(absoluteSharpPadPath, "wwwroot");
+        }
+        
+        // 读取配置
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(absoluteSharpPadPath)
+            .SetBasePath(configBasePath)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
             
@@ -60,8 +83,8 @@ public sealed class WebServerManager
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseUrls(kestrelUrl)
-                              .UseContentRoot(absoluteSharpPadPath)
-                              .UseWebRoot(Path.Combine(absoluteSharpPadPath, "wwwroot"))
+                              .UseContentRoot(contentRootPath)
+                              .UseWebRoot(webRootPath)
                               .ConfigureServices(SharpPad.Program.ConfigureServices)
                               .Configure(SharpPad.Program.Configure)
                               .ConfigureLogging(logging =>
