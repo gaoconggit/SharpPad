@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SharpPad is a web-based C# code editor and execution platform similar to LinqPad, built with ASP.NET Core 9.0 and Monaco Editor. It combines Roslyn compiler services with modern web technologies to provide real-time code execution, IntelliSense, AI chat integration, and NuGet package management.
+SharpPad is a web-based C# code editor and execution platform similar to LinqPad, built with ASP.NET Core 9.0 and Monaco Editor. It combines Roslyn compiler services with modern web technologies to provide real-time code execution, IntelliSense, AI chat integration, and NuGet package management. The platform now includes both web and desktop versions.
 
 ## Architecture
 
-### Two-Project Structure
+### Three-Project Structure
 - **SharpPad/**: Main ASP.NET Core 9.0 web application that serves the UI and provides API endpoints
 - **MonacoRoslynCompletionProvider/**: .NET 9.0 library that handles all Roslyn-based code analysis, compilation, and IntelliSense features
+- **SharpPad.Desktop/**: Avalonia-based desktop application that hosts the web UI in a WebView with native menus and system integration
 
 ### Key Components
 - **Frontend**: Monaco Editor with custom C# language provider, responsive UI with resizable panels
@@ -34,12 +35,27 @@ dotnet build -c Release
 ```
 
 ### Running the Application
+
+**Web Application:**
 ```bash
-# Run in development mode
+# Run web version in development mode
 dotnet run --project SharpPad/SharpPad.csproj
 
 # Run with specific environment
 ASPNETCORE_ENVIRONMENT=Development dotnet run --project SharpPad/SharpPad.csproj
+```
+
+**Desktop Application:**
+```bash
+# Run desktop version
+dotnet run --project SharpPad.Desktop/SharpPad.Desktop.csproj
+
+# Build desktop releases
+# Windows
+.\build-desktop.ps1 -Configuration Release
+
+# macOS/Linux
+./build-desktop.sh --configuration Release
 ```
 
 ### Docker Development
@@ -99,6 +115,20 @@ dotnet test SharpPad/SharpPad.csproj
 - Theme switching (dark/light)
 - Multi-model AI integration
 
+## Desktop Application Architecture
+
+### Key Components
+- **WebServerManager**: Embedded ASP.NET Core server with automatic port assignment
+- **MainWindow**: Avalonia XAML window with WebView integration and native menus
+- **MainWindowViewModel**: MVVM pattern with commands for file operations
+- **WebView Integration**: Uses `AvaloniaWebView.WebView` for rendering web content
+
+### Desktop-Specific Features
+- Native menu bar with keyboard shortcuts
+- Embedded web server reads configuration from SharpPad's `appsettings.json`
+- Automatic path resolution to SharpPad project's `wwwroot` directory
+- Cross-platform support (Windows, macOS, Linux)
+
 ## NuGet Package System
 
 ### Package Management
@@ -145,6 +175,14 @@ The project follows specific coding standards defined in `.cursorrules`:
 - `wwwroot/`: Frontend assets and Monaco Editor files
 - `NugetPackages/packages/`: NuGet package cache
 - `KingOfTool/`: Example code snippets and configurations
+- `SharpPad.Desktop/`: Desktop application project
+- `Dll/`: Pre-loaded assemblies (FreeSql, CSRedisCore, RestSharp, etc.)
+
+### Configuration Files
+- `appsettings.json`: Web server configuration (Kestrel endpoints, logging)
+- `NuGet.config`: Multiple NuGet sources (official, regional mirrors)
+- `docker-compose.yml`: Container deployment with health checks
+- `build-desktop.ps1/.sh`: Cross-platform desktop build scripts
 
 ## Docker Configuration
 
@@ -154,6 +192,19 @@ The application is containerized with:
 - Health checks and resource limits
 - Proper permission handling for package directories
 
+## Keyboard Shortcuts
+
+### Editor Shortcuts
+- `Ctrl + Enter`: Run code
+- `Alt + C`: Clear output
+- `Ctrl + J`: Code completion
+- `Ctrl + K, Ctrl + D`: Format code
+- `Ctrl + S`: Save code
+- `Ctrl + Shift + Space`: Manual GPT auto-completion
+
+### Chat Shortcuts
+- `Alt + L`: Clear chat history (when cursor is in chat box)
+
 ## Important Notes
 
 - File management is client-side using localStorage
@@ -161,3 +212,6 @@ The application is containerized with:
 - AI integration supports multiple providers and custom endpoints
 - The application targets .NET 9.0 with C# Latest support
 - Monaco Editor provides full IDE-like experience in the browser
+- Desktop version embeds web server and uses WebView for rendering
+- Configuration is centralized in SharpPad's `appsettings.json` for both web and desktop versions
+- Both projects support hot-reload during development
