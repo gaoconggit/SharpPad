@@ -423,7 +423,19 @@ async function initializeApp() {
 
     // 初始化代码运行器和输出面板
     const outputPanel = new OutputPanel();
+    window.outputPanelInstance = outputPanel; // 暴露到全局作用域
     const codeRunner = new CodeRunner();
+    
+    // 页面加载完成后触发输出面板高度调整事件，确保文件列表高度正确
+    setTimeout(() => {
+        const outputPanelElement = document.getElementById('outputPanel');
+        if (outputPanelElement) {
+            // 获取当前输出面板高度
+            const currentHeight = parseInt(getComputedStyle(outputPanelElement).height, 10);
+            // 触发高度更新逻辑
+            outputPanel.updateContainerMargins(currentHeight, false);
+        }
+    }, 100);
 
     // 系统设置按钮事件
     document.getElementById('systemSettingsBtn').addEventListener('click', () => {
