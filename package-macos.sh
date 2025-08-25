@@ -2,6 +2,13 @@
 
 # SharpPad macOS 一键打包脚本
 # 使用方法: ./package-macos.sh
+# 
+# 基于 cursor_app.md 中成功的打包方法：
+# 1. 使用 self-contained 模式发布，包含所有运行时文件
+# 2. 清理不需要的 Windows/Linux 运行时文件避免签名问题  
+# 3. 直接使用原生可执行文件，无需启动器脚本
+# 4. 使用 codesign --force --deep -s - 进行 ad-hoc 签名
+# 5. 清理扩展属性确保可以双击启动
 
 set -e  # 遇到错误立即退出
 
@@ -87,10 +94,11 @@ detect_architecture() {
 build_app() {
     print_step "构建应用程序 ($RID)..."
     
+    # 使用 self-contained true 确保包含所有运行时文件
     dotnet publish "$PROJECT_PATH" \
         --configuration Release \
         --runtime "$RID" \
-        --self-contained false \
+        --self-contained true \
         --output "publish-temp" \
         --verbosity quiet
     
@@ -116,7 +124,12 @@ create_app_structure() {
 copy_app_files() {
     print_step "复制应用文件..."
     
+    # 复制所有发布文件到 MacOS 目录
     cp -r publish-temp/* "SharpPad.app/Contents/MacOS/"
+    
+    # 清理不需要的运行时文件（避免签名问题）
+    rm -rf "SharpPad.app/Contents/MacOS/runtimes/win"* 2>/dev/null || true
+    rm -rf "SharpPad.app/Contents/MacOS/runtimes/linux"* 2>/dev/null || true
     
     print_success "应用文件复制完成"
 }
@@ -191,19 +204,14 @@ EOF
     print_success "Info.plist 创建完成"
 }
 
-# 创建启动器脚本
-create_launcher() {
-    print_step "创建启动器脚本..."
+# 设置可执行文件权限（不需要启动器脚本）
+setup_executable() {
+    print_step "设置可执行文件权限..."
     
-    cat > "SharpPad.app/Contents/MacOS/SharpPad.Desktop" << 'EOF'
-#!/bin/bash
-cd "$(dirname "$0")"
-exec dotnet SharpPad.Desktop.dll "$@"
-EOF
-    
+    # 使用 self-contained 发布模式时，SharpPad.Desktop 是原生可执行文件
     chmod +x "SharpPad.app/Contents/MacOS/SharpPad.Desktop"
     
-    print_success "启动器脚本创建完成"
+    print_success "可执行文件权限设置完成"
 }
 
 # 创建应用图标
@@ -278,12 +286,13 @@ sign_app() {
             fi
         else
             print_warning "开发者证书签名失败，将使用临时签名"
-            codesign --sign - --force --deep "SharpPad.app"
+            codesign --force --deep -s - "SharpPad.app"
             print_success "临时签名完成"
         fi
     else
         print_info "未找到开发者证书，使用临时签名"
-        if codesign --sign - --force --deep "SharpPad.app" 2>/dev/null; then
+        # 使用正确的 ad-hoc 签名方法（基于 cursor_app.md 成功案例）
+        if codesign --force --deep -s - "SharpPad.app" 2>/dev/null; then
             print_success "临时签名完成"
         else
             print_error "签名失败"
@@ -300,7 +309,7 @@ set_permissions() {
     xattr -dr com.apple.quarantine "SharpPad.app" 2>/dev/null || true
     xattr -cr "SharpPad.app" 2>/dev/null || true
     
-    # 确保启动脚本有执行权限
+    # 确保可执行文件有执行权限
     chmod +x "SharpPad.app/Contents/MacOS/SharpPad.Desktop"
     
     print_success "权限设置完成"
@@ -369,7 +378,7 @@ main() {
     create_app_structure
     copy_app_files
     create_info_plist
-    create_launcher
+    setup_executable
     create_app_icon
     set_permissions
     sign_app
