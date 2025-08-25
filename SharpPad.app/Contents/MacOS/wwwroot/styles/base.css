@@ -1,0 +1,382 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    background-color: #1e1e1e;
+    min-height: 100vh;
+    color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        overflow-x: hidden;
+    }
+}
+
+/* 亮色主题 */
+body.theme-light {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light #container {
+    background-color: #ffffff;
+}
+
+body.theme-light .button-container {
+    background-color: #f3f3f3;
+}
+
+body.theme-light #outputPanel,
+body.theme-light #chatPanel {
+    background-color: #f3f3f3;
+    color: #333333;
+}
+
+body.theme-light .output-header,
+body.theme-light .chat-header {
+    background-color: #e1e1e1;
+    border-bottom: 1px solid #d1d1d1;
+    color: #333333;
+}
+
+body.theme-light #outputContent,
+body.theme-light #chatMessages {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light #chatInput {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #d1d1d1;
+}
+
+body.theme-light .context-menu {
+    background-color: #ffffff;
+    border: 1px solid #d1d1d1;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .context-menu-item {
+    color: #333333;
+}
+
+body.theme-light .context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+body.theme-light .context-menu-item.delete {
+    color: #dc3545;
+}
+
+body.theme-light .modal-content {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+body.theme-light .modal-header {
+    background-color: #f3f3f3;
+    border-bottom: 1px solid #d1d1d1;
+    color: #333333;
+}
+
+body.theme-light .modal-header h2 {
+    color: #333333;
+}
+
+body.theme-light input,
+body.theme-light textarea,
+body.theme-light select {
+    background-color: #f5f5f5;
+    color: #333333;
+    border: 1px solid #d1d1d1;
+}
+
+body.theme-light .version-select:hover {
+    border-color: #0066b8;
+}
+
+body.theme-light .version-select:focus {
+    border-color: #0066b8;
+    box-shadow: 0 0 0 2px rgba(0, 102, 184, 0.25);
+}
+
+body.theme-light .version-select option {
+    background-color: #f5f5f5;
+    color: #333333;
+}
+
+.version-select {
+    padding: 4px 8px;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.version-select:hover {
+    border-color: #007acc;
+}
+
+.version-select:focus {
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.25);
+}
+
+.version-select option {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+body.theme-light label {
+    color: #333333;
+}
+
+body.theme-light .close-button {
+    color: #666666;
+}
+
+body.theme-light .close-button:hover {
+    color: #333333;
+}
+
+body.theme-light a {
+    color: #0366d6;
+}
+
+body.theme-light a:hover {
+    color: #0056b3;
+}
+
+body.theme-light .notification {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+body.theme-light .chat-messages .message {
+    border-bottom: 1px solid #e1e4e8;
+}
+
+body.theme-light .chat-messages .user-message {
+    background-color: #f1f8ff;
+}
+
+body.theme-light .chat-messages .assistant-message {
+    background-color: #fff;
+}
+
+#container {
+    width: calc(100% - 290px - 520px);
+    margin-left: 290px;
+    margin-right: 520px;
+    position: fixed;
+    top: 0;
+    height: calc(100vh - 200px);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, margin-left, margin-right;
+}
+
+@media only screen and (max-width: 768px) {
+    #container {
+        width: 100%;
+        margin-right: 0;
+        margin-left: 0;
+        height: 50vh;
+        position: relative;
+    }
+    
+    #fileList {
+        width: 100% !important;
+        min-width: unset !important;
+        max-width: 100% !important;
+        height: auto !important;
+        position: relative !important;
+        top: 0;
+        left: 0;
+        z-index: 10;
+    }
+    
+    .button-container {
+        flex-wrap: wrap;
+        padding: 8px;
+    }
+    
+    .minimized-output-button {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    #outputPanel:not(.vertical) {
+        height: 40vh !important;
+        min-height: 120px;
+        max-height: 40vh;
+    }
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+}
+
+#systemSettingsBtn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#systemSettingsBtn:hover {
+    opacity: 1;
+    background-color: #505050;
+}
+
+#systemSettingsBtn:active {
+    transform: scale(0.95);
+}
+
+body.theme-light #systemSettingsBtn {
+    background-color: #e0e0e0;
+    color: #333333;
+    opacity: 1;
+}
+
+body.theme-light #systemSettingsBtn:hover {
+    background-color: #d0d0d0;
+}
+
+body.theme-light #systemSettingsBtn:active {
+    background-color: #c0c0c0;
+}
+
+#runButton {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: #0e639c;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    margin-right: 2.5rem;
+}
+
+#themeButton {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: #0e639c;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    visibility: hidden;
+    padding: 5px 10px;
+    font-size: 16px;
+}
+
+@media only screen and (max-width: 768px) {
+    #runButton {
+        margin-right: 2.5rem;
+    }
+    
+    #systemSettingsBtn {
+        padding: 8px 10px;
+        font-size: 16px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: 4px;
+        margin: 0 4px;
+        -webkit-tap-highlight-color: transparent;
+        display: none;
+    }
+    
+    #systemSettingsBtn:active {
+        transform: scale(0.9);
+        transition: transform 0.1s;
+    }
+}
+
+.notification {
+    position: fixed;
+    bottom: 220px;
+    right: 10px;
+    background-color: #f44336;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 10000;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    margin-bottom: 10px;
+}
+
+a {
+    text-decoration: none;
+    color: #007bff;
+    transition: color 0.3s;
+}
+
+a:hover {
+    color: #0056b3;
+}
+
+/* 全局样式调整 */
+@media (max-width: 768px) {
+    /* 减小字体大小 */
+    body {
+        font-size: 14px;
+    }
+    
+    /* 调整按钮尺寸 */
+    button {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+    }
+    
+    /* 调整输入框和选择器 */
+    input, select, textarea {
+        font-size: 16px !important; /* 避免iOS缩放 */
+    }
+    
+    /* 调整模态框大小 */
+    .modal-content {
+        width: 90% !important;
+        max-width: 400px !important;
+    }
+    
+    /* 调整通知位置 */
+    .notification {
+        bottom: auto;
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+}

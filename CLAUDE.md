@@ -215,3 +215,4 @@ The application is containerized with:
 - Desktop version embeds web server and uses WebView for rendering
 - Configuration is centralized in SharpPad's `appsettings.json` for both web and desktop versions
 - Both projects support hot-reload during development
+- don't modify SharpPad.csproj To Web

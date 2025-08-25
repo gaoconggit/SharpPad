@@ -1,0 +1,319 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharp Pad</title>
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/fileList.css">
+    <link rel="stylesheet" href="styles/outputPanel.css">
+    <link rel="stylesheet" href="styles/chatPanel.css">
+    <link rel="stylesheet" href="styles/modal.css">
+    <link rel="stylesheet" href="styles/contextMenu.css">
+    <link rel="stylesheet" href="styles/scrollbar.css">
+    <link rel="stylesheet" href="styles/resizeHandles.css">
+    <link rel="stylesheet" href="styles/codeHighlight.css">
+    <link rel="stylesheet" href="styles/editorControls.css">
+    <link rel="stylesheet" href="markdown/markdown.css">
+    <link rel="stylesheet" href="all.min.css">
+</head>
+
+<body class="theme-dark">
+    <div id="fileList" style="max-width: 800px; width: 290px;min-width: 290px;">
+        <div class="file-list-header">
+            <input type="text" id="fileFilter" placeholder="搜索文件...">
+            <div style="display: flex; gap: 5px;">
+                <button id="addFolderBtn" title="新建文件夹">📁</button>
+                <button id="addFileBtn" title="新建文件">+</button>
+            </div>
+        </div>
+        <ul id="fileListItems">
+        </ul>
+    </div>
+    <div id="container">
+        <button class="editor-control-button theme-button" id="themeButton" title="切换主题"></button>
+        <div class="button-container">
+            <a href="https://github.com/gaoconggit/SharpPad" target="_blank" rel="noopener noreferrer" title="Visit SharpPad on GitHub" style="display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; text-decoration: none; color: inherit; padding: 5px 10px; border-radius: 4px; transition: background-color 0.2s ease; font-weight: 500;">
+                <svg height="22" aria-hidden="true" viewBox="0 0 24 24" version="1.1" width="22" data-view-component="true" class="octicon octicon-mark-github v-align-middle" style="margin-right: 6px;">
+                    <path fill="currentColor" d="M12.5.75C6.146.75 1 5.896 1 12.25c0 5.089 3.292 9.387 7.863 10.91.575.101.79-.244.79-.546 0-.273-.014-1.178-.014-2.142-2.889.532-3.636-.704-3.866-1.35-.13-.331-.69-1.352-1.18-1.625-.402-.216-.977-.748-.014-.762.906-.014 1.553.834 1.769 1.179 1.035 1.74 2.688 1.25 3.349.948.1-.747.402-1.25.733-1.538-2.559-.287-5.232-1.279-5.232-5.678 0-1.25.445-2.285 1.178-3.09-.115-.288-.517-1.467.115-3.048 0 0 .963-.302 3.163 1.179.92-.259 1.897-.388 2.875-.388.977 0 1.955.13 2.875.388 2.2-1.495 3.162-1.179 3.162-1.179.633 1.581.23 2.76.115 3.048.733.805 1.179 1.825 1.179 3.09 0 4.413-2.688 5.39-5.247 5.678.417.36.776 1.05.776 2.128 0 1.538-.014 2.774-.014 3.162 0 .302.216.662.79.547C20.709 21.637 24 17.324 24 12.25 24 5.896 18.854.75 12.5.75Z"></path>
+                </svg>
+                SharpPad
+            </a>
+            <select id="csharpVersion" class="version-select" title="选择C#语言版本">
+                <option value="2147483647">C# Latest</option>
+                <option value="1300">C# 13</option>
+                <option value="1200">C# 12</option>
+                <option value="1100">C# 11</option>
+                <option value="1000">C# 10</option>
+                <option value="900">C# 9</option>
+                <option value="800">C# 8</option>
+                <option value="703">C# 7.3</option>
+                <option value="702">C# 7.2</option>
+                <option value="701">C# 7.1</option>
+                <option value="7">C# 7</option>
+                <option value="6">C# 6</option>
+                <option value="5">C# 5</option>
+                <option value="4">C# 4</option>
+                <option value="3">C# 3</option>
+                <option value="2">C# 2</option>
+                <option value="1">C# 1</option>
+            </select>
+            <!--系统设置按钮-->
+            <button id="systemSettingsBtn" title="系统设置">⚙️</button>
+            <div style="flex-grow: 1;"></div>
+            <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
+            <div style="flex-grow: 0.1;"></div>
+        </div>
+    </div>
+    <div id="outputPanel">
+        <div class="resize-handle">
+            <div class="resize-handle-indicator"></div>
+        </div>
+        <div class="output-header">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="toggleOutput" title="收起/展开"></button>
+                <span>输出</span>
+            </div>
+            <div class="output-toolbar">
+                <button id="toggleOutputLayout" title="切换布局">◫</button>
+                <button id="formatOutput" title="格式化">{ }</button>
+                <button id="copyOutput" title="复制">复制</button>
+                <button id="clearOutput" title="清除">清除</button>
+            </div>
+        </div>
+        <div id="outputContent"></div>
+    </div>
+    <div id="chatPanel" style="display: flex; transform: translateY(100%);">
+        <div class="resize-handle"></div>
+        <div class="chat-header">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="toggleChat" title="收起/展开"></button>
+                <span>Chat</span>
+            </div>
+            <div class="chat-toolbar">
+                <select id="modelSelect">
+                </select>
+                <button id="modelSettingsBtn" title="模型设置">⚙️</button>
+                <button id="clearChat" title="清除">清除</button>
+            </div>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-area">
+            <div class="chat-input-resize-handle"></div>
+            <textarea id="chatInput" placeholder="输入消息...(按Enter发送/Shift+Enter换行)" rows="3"></textarea>
+        </div>
+    </div>
+    <div class="minimized-chat-button">
+        <button class="icon-button restore-chat" title="聊天">
+            <span class="desktop-icon" style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+            <span class="mobile-icon">💬</span>
+        </button>
+    </div>
+    <div class="notification" id="notification"></div>
+    <div id="fileContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移
+        </div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">
+            下移</div>
+        <div class="context-menu-item" onclick="renameFile()">重命名</div>
+        <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
+        <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
+        <div class="context-menu-item" onclick="moveOutOfFolder()">移出文件夹</div>
+        <div class="context-menu-item delete" onclick="deleteFile()">删除</div>
+    </div>
+    <div id="folderContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item"
+            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件
+        </div>
+        <div class="context-menu-item"
+            onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">
+            新建文件夹</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'up')">上移
+        </div>
+        <div class="context-menu-item"
+            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'down')">下移
+        </div>
+        <div class="context-menu-item" onclick="renameFolder()">重命名</div>
+        <div class="context-menu-item" onclick="duplicateFolder()">复制</div>
+        <div class="context-menu-item" onclick="exportFolder()">导出</div>
+        <div class="context-menu-item" onclick="importFolder()">导入</div>
+        <div class="context-menu-item" onclick="showOnlyCurrentFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">隐藏其它</div>
+        <div class="context-menu-item delete" onclick="deleteFolder()">删除</div>
+    </div>
+    <div id="rootContextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="addFile()">新建文件</div>
+        <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
+    </div>
+
+    <!-- NuGet Configuration Dialog -->
+    <div id="nugetConfigDialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>NuGet 包配置</h2>
+                <button onclick="closeNuGetConfigDialog()" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="nuget-config-section">
+                    <h3>包引用</h3>
+                    <div class="package-references" id="packageReferences">
+                        <!-- Package references will be listed here -->
+                    </div>
+                    <button onclick="addPackageReference()" class="add-package-button">添加包引用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="minimized-output-button">
+        <button class="icon-button restore-output" title="恢复输出窗口">
+            <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
+        </button>
+    </div>
+
+    <!-- 添加模型设置对话框 -->
+    <div id="modelSettingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>模型设置</h2>
+                <button class="close-button" onclick="closeModelSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="model-settings">
+                    <div class="model-list">
+                        <div class="model-list-header">
+                            <h3>模型列表</h3>
+                            <button id="addModelBtn" class="add-model-button">添加模型</button>
+                        </div>
+                        <div id="modelList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加新模型对话框 -->
+    <div id="addModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>添加新模型</h2>
+                <button class="close-button" onclick="closeAddModel()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="addModelName">模型名称</label>
+                    <input type="text" id="addModelName" placeholder="例如: gpt-4">
+                </div>
+                <div class="form-group">
+                    <label for="addModelEndpoint">Endpoint</label>
+                    <input type="text" id="addModelEndpoint" placeholder="API endpoint地址: https://api.openai.com/v1/chat/completions">
+                </div>
+                <div class="form-group">
+                    <label for="addApiKey">API Key</label>
+                    <div class="api-key-input">
+                        <input type="password" id="addApiKey" placeholder="输入API Key">
+                        <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="addSystemPrompt">系统提示词</label>
+                    <textarea id="addSystemPrompt" placeholder="输入系统提示词" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="addUseBackend">
+                        使用后端调用大模型
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveNewModel()" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模型对话框 -->
+    <div id="editModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑模型</h2>
+                <button class="close-button" onclick="closeEditModel()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="display: none;">
+                    <label for="editModelId">主键id</label>
+                    <input type="text" id="editModelId" placeholder="" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editModelName">模型名称</label>
+                    <input type="text" id="editModelName" placeholder="例如: gpt-4">
+                </div>
+                <div class="form-group">
+                    <label for="editModelEndpoint">Endpoint</label>
+                    <input type="text" id="editModelEndpoint" placeholder="API endpoint地址: https://api.openai.com/v1/chat/completions">
+                </div>
+                <div class="form-group">
+                    <label for="editApiKey">API Key</label>
+                    <div class="api-key-input">
+                        <input type="password" id="editApiKey" placeholder="输入API Key">
+                        <button type="button" class="toggle-password" onclick="toggleApiKeyVisibility(this)">👁</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editSystemPrompt">系统提示词</label>
+                    <textarea id="editSystemPrompt" placeholder="输入系统提示词" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editUseBackend">
+                        使用后端调用大模型
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveEditModel(document.getElementById('editModelId').value)" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统设置对话框 -->
+    <div id="systemSettingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>系统设置</h2>
+                <button class="close-button" onclick="closeSystemSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="disableGptComplete">
+                        禁用GPT补全
+                    </label>
+                    <div class="setting-description">禁用此功能后，将不会触发GPT代码补全</div>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveSystemSettings()" class="save-button">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="axios.min.js"></script>
+    <!-- 引入 markdown-it -->
+    <script src="./markdown/markdown-it.min.js"></script>
+    <!-- 引入 highlight.js 的 CSS 样式 -->
+    <link rel="stylesheet" href="./markdown/default.min.css">
+    <!-- 引入 highlight.js 的 JavaScript -->
+    <script src="./markdown/highlight.min.js"></script>
+
+    <script type="module" src="csharpLanguageProvider.js"></script>
+    <script type="module" src="index.js"></script>
+    <script type="module" src="chat/chat.js"></script>
+</body>
+
+</html>

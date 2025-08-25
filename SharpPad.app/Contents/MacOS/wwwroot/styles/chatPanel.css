@@ -1,0 +1,578 @@
+:root {
+    --chat-transition-delay: 0.3s;
+}
+
+#chatPanel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 520px;
+    height: calc(100vh - 200px);
+    background: #1e1e1e;
+    border-left: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    z-index: 999;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, height, width;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    #chatPanel {
+        width: 100%;
+        height: 100%; /* 使用100%高度而不是固定的vh值，避免键盘弹出时高度变化 */
+        position: fixed; /* 确保固定定位 */
+        top: auto; /* 改为自动，从底部定位 */
+        bottom: 0; /* 从底部开始 */
+        left: 0;
+        right: 0;
+        border-left: none;
+        border-top: none;
+        z-index: 999; /* 增加 z-index 确保高于所有其他元素 */
+        transform: translateY(100%) !important;
+        transition: transform var(--chat-transition-delay) ease;
+        padding-bottom: env(safe-area-inset-bottom); /* 适应iPhone底部安全区域 */
+        max-height: 94vh; /* 设置最大高度，防止过高 */
+    }
+    /* 当聊天面板显示时的样式 */
+    #chatPanel.active {
+        transform: translateY(0) !important;
+        opacity: 1;
+        visibility: visible;
+        display: flex;
+    }
+    
+    .chat-header {
+        padding: 8px 12px;
+    }
+    
+    #modelSelect {
+        max-width: 140px;
+        text-overflow: ellipsis;
+    }
+    
+    .minimized-chat-button {
+        display: block; /* 移动端默认显示 */
+        bottom: 16px;
+        right: 50px;
+        top: auto;
+        transform: none;
+        z-index: 10000; /* 确保高于聊天面板，方便点击 */
+    }
+    
+    .minimized-chat-button .icon-button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0078d4;
+        border: none;
+        color: white;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .minimized-chat-button .icon-button:hover,
+    .minimized-chat-button .icon-button:active {
+        background: #0066b8;
+        transform: scale(1.05);
+    }
+    
+    .chat-input-area {
+        padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom)); /* 适应iPhone底部安全区域 */
+        touch-action: manipulation; /* 禁用手机上点击后放大的效果 */
+    }
+    
+    .chat-messages {
+        max-height: calc(85vh - 140px); /* 调整为85vh匹配聊天面板高度 */
+    }
+    
+    /* 防止输入框聚焦时页面被顶上去 */
+    .chat-input-area textarea,
+    .chat-input-area input {
+        position: relative;
+        font-size: 16px; /* 避免iOS自动缩放 */
+        transform: translateZ(0); /* 启用硬件加速 */
+    }
+    
+    /* 修复Chrome移动版输入问题 */
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        overscroll-behavior: none; /* 防止页面弹性滚动 */
+    }
+    
+    /* 确保内容可滚动 */
+    .chat-messages {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* 平滑滚动 */
+    }
+    
+    /* 防止虚拟键盘弹出时视口大小变化 */
+    @supports (-webkit-touch-callout: none) {
+        .chat-input-area {
+            padding-bottom: max(12px, env(safe-area-inset-bottom, 34px));
+        }
+    }
+
+    .chat-toolbar {
+        margin-right: 5vh;
+    }
+}
+
+body.theme-light #chatPanel {
+    background: #f5f5f5;
+    border-left: 1px solid #e0e0e0;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    body.theme-light #chatPanel {
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+    }
+}
+
+.chat-header {
+    padding: 12px 16px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+body.theme-light .chat-header {
+    background: #e8e8e8;
+    border-bottom: 1px solid #e0e0e0;
+    color: #333333;
+}
+
+.chat-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#modelSelect {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #3d3d3d;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+body.theme-light #modelSelect {
+    border: 1px solid #d1d1d1;
+    background: #ffffff;
+    color: #333333;
+}
+
+    body.theme-light #modelSelect:hover {
+        border-color: #0066b8;
+        background: #f5f5f5;
+    }
+
+#clearChat {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+body.theme-light #clearChat,
+body.theme-light #toggleChat,
+body.theme-light #modelSettingsBtn {
+    background-color: #e0e0e0;
+    color: #333333;
+    opacity: 1;
+}
+
+    body.theme-light #clearChat:hover,
+    body.theme-light #toggleChat:hover,
+    body.theme-light #modelSettingsBtn:hover {
+        background-color: #d0d0d0;
+    }
+
+#toggleChat {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    #toggleChat:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
+
+    #toggleChat::before {
+        content: "▼";
+        font-size: 10px;
+        transition: transform 0.3s;
+    }
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #1e1e1e;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+body.theme-light .chat-messages {
+    background: #ffffff;
+    color: #333333;
+}
+
+.chat-message {
+    position: relative;
+    margin-bottom: 4px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: 85%;
+    word-wrap: break-word;
+    line-height: 1.5;
+    font-size: 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user-message {
+    background: linear-gradient(135deg, #2b579a, #1e3d6b);
+    margin-left: auto;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+body.theme-light .user-message {
+    background: linear-gradient(135deg, #0078d4, #0066b8);
+    color: #ffffff;
+}
+
+.assistant-message {
+    background: #2d2d2d;
+    margin-right: auto;
+    color: #ffffff;
+    border-bottom-left-radius: 4px;
+}
+
+body.theme-light .assistant-message {
+    background: #f5f5f5;
+    color: #333333;
+    border: 1px solid #e0e0e0;
+}
+
+    body.theme-light .assistant-message:hover {
+        background: #f0f0f0;
+    }
+
+.chat-input-area {
+    padding: 16px;
+    border-top: 1px solid #444;
+    display: flex;
+    gap: 12px;
+    background: #2d2d2d;
+    position: relative;
+    will-change: border-color;
+}
+
+body.theme-light .chat-input-area {
+    border-top: 1px solid #e0e0e0;
+    background: #f5f5f5;
+}
+
+#chatInput {
+    flex: 1;
+    resize: none;
+    max-height: 500px;
+    min-height: 60px;
+    padding: 12px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: #1e1e1e;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    will-change: height;
+    transition: height 0.05s ease-out;
+}
+
+body.theme-light #chatInput {
+    border: 1px solid #e0e0e0;
+    background: #ffffff;
+    color: #333333;
+}
+
+    body.theme-light #chatInput:focus {
+        border-color: #0066b8;
+        outline: none;
+    }
+
+.minimized-chat-button {
+    position: fixed;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+    display: none; /* 默认隐藏，JavaScript 会在桌面模式下适当控制 */
+}
+
+@media (max-width: 768px) {
+    .minimized-chat-button {
+        display: block; /* 移动端默认显示 */
+        bottom: 16px;
+        right: 50px;
+        top: auto;
+        transform: none;
+        z-index: 10000; /* 确保高于聊天面板，方便点击 */
+    }
+    
+    .minimized-chat-button .icon-button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0078d4;
+        border: none;
+        color: white;
+        transition: all 0.2s;
+    }
+    
+    .minimized-chat-button .icon-button:hover,
+    .minimized-chat-button .icon-button:active {
+        background: #0066b8;
+        transform: scale(1.05);
+    }
+}
+
+body.theme-light .minimized-chat-button .icon-button {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    color: #333333;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    body.theme-light .minimized-chat-button .icon-button {
+        background: #0078d4;
+        color: white;
+        border: none;
+    }
+    
+    body.theme-light .minimized-chat-button .icon-button:hover,
+    body.theme-light .minimized-chat-button .icon-button:active {
+        background: #0066b8;
+    }
+}
+
+#modelSettingsBtn {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    #modelSettingsBtn:hover {
+        opacity: 1;
+        background-color: #505050;
+    }
+
+.result-streaming {
+    position: relative;
+}
+
+    .result-streaming p {
+        display: inline;
+    }
+
+    .result-streaming .think p {
+        display: inline-block;
+    }
+
+    /* Base cases for cursor after content */
+    .result-streaming:not(:has(pre:last-child, ul:last-child, ol:last-child, div.think:last-child))::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
+
+    /* Cursor for code blocks */
+    .result-streaming > pre:last-child code::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
+
+    /* Cursor for list items */
+    .result-streaming > ul:last-child > li:last-child::after,
+    .result-streaming > ol:last-child > li:last-child::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
+
+    /* New rule for div.think */
+    .result-streaming > div.think:last-child::after {
+        content: "▋";
+        margin-left: .25rem;
+        vertical-align: baseline;
+        animation: cursor-blink 1s infinite;
+        display: inline-block;
+    }
+
+@keyframes cursor-blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.think {
+    padding: 10px;
+    margin: 10px 0;
+    border-left: 4px solid #42b983;
+    /*background-color: #f3f5f7;*/
+    border-radius: 4px;
+}
+
+body.theme-light .think {
+    padding: 10px;
+    margin: 10px 0;
+    border-left: 4px solid #42b983;
+    background-color: #f3f5f7;
+    border-radius: 4px;
+}
+
+/* 聊天面板拖动手柄 */
+#chatPanel .resize-handle {
+    position: absolute;
+    left: -5px;
+    width: 10px;
+    top: 0;
+    bottom: 0;
+    cursor: ew-resize;
+    background: transparent;
+    z-index: 1000;
+}
+
+@media (max-width: 768px) {
+    #chatPanel .resize-handle {
+        display: none; /* 移动端不显示调整大小的手柄 */
+    }
+}
+
+/* 当面板正在调整大小时的样式 */
+#chatPanel.resizing {
+    transition: none;
+    cursor: ew-resize;
+}
+
+/* 添加显示/隐藏聊天面板的过渡效果 */
+#chatPanel.minimized {
+    transform: translateX(calc(100% - 30px));
+}
+
+@media (max-width: 768px) {
+    #chatPanel.minimized {
+        transform: translateY(100%) !important; /* 确保在移动端完全隐藏 */
+        visibility: hidden; /* 增加可见性设置，确保完全不可见 */
+    }
+}
+
+/* 确保在小屏幕设备上消息不会太宽 */
+@media (max-width: 768px) {
+    .chat-message {
+        max-width: 90%;
+    }
+    
+    .chat-input-area {
+        padding: 12px;
+    }
+    
+    #chatInput {
+        min-height: 50px;
+    }
+}
+
+.mobile-icon {
+    display: none;
+}
+
+.desktop-icon {
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .mobile-icon {
+        display: inline-block;
+        font-size: 24px;
+    }
+    
+    .desktop-icon {
+        display: none;
+    }
+}

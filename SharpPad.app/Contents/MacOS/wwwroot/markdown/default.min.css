@@ -1,0 +1,102 @@
+/*!
+  Theme: Ubuntu
+  Description: Dark theme based on Ubuntu terminal colors
+  Author: Microsoft
+  Maintainer: @highlightjs/core-team
+  Website: https://highlightjs.org/
+  License: see project LICENSE
+*/
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+  background: #1e1e2e;
+}
+
+code.hljs {
+  padding: 3px 5px;
+  background: #1e1e2e;
+}
+
+.hljs {
+  background: #1e1e2e;
+  color: #cdd6f4
+}
+
+.hljs-comment {
+  color: #89b4fa
+}
+
+.hljs-punctuation,
+.hljs-tag {
+  color: #bac2de
+}
+
+.hljs-tag .hljs-attr,
+.hljs-tag .hljs-name {
+  color: #bac2de
+}
+
+.hljs-attribute,
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-name,
+.hljs-selector-tag {
+  color: #89b4fa
+}
+
+.hljs-deletion,
+.hljs-number,
+.hljs-quote,
+.hljs-selector-class,
+.hljs-selector-id,
+.hljs-string,
+.hljs-template-tag,
+.hljs-type {
+  color: #f38ba8
+}
+
+.hljs-section,
+.hljs-title {
+  color: #f9e2af;
+  font-weight: normal
+}
+
+.hljs-link,
+.hljs-operator,
+.hljs-regexp,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-symbol,
+.hljs-template-variable,
+.hljs-variable {
+  color: #cdd6f4
+}
+
+.hljs-literal {
+  color: #89b4fa
+}
+
+.hljs-addition,
+.hljs-built_in,
+.hljs-bullet,
+.hljs-code {
+  color: #a6e3a1
+}
+
+.hljs-meta {
+  color: #cba6f7
+}
+
+.hljs-meta .hljs-string {
+  color: #f38ba8
+}
+
+.hljs-emphasis {
+  font-style: italic
+}
+
+.hljs-strong {
+  font-weight: bold
+}

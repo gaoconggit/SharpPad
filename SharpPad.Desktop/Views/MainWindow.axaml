@@ -16,7 +16,7 @@
     <vm:MainWindowViewModel/>
   </Design.DataContext>
 
-  <Grid>
+  <Grid x:Name="MainGrid">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
@@ -53,10 +53,47 @@
                      Url="{Binding WebUrl}"
                      IsVisible="{Binding IsWebViewVisible}" />
 
+    <!-- Mac Alternative Content -->
+    <Border Grid.Row="1" 
+            Background="LightGray"
+            IsVisible="{Binding IsMacFallbackVisible}">
+      <StackPanel HorizontalAlignment="Center" 
+                  VerticalAlignment="Center"
+                  Spacing="20">
+        <TextBlock Text="SharpPad Desktop (Mac版本)" 
+                   FontSize="24" 
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"/>
+        <TextBlock Text="由于Mac平台WebView兼容性问题，请使用以下方式访问：" 
+                   FontSize="16" 
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="20,0"/>
+        <TextBlock x:Name="UrlTextBlock"
+                   Text="{Binding WebUrl}" 
+                   FontSize="14" 
+                   FontWeight="Bold"
+                   Foreground="Blue"
+                   TextDecorations="Underline"
+                   Cursor="Hand"
+                   HorizontalAlignment="Center"/>
+        <Button Content="在浏览器中打开" 
+                Command="{Binding OpenInBrowserCommand}"
+                FontSize="16"
+                Padding="20,10"/>
+        <TextBlock Text="提示：服务已在后台启动，您也可以手动复制上方链接到浏览器中访问" 
+                   FontSize="12" 
+                   Foreground="Gray"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   MaxWidth="400"/>
+      </StackPanel>
+    </Border>
+
     <!-- Loading Indicator -->
     <Border Grid.Row="1" 
             Background="White"
-            IsVisible="{Binding !IsWebViewVisible}">
+            IsVisible="{Binding IsLoading}">
       <StackPanel HorizontalAlignment="Center" 
                   VerticalAlignment="Center">
         <TextBlock Text="正在启动 SharpPad..." 

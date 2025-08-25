@@ -1,0 +1,2481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>files</key>
+	<dict>
+		<key>Resources/SharpPad.icns</key>
+		<data>
+		I/uGozQx6XYbFMvI0olQxngLicU=
+		</data>
+	</dict>
+	<key>files2</key>
+	<dict>
+		<key>MacOS/AtkSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			eoHeyPEJu0aRzufvUrwleGtzmzk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8bf3075c37b311bdd7c62729166eeb6f42665eed" or cdhash H"7a81dec8f109bb4691cee7ef52bc25786b739b39"</string>
+		</dict>
+		<key>MacOS/Avalonia.Base.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			C17BpeGO7G7D0BUqU59VmB2495k=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d4cf7dbab4dd2f508d695fa9c6a3d67a2942f9b4" or cdhash H"0b5ec1a5e18eec6ec3d0152a539f55981db8f799"</string>
+		</dict>
+		<key>MacOS/Avalonia.Controls.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			zmq48KvlaXah2eHezNoZW+zDrx8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0ff5ef0e630e527dc4aacca87bcfe1073ecacf11" or cdhash H"ce6ab8f0abe56976a1d9e1deccda195becc3af1f"</string>
+		</dict>
+		<key>MacOS/Avalonia.DesignerSupport.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			OFPUZlO5SWR6G22g0aEcVBQGVjw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2234970806243f687818582ada0cfe964406a95c" or cdhash H"3853d46653b949647a1b6da0d1a11c541406563c"</string>
+		</dict>
+		<key>MacOS/Avalonia.Desktop.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dL0hxC9LBkwLvBxXAsFIoTI+Aj8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a8d3025ca012a5f95710786246a2b759e12a1482" or cdhash H"74bd21c42f4b064c0bbc1c5702c148a1323e023f"</string>
+		</dict>
+		<key>MacOS/Avalonia.Dialogs.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xIVJALsXIROQd6L6Tk3rH1+vMv0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"868cb4b0e407862daf2d02a75f75d6e01d4e211f" or cdhash H"c4854900bb1721139077a2fa4e4deb1f5faf32fd"</string>
+		</dict>
+		<key>MacOS/Avalonia.FreeDesktop.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xvgCFBQiZu6vyS8sQf6IBJMniCc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c3bf31c7317dc1333a02f1edd9e2a3294917b66c" or cdhash H"c6f80214142266eeafc92f2c41fe880493278827"</string>
+		</dict>
+		<key>MacOS/Avalonia.Markup.Xaml.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			8eNFKRfgNYjPhTvKPD9r2x9jdn0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"06ff4d64271588ffc5c24bb4842fd93ad51047bb" or cdhash H"f1e3452917e03588cf853bca3c3f6bdb1f63767d"</string>
+		</dict>
+		<key>MacOS/Avalonia.Markup.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			8PnAJxNQSqGQ9B2wupNZ1oQwbZU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"10c1e955ddafdd1bdf8af4cf726b0fb09860e88d" or cdhash H"f0f9c02713504aa190f41db0ba9359d684306d95"</string>
+		</dict>
+		<key>MacOS/Avalonia.Metal.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			9CbnP4nsXHxHIQKFN1uCWKqXvvs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ef11984329af657b7733b5da45b7587de3a93982" or cdhash H"f426e73f89ec5c7c47210285375b8258aa97befb"</string>
+		</dict>
+		<key>MacOS/Avalonia.MicroCom.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NQlpVAjp2Z1ktqMs83jdm2C2rYs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f9b66f8fe4c7becb65ad0ba4af6acae1bfe87c08" or cdhash H"3509695408e9d99d64b6a32cf378dd9b60b6ad8b"</string>
+		</dict>
+		<key>MacOS/Avalonia.Native.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3EETf7o86cPvn7rQCx5L0sR+MHQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e054a9a64a61b3e6487b77f9e24b1fbd64ea9ba7" or cdhash H"dc41137fba3ce9c3ef9fbad00b1e4bd2c47e3074"</string>
+		</dict>
+		<key>MacOS/Avalonia.OpenGL.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NUejVLXutjKkmUjR8kKO5HJMxC0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1b22785926375076c592df64615d2090689c87bb" or cdhash H"3547a354b5eeb632a49948d1f2428ee4724cc42d"</string>
+		</dict>
+		<key>MacOS/Avalonia.Remote.Protocol.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			/ZlMF7HUmk13WhlKsEN75QXXOcM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"17981253ec1e93dfbafe9c36f7f3b5bea1a85744" or cdhash H"fd994c17b1d49a4d775a194ab0437be505d739c3"</string>
+		</dict>
+		<key>MacOS/Avalonia.Skia.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dqiQZCTKt1m5F2ijnZATDtU7m2w=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f4c003dad07ce67a2541b2c843f0d20c12a8ea28" or cdhash H"76a8906424cab759b91768a39d90130ed53b9b6c"</string>
+		</dict>
+		<key>MacOS/Avalonia.Themes.Fluent.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			W74du2dtvsu11gFjZOcfCmYCkEM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e540863cb9cf5cb5d3f821ac2f8a02f04826be78" or cdhash H"5bbe1dbb676dbecbb5d6016364e71f0a66029043"</string>
+		</dict>
+		<key>MacOS/Avalonia.Vulkan.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			lHBCqTUUqTySPYFCsLkaWXK0AdA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0b63c6a8e966e546705372093e773860343a989a" or cdhash H"947042a93514a93c923d8142b0b91a5972b401d0"</string>
+		</dict>
+		<key>MacOS/Avalonia.WebView.Desktop.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			P8VI33rp3kuiXwIOl+7dA8ihBdg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8cf90846b4edb9549f3fe82513a174c593af755b" or cdhash H"3fc548df7ae9de4ba25f020e97eedd03c8a105d8"</string>
+		</dict>
+		<key>MacOS/Avalonia.WebView.Linux.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SRGmXeZ5Afa5YCcVWWo4U2sTC2o=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2220743f3a63a257821dee624769da418f83a6a9" or cdhash H"4911a65de67901f6b9602715596a38536b130b6a"</string>
+		</dict>
+		<key>MacOS/Avalonia.WebView.MacCatalyst.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			R9W9/WxxEivK4ndm6oCN2NCmJx0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"deb39343dd9eaa486347c007dea4ee467d6e2a42" or cdhash H"47d5bdfd6c71122bcae27766ea808dd8d0a6271d"</string>
+		</dict>
+		<key>MacOS/Avalonia.WebView.Windows.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			N/mw2ARa+MwqY86kSUcwCZf7cE0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b3909bf097b2a58a73eec1292132de54f455b8f4" or cdhash H"37f9b0d8045af8cc2a63cea44947300997fb704d"</string>
+		</dict>
+		<key>MacOS/Avalonia.WebView.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			JyIqT7ogv2nmH6XHEAJZ8PMURhQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5b0a41eb6280fe90c9478de2f48f06ba9ef53336" or cdhash H"27222a4fba20bf69e61fa5c7100259f0f3144614"</string>
+		</dict>
+		<key>MacOS/Avalonia.Win32.Automation.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nZlvUq8yavUmHML8/sHdY+Ahofg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2ccd3961244729b2871aa9fa131c3c4ad2a568ec" or cdhash H"9d996f52af326af5261cc2fcfec1dd63e021a1f8"</string>
+		</dict>
+		<key>MacOS/Avalonia.Win32.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			l4bb6c6J1qr9UMuIanpgfYh1j/s=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b956565f6a8bb93203b3c187b936a8b63f42c964" or cdhash H"9786dbe9ce89d6aafd50cb886a7a607d88758ffb"</string>
+		</dict>
+		<key>MacOS/Avalonia.X11.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			XvZozzzYnP3snKrMUkynU+kNZGQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"601072bba3bf5244e1369b204ea8c4a31e2c595c" or cdhash H"5ef668cf3cd89cfdec9caacc524ca753e90d6464"</string>
+		</dict>
+		<key>MacOS/Avalonia.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			U7wRB+0TDM44byKadIdyS1JlxrM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"59f01cefcebcd226e7fb1b7428026757f78eb54b" or cdhash H"53bc1107ed130cce386f229a7487724b5265c6b3"</string>
+		</dict>
+		<key>MacOS/AvaloniaWebView.Shared.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Mp1B5NKajjhUXxr7HC0+gI9C44A=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8113f7c69cb8a81d722c8bc8ade7ec6078b3e112" or cdhash H"329d41e4d29a8e38545f1afb1c2d3e808f42e380"</string>
+		</dict>
+		<key>MacOS/CairoSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ihBR8NUtwa99rx+aq7In+QTZmFY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"043ab03a3fbafa631800e06bd86264ec5346a093" or cdhash H"8a1051f0d52dc1af7daf1f9aabb227f904d99856"</string>
+		</dict>
+		<key>MacOS/Dll/CSRedisCore.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			DWEQOCEWKeB5OfTE7FKKagMDs0Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5ef2844b4c2aed9f533a38853abc2b5731f910ed" or cdhash H"0d611038211629e07939f4c4ec528a6a0303b346"</string>
+		</dict>
+		<key>MacOS/Dll/FreeSql.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			0MYaAuDBYSJXpP//EqH13aKwudo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a72c65b23b2137ce4df63db6b809e4520e6361c2" or cdhash H"d0c61a02e0c1612257a4ffff12a1f5dda2b0b9da"</string>
+		</dict>
+		<key>MacOS/Dll/RestSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			WbTtP/qMfMKK/pWT/483WK9AZrM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e24216cf92a85d07c6b406ee39b74021b03334f8" or cdhash H"59b4ed3ffa8c7cc28afe9593ff8f3758af4066b3"</string>
+		</dict>
+		<key>MacOS/Dll/System.ComponentModel.Annotations.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6RWwHI6heVtXnthouErh8MVsD3w=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f64c59860cf923082ab54262ef7e1af536581801" or cdhash H"e915b01c8ea1795b579ed868b84ae1f0c56c0f7c"</string>
+		</dict>
+		<key>MacOS/Dll/System.Text.Json.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dtynw0BheluQdpgveysTq9V9REQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c905fa9b2e4c36d89f46cecf394b83f03ec222ee" or cdhash H"76dca7c340617a5b9076982f7b2b13abd57d4444"</string>
+		</dict>
+		<key>MacOS/DryIoc.Shared.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			hauTnk7elGMYT+unj635IyItSI8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b8c1fbb7a0ae7905ebfc254025cd1a484757d276" or cdhash H"85ab939e4ede9463184feba78fadf923222d488f"</string>
+		</dict>
+		<key>MacOS/GLibSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ILiELDxapSohTXGU34X33vbPOTY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7df93c6fe1287a2d686dc642656872b72e0f5d5c" or cdhash H"20b8842c3c5aa52a214d7194df85f7def6cf3936"</string>
+		</dict>
+		<key>MacOS/GdkSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			yaoSGBKxRW6bi59fte5AnCEgE1k=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3a86e8c52c1f086d8416aece617f2214b201b8c0" or cdhash H"c9aa121812b1456e9b8b9f5fb5ee409c21201359"</string>
+		</dict>
+		<key>MacOS/GioSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			0ioXJ6Rtk9PiARSXT3Cy/l3B2u0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5a29efe8eb49c02d8e3ef592597c0eb5a10b8c0d" or cdhash H"d22a1727a46d93d3e20114974f70b2fe5dc1daed"</string>
+		</dict>
+		<key>MacOS/GtkSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+k0foIPFVfTdnuUH7Q+9HnbqCdo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bc393b15a7ffc33dc8bf4f7fb3374ff22b2a2afe" or cdhash H"fa4d1fa083c555f4dd9ee507ed0fbd1e76ea09da"</string>
+		</dict>
+		<key>MacOS/HarfBuzzSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			q2ejwTGk+lWORzLsc3BSLBG+P7k=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9bc7a85708ff62b052b81d72ea3f209e0601fd2e" or cdhash H"ab67a3c131a4fa558e4732ec7370522c11be3fb9"</string>
+		</dict>
+		<key>MacOS/Humanizer.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+LGfevI53hZkw4JzXF41trllYkg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9b5568020c580e776db61effb7a45aff790d0e87" or cdhash H"f8b19f7af239de1664c382735c5e35b6b9656248"</string>
+		</dict>
+		<key>MacOS/Linux.WebView.Core.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			k7jVvvpb0D/zDBxtTsONPe0XCyU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5f51cbe2bf7a8123c116c662f5db6240b59fa804" or cdhash H"93b8d5befa5bd03ff30c1c6d4ec38d3ded170b25"</string>
+		</dict>
+		<key>MacOS/MicroCom.Runtime.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Tom1kBprfmJlsSQbXejW7lGKy+Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"42510aa0e61416a008a4dcff649b11e805d5d504" or cdhash H"4e89b5901a6b7e6265b1241b5de8d6ee518acbe6"</string>
+		</dict>
+		<key>MacOS/Microsoft.AspNetCore.JsonPatch.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			jEfi2qJ6U055Molykn06nsh1LVI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2648f33fc86bdb9ee3b99a13d1169911834a0897" or cdhash H"8c47e2daa27a534e79328972927d3a9ec8752d52"</string>
+		</dict>
+		<key>MacOS/Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			w1gafdj01I8RsOX7buupRmBS6H8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ed71470732273533c907e4e98e552ade1ef2ff28" or cdhash H"c3581a7dd8f4d48f11b0e5fb6eeba9466052e87f"</string>
+		</dict>
+		<key>MacOS/Microsoft.Bcl.AsyncInterfaces.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Zs3Nng+mIerrpc/WAEA5mIiFv04=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d4dcc3a56e9be0663a1ea443123c392bf9ce9c30" or cdhash H"66cdcd9e0fa621eaeba5cfd6004039988885bf4e"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.AnalyzerUtilities.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			vcf6zTeLEOOwC6kUFzyycmRtFys=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e28e96f4c7df2ebbdf761417f41a32ff3770e013" or cdhash H"bdc7facd378b10e3b00ba914173cb272646d172b"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.CSharp.Features.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			c+0xEDHAcJYBK+ikAQgZxnefMY0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"685081afbf5a8d96b44e26d2a6f125b0cad3e396" or cdhash H"73ed311031c07096012be8a4010819c6779f318d"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.CSharp.Scripting.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			t15ExcaoN5jSpzDOtvzobJ8pQjo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b86fac9ed6a3fe65ccbd6536ab8c6ae506950768" or cdhash H"b75e44c5c6a83798d2a730ceb6fce86c9f29423a"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.CSharp.Workspaces.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			86uAY+ZtNsYeLHe4yEeAcwTwUFE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"127653c88007243d2567020ea3cbd5ed1bf7c30e" or cdhash H"f3ab8063e66d36c61e2c77b8c847807304f05051"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.CSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			GGAAojuOCnJ9WJFMIlx1/oWZiTU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"431a457d122e9f5ce194d44c3a1284a5fb38bfa7" or cdhash H"186000a23b8e0a727d58914c225c75fe85998935"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.Elfie.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			iAxHquzDzN03nslQnT7DXAIkEPg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8802985778fa7a325e839491221d79d0e912953d" or cdhash H"880c47aaecc3ccdd379ec9509d3ec35c022410f8"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.Features.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nq4S6imobMcRgcVwBu2KGGTNVm4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"10938786de1837f1540c0c6f5eb065fc8cf7cb51" or cdhash H"9eae12ea29a86cc71181c57006ed8a1864cd566e"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.Scripting.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			YsNUS63haqKm12VHcmXDWruInds=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2c054d2565267adcdbbb1f21f741ec430d353c60" or cdhash H"62c3544bade16aa2a6d765477265c35abb889ddb"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.Workspaces.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			gHep4EOeVg9cD6TYY+JSnDN+Z+4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9b4850b4f36079e498ff99272afc114c4bf2cdba" or cdhash H"8077a9e0439e560f5c0fa4d863e2529c337e67ee"</string>
+		</dict>
+		<key>MacOS/Microsoft.CodeAnalysis.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			wnaC3ZojzONvFCiElCHxvV+ZSSs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5d50d1c1aa404616faeb8b0287b25b896236a0d1" or cdhash H"c27682dd9a23cce36f1428849421f1bd5f99492b"</string>
+		</dict>
+		<key>MacOS/Microsoft.DiaSymReader.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tDNO7fEvHn+YIJ8oqR53q+jrt7Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8c7c748032ae3b35aaa9fb3b162a82e8b3dfc04c" or cdhash H"b4334eedf12f1e7f98209f28a91e77abe8ebb7b4"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Configuration.Binder.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			YBKOccWqHv2cD4Lci5lAqp/B20Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c1da7765381ddd5798e237aea77ff04534a8d88b" or cdhash H"60128e71c5aa1efd9c0f82dc8b9940aa9fc1db46"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Configuration.FileExtensions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			/QydHHLHEu1mAq9aPgZyT8tgvI0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"357a45052f75a9a7fa08d1c984fe323ec1bcd5fe" or cdhash H"fd0c9d1c72c712ed6602af5a3e06724fcb60bc8d"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Configuration.Json.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+OnWVknjIQhfkKMAXnnEt10yjXA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"871d2ec12380672adb7b7ac0540d097bc939fff4" or cdhash H"f8e9d65649e321085f90a3005e79c4b75d328d70"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Configuration.UserSecrets.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			UR7zIWGvF7hctlVeWjcFKMVtMEc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4e14001686c6e316d3966a8c87254a1186fd4309" or cdhash H"511ef32161af17b85cb6555e5a370528c56d3047"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.DependencyInjection.Abstractions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			FfMdyq4FMpLNgmA47/o92MXLZBY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b88e76987cae454c2e864badf5232197194c4275" or cdhash H"15f31dcaae053292cd826038effa3dd8c5cb6416"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.DependencyInjection.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3DLH8gueTxnkaFncaaQZygOH0y4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"68244b2825ca8f6d63fe66f0a37512f0173f1459" or cdhash H"dc32c7f20b9e4f19e46859dc69a419ca0387d32e"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Diagnostics.Abstractions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			AT4K3K3KIFstPzb+h2VaWUTyJvY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4ce40db120d4423b784086c0a4803c9e5dea0dc6" or cdhash H"013e0adcadca205b2d3f36fe87655a5944f226f6"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Diagnostics.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			qhM+H/WZBrCXte7IUBcjNi6cg48=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9668b9da5324132c046602f0f0bec4bc72ab6c46" or cdhash H"aa133e1ff59906b097b5eec8501723362e9c838f"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Hosting.Abstractions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SpIDnTej5SKncgZspiH5RvwAsPU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"490fb0ba57c30eb359d94373b43968dc9cfd4ff6" or cdhash H"4a92039d37a3e522a772066ca621f946fc00b0f5"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Hosting.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			DoKxp8FHpjTOE3sR/n+eN7YyGYo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e1014ec18684fc7e4a35475081c97b6bdd5d5a0f" or cdhash H"0e82b1a7c147a634ce137b11fe7f9e37b632198a"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.Abstractions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			CZcN2SeNUeyoAsWYWK/5HvZb6j0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b7cd00f915bf1d4732c0095f2e81d712944a4037" or cdhash H"09970dd9278d51eca802c59858aff91ef65bea3d"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.Configuration.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			zzk38Dze2f1GCmByq6xvkqEWzl8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2f72a4784d1feb9efbea110a40a319c51907c369" or cdhash H"cf3937f03cded9fd460a6072abac6f92a116ce5f"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.Console.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xRqG1oOnO1CT2yuHP2SmJVLkGD4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e9763475dff0163f6c53c93ddfa80fceb36f2c23" or cdhash H"c51a86d683a73b5093db2b873f64a62552e4183e"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.Debug.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			F/aZvO0lzY8GiQ/A3i7w6UWycuE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ad94eb5375dbc74cd65741c55607a1c6486ed0d2" or cdhash H"17f699bced25cd8f06890fc0de2ef0e945b272e1"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.EventLog.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			gQ8Y1i9lLHwpcyWrM5mFvBYxSnI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"29ce45467fdb2917f21f4597b700ed80fd4d1205" or cdhash H"810f18d62f652c7c297325ab339985bc16314a72"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.EventSource.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			VIpiS0PsNwVT1SjYyx9kDP4KS+s=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"005cc3909693c659995c05ea04552cbf06bf4df8" or cdhash H"548a624b43ec370553d528d8cb1f640cfe0a4beb"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Logging.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			kfRzeSG0g/AxIZ7FiTzwhA1zNeU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e09fdc1ac595926ddf43acc4d31d64b7b48a6d7e" or cdhash H"91f4737921b483f031219ec5893cf0840d7335e5"</string>
+		</dict>
+		<key>MacOS/Microsoft.Extensions.Options.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6lKEEIisj+s95Rwm4yD7coSszzg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c77802b2cffb8cb05f81d5f7d0acd476a6a9d682" or cdhash H"ea52841088ac8feb3de51c26e320fb7284accf38"</string>
+		</dict>
+		<key>MacOS/Microsoft.IdentityModel.Abstractions.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			1mwEvlLwQxVdQQKwEWeJ+Bh7myQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1c558d0bbac9c1e5e95e9c486a020e84a1e0a38e" or cdhash H"d66c04be52f043155d4102b0116789f8187b9b24"</string>
+		</dict>
+		<key>MacOS/Microsoft.IdentityModel.JsonWebTokens.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NPh+Dyrgrq4FgVZLj4f1Pa4q4Tw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d3a02c0584e5302d5ac55f8839205083c0a8e668" or cdhash H"34f87e0f2ae0aeae0581564b8f87f53dae2ae13c"</string>
+		</dict>
+		<key>MacOS/Microsoft.IdentityModel.Logging.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			C24I84xXUeq7S8UQs2dc8WGZJd4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e72a434bab774d0b243b3811ef4adefcda7c97bb" or cdhash H"0b6e08f38c5751eabb4bc510b3675cf1619925de"</string>
+		</dict>
+		<key>MacOS/Microsoft.IdentityModel.Tokens.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RG1GD6dhWO0SdLL0JKS1YwpYwEU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"70194cd5f6cdecd4737cc81769174e7940f4784b" or cdhash H"446d460fa76158ed1274b2f424a4b5630a58c045"</string>
+		</dict>
+		<key>MacOS/Microsoft.OpenApi.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			8HuDxjMg0zRKYDWtJgyw/YClF8Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"590e9127c6778bcfdac2fd4767d0cd4ee2cba44f" or cdhash H"f07b83c63320d3344a6035ad260cb0fd80a517c4"</string>
+		</dict>
+		<key>MacOS/Microsoft.Web.WebView2.Core.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			EXv7V4iGwagTCXyP1bhFMhUlLvU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3079ff96f9a2b6d976c930cea2743fa5d7c5ffc7" or cdhash H"117bfb578886c1a813097c8fd5b8453215252ef5"</string>
+		</dict>
+		<key>MacOS/MonacoRoslynCompletionProvider.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6421oO6d8cyoC9MHHKDoz7Mu90Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"179a9224566e3621f409033767d057549f56ab00" or cdhash H"eb8db5a0ee9df1cca80bd3071ca0e8cfb32ef744"</string>
+		</dict>
+		<key>MacOS/MonacoRoslynCompletionProvider.pdb</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			guC9fyZ2nPX6dpbRyEQ9pomJNBw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"77ca4897109cde27385e987855f10d0f57234e0f" or cdhash H"82e0bd7f26769cf5fa7696d1c8443da68989341c"</string>
+		</dict>
+		<key>MacOS/Newtonsoft.Json.Bson.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tsaitzRr/JHPtXscCRj5cYv5uNs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"12e905f03bab480ad96000bbdff6783514afcb90" or cdhash H"b6c6a2b7346bfc91cfb57b1c0918f9718bf9b8db"</string>
+		</dict>
+		<key>MacOS/Newtonsoft.Json.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			0OGjwFGQl0IFH34jw9sJxO2Ty1Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c248a730b4f5b90759cb8d12f3792b47dae1819b" or cdhash H"d0e1a3c051909742051f7e23c3db09c4ed93cb54"</string>
+		</dict>
+		<key>MacOS/PangoSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Rs+hdC8Jon2OlrJCzDi6t8P4oOk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8ef9c5fbdc718520ab4e00f397aa833509729f13" or cdhash H"46cfa1742f09a27d8e96b242cc38bab7c3f8a0e9"</string>
+		</dict>
+		<key>MacOS/SharpPad.Desktop.deps.json</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			YnDyKBQSgSFaBX9zsBPfubeAdQo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0a7298be7732806434b04fd56f2bdcb67252c3d7" or cdhash H"6270f228141281215a057f73b013dfb9b780750a"</string>
+		</dict>
+		<key>MacOS/SharpPad.Desktop.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			z7jqIpgOmmsq+jDLmuhnb4ov33U=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"10c7fff6a6985b98a0bb2af616939fb17e8b0baf" or cdhash H"cfb8ea22980e9a6b2afa30cb9ae8676f8a2fdf75"</string>
+		</dict>
+		<key>MacOS/SharpPad.Desktop.pdb</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			T50/9pz8EjsHCcP28SB+PvJvDVc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9bb309cdc8db08f0b9dc01f7ed6883e88dead09a" or cdhash H"4f9d3ff69cfc123b0709c3f6f1207e3ef26f0d57"</string>
+		</dict>
+		<key>MacOS/SharpPad.Desktop.runtimeconfig.json</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			TqahmhdYCRXbOCqQ1ndXtkgU79Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"669a310151d3f4ee3d7ee44063bef8a95ffcd4b8" or cdhash H"4ea6a19a17580915db382a90d67757b64814efd4"</string>
+		</dict>
+		<key>MacOS/SharpPad.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Bce0F1kfYT8AednNaoMw1KXoyyE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c8194a60a8b50842fa16e7509931f1811bf0075b" or cdhash H"05c7b417591f613f0079d9cd6a8330d4a5e8cb21"</string>
+		</dict>
+		<key>MacOS/SharpPad.pdb</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KPSLhw9QU3w6wQe/I/kfh8bEcyg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b4e058f3fff45deff29d835a15069715044529a7" or cdhash H"28f48b870f50537c3ac107bf23f91f87c6c47328"</string>
+		</dict>
+		<key>MacOS/SkiaSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			P3cHyq3xNW7XP0OAisES3huTwKo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f0fb7089b0b32813477f2486e381724e67cb80a8" or cdhash H"3f7707caadf1356ed73f43808ac112de1b93c0aa"</string>
+		</dict>
+		<key>MacOS/Swashbuckle.AspNetCore.Swagger.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tOk6vxLVEtFzoNJWmzD4BJ2hr2o=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6c066b27bf81c03fb193f74d88fd9f78ac65039d" or cdhash H"b4e93abf12d512d173a0d2569b30f8049da1af6a"</string>
+		</dict>
+		<key>MacOS/Swashbuckle.AspNetCore.SwaggerGen.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xsscWX4420+lak3cF+1JPN4xxs0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a8a0418319df377b37b44269623799c9612bb48b" or cdhash H"c6cb1c597e38db4fa56a4ddc17ed493cde31c6cd"</string>
+		</dict>
+		<key>MacOS/Swashbuckle.AspNetCore.SwaggerUI.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			kEkDirlclBs4MAr6nfjk/ccpJaM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0868ba573c3e570c49075e2eb79ed0f3b0d8034c" or cdhash H"9049038ab95c941b38300afa9df8e4fdc72925a3"</string>
+		</dict>
+		<key>MacOS/System.Composition.AttributedModel.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RJF7yPNdIrxhqGrfGznObHuseLk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1d1a9cc94e27dcf0c49495acdf5731d49d4a1139" or cdhash H"44917bc8f35d22bc61a86adf1b39ce6c7bac78b9"</string>
+		</dict>
+		<key>MacOS/System.Composition.Convention.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			CYyvhaZL4VsXV3TZ04m7jHUwnmQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"63913780ddb61f788bdd4f81734b68f36162cfdb" or cdhash H"098caf85a64be15b175774d9d389bb8c75309e64"</string>
+		</dict>
+		<key>MacOS/System.Composition.Hosting.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			K+qAujVfbSyfJBOrZ9Gq6Gcx5ks=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"91dbf8c8a5b89c902cd97848afc3fb4fe9a0c0b1" or cdhash H"2bea80ba355f6d2c9f2413ab67d1aae86731e64b"</string>
+		</dict>
+		<key>MacOS/System.Composition.Runtime.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4bIR5bXLnxjo9OuO4q9PRzrmmRQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2be5d44d229ab2b3a989de2138c6b512a96b1b47" or cdhash H"e1b211e5b5cb9f18e8f4eb8ee2af4f473ae69914"</string>
+		</dict>
+		<key>MacOS/System.Composition.TypedParts.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Pndc9A0zTJCCEYGyYEG38hTF7Fk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6c26dbe351d3e80f5f03f4d59479244a4b3402e9" or cdhash H"3e775cf40d334c90821181b26041b7f214c5ec59"</string>
+		</dict>
+		<key>MacOS/System.Configuration.ConfigurationManager.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6lt4aLIKgo+Zk28eNIOaN3U7wO4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a55963884d40d717cdc2bfc3fcc4a3194c1e367c" or cdhash H"ea5b7868b20a828f99936f1e34839a37753bc0ee"</string>
+		</dict>
+		<key>MacOS/System.Diagnostics.EventLog.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			zgnjySKecN7p8pSNRky2nZac/zA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0b5860297b902303d3cf40e91aa4ecc0a987413e" or cdhash H"ce09e3c9229e70dee9f2948d464cb69d969cff30"</string>
+		</dict>
+		<key>MacOS/System.IdentityModel.Tokens.Jwt.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			x5guaj30fMTj5ns7ptxjQYcC5jw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"620907450dbb5b6c7a88c3acb85a2556762196e2" or cdhash H"c7982e6a3df47cc4e3e67b3ba6dc63418702e63c"</string>
+		</dict>
+		<key>MacOS/System.Security.Cryptography.ProtectedData.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			5UNgHr2Z4fk2Kiyrd32rCln77/k=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"00316eddaec42fd2e31ab41ed86f67c96017014b" or cdhash H"e543601ebd99e1f9362a2cab777dab0a59fbeff9"</string>
+		</dict>
+		<key>MacOS/Tmds.DBus.Protocol.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			BnaS72fSMXEFqA/u4OqQ9ofGVYg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5dfb5e02289d6a2ab0d440961acdf1fe738c7647" or cdhash H"067692ef67d2317105a80feee0ea90f687c65588"</string>
+		</dict>
+		<key>MacOS/WebView.Avalonia.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			R8YrnxRqFEADFoKcFQtvBY68mVc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1043c5f47ce8a2eea5881801ea503be414f4eb11" or cdhash H"47c62b9f146a14400316829c150b6f058ebc9957"</string>
+		</dict>
+		<key>MacOS/WebView.Core.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+zbnTfnSeDlNIYJ59hKq9Fp1Tbo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"cd65828f8926ffd181cb13348d8db994d704a5f0" or cdhash H"fb36e74df9d278394d218279f612aaf45a754dba"</string>
+		</dict>
+		<key>MacOS/WebkitGtkSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			JOEZwsdS2XBxZlsKxKxWqhvxQqo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"379198fc74df88b1d4c52b02ea4a7162c18f525c" or cdhash H"24e119c2c752d97071665b0ac4ac56aa1bf142aa"</string>
+		</dict>
+		<key>MacOS/Xamarin.Mac.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			QFkRs62Fh9VVNp6m7aL65K+RqeY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"667fcd7e0f742caebca716ae6b28b1facb71b98a" or cdhash H"405911b3ad8587d555369ea6eda2fae4af91a9e6"</string>
+		</dict>
+		<key>MacOS/appsettings.json</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SzEOq2PeImJNJdwTAt+udi6hrHU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2b6a2828b40039a4c86f8012e02ec3071f0f7d87" or cdhash H"4b310eab63de22624d25dc1302dfae762ea1ac75"</string>
+		</dict>
+		<key>MacOS/libAvaloniaNative.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nRqEQLGV/MT5O9RvU5kT+ZlS+Mo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9d1a8440b195fcc4f93bd46f539913f99952f8ca" or cdhash H"ee1587e6070df96df0f6cb6b032f236c33b0506d"</string>
+		</dict>
+		<key>MacOS/libHarfBuzzSharp.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Q45CZCT+xVnzimbi0o6q6Jznfa8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"438e426424fec559f38a66e2d28eaae89ce77daf" or cdhash H"ae5239b380f171c0240b2b0851968fec8f0757b6"</string>
+		</dict>
+		<key>MacOS/libSkiaSharp.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			r1eA4sc0VGmfaWieVPrRo5XA/7c=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"656ec2240c41fe282cf10d21ff0d9bd64237296e" or cdhash H"af5780e2c73454699f69689e54fad1a395c0ffb7" or cdhash H"a54bb0dc43b10cd6f5343d2e3e5f255422f5a60f" or cdhash H"79ea75e0721f532c94167bf9b6ffd87d6c1b9f80"</string>
+		</dict>
+		<key>MacOS/wwwroot/.cursorrules</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			fGOHC/LROrRmJeVVQ7gMUPIHpRc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a6db91c07d6490811294b65259fdd57c05a25e90" or cdhash H"7c63870bf2d13ab46625e55543b80c50f207a517"</string>
+		</dict>
+		<key>MacOS/wwwroot/CSRedisCore.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			DWEQOCEWKeB5OfTE7FKKagMDs0Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5ef2844b4c2aed9f533a38853abc2b5731f910ed" or cdhash H"0d611038211629e07939f4c4ec528a6a0303b346"</string>
+		</dict>
+		<key>MacOS/wwwroot/FreeSql.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			0MYaAuDBYSJXpP//EqH13aKwudo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a72c65b23b2137ce4df63db6b809e4520e6361c2" or cdhash H"d0c61a02e0c1612257a4ffff12a1f5dda2b0b9da"</string>
+		</dict>
+		<key>MacOS/wwwroot/RestSharp.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			WbTtP/qMfMKK/pWT/483WK9AZrM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e24216cf92a85d07c6b406ee39b74021b03334f8" or cdhash H"59b4ed3ffa8c7cc28afe9593ff8f3758af4066b3"</string>
+		</dict>
+		<key>MacOS/wwwroot/System.ComponentModel.Annotations.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6RWwHI6heVtXnthouErh8MVsD3w=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f64c59860cf923082ab54262ef7e1af536581801" or cdhash H"e915b01c8ea1795b579ed868b84ae1f0c56c0f7c"</string>
+		</dict>
+		<key>MacOS/wwwroot/System.Text.Json.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dtynw0BheluQdpgveysTq9V9REQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c905fa9b2e4c36d89f46cecf394b83f03ec222ee" or cdhash H"76dca7c340617a5b9076982f7b2b13abd57d4444"</string>
+		</dict>
+		<key>MacOS/wwwroot/all.min.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			WQhtw+vzUMYWez4H93//qeftu1M=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"743efa43e875ecd266c4895326bd01e3171b17e0" or cdhash H"59086dc3ebf350c6167b3e07f77fffa9e7edbb53"</string>
+		</dict>
+		<key>MacOS/wwwroot/axios.min.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			29+EE5VH8cylA6N4JmDZavV+j0c=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b95c05a13d3313d4e5938c16d43bd7556eb02017" or cdhash H"dbdf84139547f1cca503a3782660d96af57e8f47"</string>
+		</dict>
+		<key>MacOS/wwwroot/chat/chat.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			bFtytkjx4gO2+DF72J31gLz7alM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5aade694ca3595213aaa8ed69be5704bdc5a67a1" or cdhash H"6c5b72b648f1e203b6f8317bd89df580bcfb6a53"</string>
+		</dict>
+		<key>MacOS/wwwroot/csharpLanguageProvider.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KixBqzu0LQnLScu8U3Qf/kxEVDE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"efdbb609128bfc85c9ebbf4caecb1e4e055e8636" or cdhash H"2a2c41ab3bb42d09cb49cbbc53741ffe4c445431"</string>
+		</dict>
+		<key>MacOS/wwwroot/editor/commands.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ebnp1IqlD7woTNFrZThzosg++ck=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ababbfaed9444b5f5e9f6aab6fdb59717bb9d1e5" or cdhash H"79b9e9d48aa50fbc284cd16b653873a2c83ef9c9"</string>
+		</dict>
+		<key>MacOS/wwwroot/editor/editor.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ujrePKoAmx1JwQRI0+YnTmL4D/Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3845b77e8da02a9afc42362afd885b1b9f671403" or cdhash H"ba3ade3caa009b1d49c10448d3e6274e62f80ff6"</string>
+		</dict>
+		<key>MacOS/wwwroot/editor/index.mjs</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			IansF9Gd4fBNJ29VHtUPxXJLe0Q=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6d6213c68e3be093a7e3d461cd2c0ca9d165dcf9" or cdhash H"21a9ec17d19de1f04d276f551ed50fc5724b7b44"</string>
+		</dict>
+		<key>MacOS/wwwroot/execution/outputPanel.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			HvLfHZxiEtDf6olvGpw6FYl8Ry0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e2d6aa238e817f7e3156db26515463c739fac5cd" or cdhash H"1ef2df1d9c6212d0dfea896f1a9c3a15897c472d"</string>
+		</dict>
+		<key>MacOS/wwwroot/execution/runner.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			h5Usmi7c7Bx0MGyRE+4WJOHbJVA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e941126953ed5654c51054a6baac66342642422b" or cdhash H"87952c9a2edcec1c74306c9113ee1624e1db2550"</string>
+		</dict>
+		<key>MacOS/wwwroot/favicon.ico</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			PnBbf5+wTpAs+BLQ9nnC3Xh4IsY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ead1bd977e03dce00e823b473611bf0b9d552f12" or cdhash H"3e705b7f9fb04e902cf812d0f679c2dd787822c6"</string>
+		</dict>
+		<key>MacOS/wwwroot/fileSystem/fileListResizer.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6ZYPWuODxpGdOGpmuQrh9nwtsDE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"29019a10390350d2a750ac2d348e882621b7e699" or cdhash H"e9960f5ae383c6919d386a66b90ae1f67c2db031"</string>
+		</dict>
+		<key>MacOS/wwwroot/fileSystem/fileManager.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			iZ56ODaU6YnuadjIn2FPCLHkamE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e7e17a16d8b1ffc036126308f9059d9bd561252c" or cdhash H"899e7a383694e989ee69d8c89f614f08b1e46a61"</string>
+		</dict>
+		<key>MacOS/wwwroot/img/fork.png</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ZkyBOCECZluDukBXf0iBytCkEaI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4ff02750049a0aa69a8d29c768e5b07ea0a78992" or cdhash H"664c81382102665b83ba40577f4881cad0a411a2"</string>
+		</dict>
+		<key>MacOS/wwwroot/index.html</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NWNdSseu6PC80n/MwylJjhE6jU8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"12f9faac99a9941f9273cdc85a8050caf5e73a1d" or cdhash H"35635d4ac7aee8f0bcd27fccc329498e113a8d4f"</string>
+		</dict>
+		<key>MacOS/wwwroot/index.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			7x7tf5VmU7Tvxzvq5LU+6YcGTYA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"31096e110f87022e5b4e02622f45441f93eca3bb" or cdhash H"ef1eed7f956653b4efc73beae4b53ee987064d80"</string>
+		</dict>
+		<key>MacOS/wwwroot/markdown/default.min.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			18A6mtHRT2BMVGbYNpLXIe0OKDQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7d3220b0257631008ab58e3fcc280fcd4d2f84d6" or cdhash H"d7c03a9ad1d14f604c5466d83692d721ed0e2834"</string>
+		</dict>
+		<key>MacOS/wwwroot/markdown/highlight.min.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			QrQ0Lmcltz0igAFOby4A+zbGFNo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ffe5a7b364d1b3236faa96d7668b893957497447" or cdhash H"42b4342e6725b73d2280014e6f2e00fb36c614da"</string>
+		</dict>
+		<key>MacOS/wwwroot/markdown/markdown-it.min.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			StP/tib0IIgLEVe8NbaNydTltMM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"d685bda8bc550f0b0a65fc9420b00d6948cc8cc8" or cdhash H"4ad3ffb626f420880b1157bc35b68dc9d4e5b4c3"</string>
+		</dict>
+		<key>MacOS/wwwroot/markdown/markdown.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			F9Y75psVUdpdL8BLwZnN2ou3/DY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e404756e6ee1ac50bbec656fbbdd0e42560499bd" or cdhash H"17d63be69b1551da5d2fc04bc199cdda8bb7fc36"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/base/browser/ui/codicons/codicon/codicon.ttf</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			yaAao7P8S/fIgRmwJh8UcPd7A04=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"280a199a57027835bcb35951fbbc261398c0e055" or cdhash H"c9a01aa3b3fc4bf7c88119b0261f1470f77b034e"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/base/worker/workerMain.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			U48TXis/TeLEqysk42Cb0lAR6YE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e6c02a5767bff3af67b483e22316da9de469b963" or cdhash H"538f135e2b3f4de2c4ab2b24e3609bd25011e981"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/abap/abap.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dpzKDAB0euWH1TzxogYg4ugaojc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"02fcfcfd1df2ba1007e7241ffb33acd0295513b1" or cdhash H"769cca0c00747ae587d53cf1a20620e2e81aa237"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/apex/apex.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3qUVP1TGNFmMCNUJr9c1u7gVPvs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f27d2506efabd50417c9eb69677544f1a08510ed" or cdhash H"dea5153f54c634598c08d509afd735bbb8153efb"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/azcli/azcli.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			cajVGNmrVqBTtpLuTplXjSgoVMo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f31b44a3bff218602cc586ff283a6faa17c37476" or cdhash H"71a8d518d9ab56a053b692ee4e99578d282854ca"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/bat/bat.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			w2Eqeh6XTvuR+wJSWsjpU80qiyA=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c86baa440282606ba6796ec1c24a30b497af9480" or cdhash H"c3612a7a1e974efb91fb02525ac8e953cd2a8b20"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/bicep/bicep.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			UETPRXG4/hTU+3Y09oF4qq2trvY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b06464def0494439ecf302e094db2734802ddc43" or cdhash H"5044cf4571b8fe14d4fb7634f68178aaadadaef6"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/cameligo/cameligo.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KJrFk9The8G/epl0lsh87YVylk0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7f7e55593380efec4c497d840369790a2fa73daa" or cdhash H"289ac593d4e17bc1bf7a997496c87ced8572964d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/clojure/clojure.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ahsOVh10ACnxGdBgrtGoHOYUmks=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e79187366b2160be778130c98105d190cee123d2" or cdhash H"6a1b0e561d740029f119d060aed1a81ce6149a4b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/coffee/coffee.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			UhlM+w/8iJk6Gf+0DBPWXsH4VQM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6a52ded958c44a47d03c4324af885a0175fb7ae5" or cdhash H"52194cfb0ffc88993a19ffb40c13d65ec1f85503"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/cpp/cpp.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tmB7GdaeReBr5R1A8KYfuAmvLWQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1ba3caf9b07756bbf3d64f840dcf858409962eea" or cdhash H"b6607b19d69e45e06be51d40f0a61fb809af2d64"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/csharp/csharp.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			7anTLGFUuijvqZd2/4p5H7rG/L4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"dce7e291c61c9966f1ac494dd56755db571ff39c" or cdhash H"eda9d32c6154ba28efa99776ff8a791fbac6fcbe"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/csp/csp.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			/HxlcdZk3BZdPAaK+OMB7P9jtbo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a9ddcce974f343abb1c93c3d54ddd7cd53580eb1" or cdhash H"fc7c6571d664dc165d3c068af8e301ecff63b5ba"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/css/css.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			KDF60F55mcTM/PK1DSVALVWkPW0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8f23f810afd19b9f241f2b87d769b53f9e9bbf59" or cdhash H"28317ad05e7999c4ccfcf2b50d25402d55a43d6d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/cypher/cypher.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			54AKYDbAkuami094xFdEUkrmgM4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"568f68ad7843706f87fd395796f3e8b01e729221" or cdhash H"e7800a6036c092e6a68b4f78c45744524ae680ce"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/dart/dart.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ZAo4lMQcbG5A5DCuakU6KdJ8hmg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a4a076a9bc99c756b1d81327107c2e7e73627738" or cdhash H"640a3894c41c6c6e40e430ae6a453a29d27c8668"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/dockerfile/dockerfile.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			rFhIh3bE2lyo/Fxyor/2ser4vvo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f357b52c057cce961f8d196ca85328a5a40f2cd7" or cdhash H"ac58488776c4da5ca8fc5c72a2bff6b1eaf8befa"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/ecl/ecl.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Pm1G7GU0eFE6GOvpjOIty3Baojc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"796729da3b900b6ec25370ebfa44b1da407fa6d8" or cdhash H"3e6d46ec653478513a18ebe98ce22dcb705aa237"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/elixir/elixir.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SvcqizM/pd3gJ4jl8xFecUXzJT0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"685a6026941636ca58d38467c12c5b36a4ea0851" or cdhash H"4af72a8b333fa5dde02788e5f3115e7145f3253d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/flow9/flow9.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			urTiM4hfD7hgRyXpktDGJiHetwI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bc8b73c06d45685afeecf3dc83a1e51ec31cde72" or cdhash H"bab4e233885f0fb8604725e992d0c62621deb702"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/freemarker2/freemarker2.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			qzKV6/JLGGiVjOE6yCxaOR/3mok=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"72abd6e7fa8b6c45b70d9f0fdcafd571c69d8e35" or cdhash H"ab3295ebf24b1868958ce13ac82c5a391ff79a89"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/fsharp/fsharp.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Xzhq70nm+8g9st63BjFBQDy3ISY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8f1b32514bdd1424550a5d8e2a78bacfe1df9a69" or cdhash H"5f386aef49e6fbc83db2deb7063141403cb72126"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/go/go.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			v9IJBPMS+hYPyis0h8AsKj1X4DM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"31c8edcdea18943b2005ce4478864f6b2e32b0ee" or cdhash H"bfd20904f312fa160fca2b3487c02c2a3d57e033"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/graphql/graphql.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			g3gKl1GB+ZNKbXQxokQKbCfZsr8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7fb825fd1cb55f05bdbf3457a10abef642282387" or cdhash H"83780a975181f9934a6d7431a2440a6c27d9b2bf"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/handlebars/handlebars.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			/+V4bQUdnDLvT+4/Q5xMaBKZzaI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"dc807bcf5822345fdfb5f184e8bfff5f0b3ff42a" or cdhash H"ffe5786d051d9c32ef4fee3f439c4c681299cda2"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/hcl/hcl.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			uuYFbZRJ+b+MldWvMyZ5It+XWhM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2aa094ddcf54d319b1fb57ff66202eac70673c10" or cdhash H"bae6056d9449f9bf8c95d5af33267922df975a13"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/html/html.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3qcWXDOgQQloSniZhuUTAQkMv70=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e482c16689c615c9d635114df3f30ad99047249c" or cdhash H"dea7165c33a04109684a789986e51301090cbfbd"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/ini/ini.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Unvnf06dtFTbZHjzYNBiuFufvw8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"737170da668ccc3db33e3bfb3c4d12536433e373" or cdhash H"527be77f4e9db454db6478f360d062b85b9fbf0f"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/java/java.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xzBJUnGt6/ROLVNg+8tAFLMyvNw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5c63191b4ce1c3800b0f146201c5a9a094093e0c" or cdhash H"c730495271adebf44e2d5360fbcb4014b332bcdc"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/javascript/javascript.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3TwbEfwIsl8/m4GvwYjRz9TMIm0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7358bbbde5c17e6c2c0806c5e09bf4594ae2b8a7" or cdhash H"dd3c1b11fc08b25f3f9b81afc188d1cfd4cc226d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/julia/julia.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dCRIuity9nO9QIGGchMMnTEPbWs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f2879b5d21e86b2672eeaa1fdf6969160ef53b2a" or cdhash H"742448ba2b72f673bd40818672130c9d310f6d6b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/kotlin/kotlin.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ZHdKLSEhr0KOrA/a38m/7GzR+lc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"829ee47d1b39b5fdb6cff5aec6838cf437938233" or cdhash H"64774a2d2121af428eac0fdadfc9bfec6cd1fa57"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/less/less.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RdEQpaY7EOoc9U4pOm1VIqh4aG0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"29fccb2f8bd58a39e6404ebd69c514a4d982bea3" or cdhash H"45d110a5a63b10ea1cf54e293a6d5522a878686d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/lexon/lexon.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+K3CPjDrzUq3N2QcGNMiYWC+u0A=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"08e2ac7d1ae4ea2320328a03a63a0c7a06b8ed7d" or cdhash H"f8adc23e30ebcd4ab737641c18d3226160bebb40"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/liquid/liquid.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ZJh0zBrMGxMvyC5GyM2B7PTzgos=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7683ec987525d0f225691103714d00c0b07128fa" or cdhash H"649874cc1acc1b132fc82e46c8cd81ecf4f3828b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/lua/lua.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			1u4MDvW/FQWutA8H6+E65IiTN2s=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a261892dfb9f200bd3dcdf49c2700a1881a653f9" or cdhash H"d6ee0c0ef5bf1505aeb40f07ebe13ae48893376b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/m3/m3.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			1f3DMA/UCDvPeBuOSvBQY5Mr1eg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c98e2bb86c6319b2e7bff0c74fddac20a7acf7ea" or cdhash H"d5fdc3300fd4083bcf781b8e4af05063932bd5e8"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/markdown/markdown.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dGualP5+P1lE+gIqGoImrQbyVeQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"171be5045dc26d70c73d92853c6674fd2db0e252" or cdhash H"746b9a94fe7e3f5944fa022a1a8226ad06f255e4"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/mdx/mdx.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			EEYkYjzumLudn05x+WKABJmOZeM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f42c2ec31f23250a518b3916e76bcf7c266144f5" or cdhash H"104624623cee98bb9d9f4e71f9628004998e65e3"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/mips/mips.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tDg0g+LU5qQuKh5qoVTOIQpPWMk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b6a064282c0cfa027e4189eaa5dd6cbcf3056e59" or cdhash H"b4383483e2d4e6a42e2a1e6aa154ce210a4f58c9"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/msdax/msdax.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			U5PgMZv8bUHVoqvDgk+hsyCwqgw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"99a8b5ec1319b7b7c6315053929becec29fc4ca2" or cdhash H"5393e0319bfc6d41d5a2abc3824fa1b320b0aa0c"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/mysql/mysql.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			5ghVLecAO8Lp/fUouR+YoWeWIFo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"11b702cb2042779365d97401aa8a432dd84d494d" or cdhash H"e608552de7003bc2e9fdf528b91f98a16796205a"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/objective-c/objective-c.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			D6Zv4syhVpwEwT1arnuXguX845U=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f51ef2faedd0ad742289167e0af1620d6e2d7157" or cdhash H"0fa66fe2cca1569c04c13d5aae7b9782e5fce395"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/pascal/pascal.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			rf+lt6pJfAVX7kZpQbRW3HvK6m0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b13747aa349c79ec1b7faa0e693c6c8bd2cfaadd" or cdhash H"adffa5b7aa497c0557ee466941b456dc7bcaea6d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/pascaligo/pascaligo.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RqDW+9yAILe2ydH2OGsbbLtiLuQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"cae9857979072a86b7f4c15206aa2d9f8138fb90" or cdhash H"46a0d6fbdc8020b7b6c9d1f6386b1b6cbb622ee4"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/perl/perl.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			NKd3Qwr5dT3t0h0guXW2t8QBkhs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7da815a18d4ecc3e797e5387c856fcf0e8f4f7cd" or cdhash H"34a777430af9753dedd21d20b975b6b7c401921b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/pgsql/pgsql.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SbCbTO4Oy5XRkQM1yB7795VFAOk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"90011b4a1d688a14acedec0b23998376db51a484" or cdhash H"49b09b4cee0ecb95d1910335c81efbf7954500e9"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/php/php.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			rRWy0CXOrSXY65gun/eiZTVlEQ0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"df962f77f0630fb4aa200c5326ac4de092168883" or cdhash H"ad15b2d025cead25d8eb982e9ff7a2653565110d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/pla/pla.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			TswxAq8JEMb+xY+X4PtZ9DSudcU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"51f603ee9459ca48fbb1542c779b7593f92f9531" or cdhash H"4ecc3102af0910c6fec58f97e0fb59f434ae75c5"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/postiats/postiats.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ScNEtBqo7tIge8+Ehak9zqRD4A4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c18598b23d4509335beca93210ace472841ad6dc" or cdhash H"49c344b41aa8eed2207bcf8485a93dcea443e00e"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/powerquery/powerquery.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Aqj7C/1/zZ0qJRYCMMEDRNubRao=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"13f749d10e60ec1e9f863f743951b23b4d5a8685" or cdhash H"02a8fb0bfd7fcd9d2a25160230c10344db9b45aa"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/powershell/powershell.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			uSCSCA1aHZAXfCeqT+PKderQ/bU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"27804ba3c95426d739f3f1d0dd632d769f65081a" or cdhash H"b92092080d5a1d90177c27aa4fe3ca75ead0fdb5"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/protobuf/protobuf.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			grwzu5O+PJSXGADpjLgyfYEoQY4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"457105f74f6e5086fb66a96b30209f3cd9ee708b" or cdhash H"82bc33bb93be3c94971800e98cb8327d8128418e"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/pug/pug.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+cZGmgxM4YzENNehx00CI7+KZa4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e7054dd31cb9cade90d8964a44072b6311564525" or cdhash H"f9c6469a0c4ce18cc434d7a1c74d0223bf8a65ae"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/python/python.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			x0Qd533SizW1R19GHgNhM1sUUjk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"471853064017791f89e80dad417b035166fdee4a" or cdhash H"c7441de77dd28b35b5475f461e0361335b145239"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/qsharp/qsharp.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Vmnu69xBf3wZvaSOm8bIej3OTDw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c6be139ae1eb28c2f1e354cd5e56ee03303db677" or cdhash H"5669eeebdc417f7c19bda48e9bc6c87a3dce4c3c"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/r/r.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ITyyP+FMZHLbjdJypcq8RADJ+P4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e70ce2eeb095e4c74813a0cd46e5d8c4d9646eaa" or cdhash H"213cb23fe14c6472db8dd272a5cabc4400c9f8fe"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/razor/razor.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			x+XucgAnd0zG5oYW+1r4SjSH+H0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1fdbf27d1d63b264e6412419750fc05e51b582b5" or cdhash H"c7e5ee720027774cc6e68616fb5af84a3487f87d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/redis/redis.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			RuN5O+waz51UwK8WNx6S2rfpAa8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c08afc6f0e55dfb3bf996aca3493684d03d11776" or cdhash H"46e3793bec1acf9d54c0af16371e92dab7e901af"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/redshift/redshift.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			2JVI5+scul4WX7F700bZ0frTZMs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"cdf329db5dc2803c69c527bf35c9274596755345" or cdhash H"d89548e7eb1cba5e165fb17bd346d9d1fad364cb"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/restructuredtext/restructuredtext.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			R2G1dNi/2UI2GQXy9ygDMlb66ew=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"184529114807c9fef765c5e9e9aaae1449e901af" or cdhash H"4761b574d8bfd942361905f2f728033256fae9ec"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/ruby/ruby.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			y13E3WGzHlKd2WwEQ08ZxoX4d9I=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3d0febaf16484876b09851a8887c870efb69c81b" or cdhash H"cb5dc4dd61b31e529dd96c04434f19c685f877d2"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/rust/rust.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ai8A47GvvAmDqvdocpYHbIWCh4k=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6c1220fbf970acdf034edb00a65e0e61221213a6" or cdhash H"6a2f00e3b1afbc0983aaf7687296076c85828789"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/sb/sb.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			640n4DkaiiefqsRiBLADLeOGQ6w=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2b7563f6ee1f31eeb4f2b06b1628f1c69830290f" or cdhash H"eb8d27e0391a8a279faac46204b0032de38643ac"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/scala/scala.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			JSsBKNMhleqeU9Ccm0tmo8ymDhk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4042301f12aadafbf3605875cd943871f71e7cd3" or cdhash H"252b0128d32195ea9e53d09c9b4b66a3cca60e19"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/scheme/scheme.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tAQXiAIpDGVUz4HMUhLhchyRKl8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"91fbb1ed27cf384f439e20cc6a202b91ba278a27" or cdhash H"b404178802290c6554cf81cc5212e1721c912a5f"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/scss/scss.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			8JhwF7r8qgqWCswWZK7ImwWLoQE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"33ff5efeb19bc95d6c5200494af94d02827f67b8" or cdhash H"f0987017bafcaa0a960acc1664aec89b058ba101"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/shell/shell.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			kVUvgYU7tk6YC0KeKt7XeU7Mw7U=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9bda5ab565fc84305e2003cba0ae184a7d89eec3" or cdhash H"91552f81853bb64e980b429e2aded7794eccc3b5"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/solidity/solidity.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ocEHIfnuMoR/z2j8VeJAgWqXMSE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a1fefb62352c73050b3f95c8101c411e6c9d51be" or cdhash H"a1c10721f9ee32847fcf68fc55e240816a973121"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/sophia/sophia.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			qPcr5q4E/XL99NEASDz/ZhiygKc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"072dbbbd2867cdca36195ad6b482143ce0092176" or cdhash H"a8f72be6ae04fd72fdf4d100483cff6618b280a7"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/sparql/sparql.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			sdLm1KzwdAun0zxOcoSRXGcV2YY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"5bd6243ba7c36a80e3f48396c1eb068639579d4b" or cdhash H"b1d2e6d4acf0740ba7d33c4e7284915c6715d986"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/sql/sql.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			7JpHKIA/lQhJqnihPGT0KKch/VE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c2e050401f8fc74c6ba04a3d59347c07c0353e4e" or cdhash H"ec9a4728803f950849aa78a13c64f428a721fd51"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/st/st.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3E13Gh7MObckO2FLmCNHSGbsD/Y=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4e9446e85fa2a83e08cfc7536c733045e135cb45" or cdhash H"dc4d771a1ecc39b7243b614b9823474866ec0ff6"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/swift/swift.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			87kEFwLPbkfHA/tE9kO7sE23Ls4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"08fb8b95df04393da3b042887fc57c4ad680cbd0" or cdhash H"f3b9041702cf6e47c703fb44f643bbb04db72ece"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/systemverilog/systemverilog.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			FwpBhcgXil7KwnIle9Ro+5Ea4Dk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0a48dffcaf5ef2d9520c178e3a95754c414fcab2" or cdhash H"170a4185c8178a5ecac272257bd468fb911ae039"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/tcl/tcl.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4Z6JEEieLpFmmddCPtnSgcFEC5E=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c47573764b02e3a54c08da31bfa03f9263bb3f02" or cdhash H"e19e8910489e2e916699d7423ed9d281c1440b91"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/twig/twig.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			dhTUi11ELwmIC7wVZjwOc7vWjxI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f49f9d2b1ada7ee8dae084f5dcf30cf7a604e696" or cdhash H"7614d48b5d442f09880bbc15663c0e73bbd68f12"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/typescript/typescript.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Zfjkxc03+gp/7a0pe4MtAabhOdc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2b9979b35563bbc559d2898967f52593658cfdbc" or cdhash H"65f8e4c5cd37fa0a7fedad297b832d01a6e139d7"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/typespec/typespec.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			VdujLjnVQX45yJqZq1JkwLFzXPs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"8afa839b08e3a20d02d00876b06c73426e4e7a92" or cdhash H"55dba32e39d5417e39c89a99ab5264c0b1735cfb"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/vb/vb.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			0ModDkTy9QgYkdZ2X1c0uSeCAfw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0b795b3973eeb6913e1b9b181c6795a78d66d59c" or cdhash H"d0ca1d0e44f2f5081891d6765f5734b9278201fc"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/wgsl/wgsl.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			twZmOIjlGKtc/h1XAG9KKzonUEI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"619d4377d6e7470e13576f156bdc94226529a370" or cdhash H"b706663888e518ab5cfe1d57006f4a2b3a275042"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/xml/xml.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xvHtkdeGQZLL2E5TzGvkLRckcFg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"0500a7fab1f0b8040c1f58b3c20f2aeaf72bc739" or cdhash H"c6f1ed91d7864192cbd84e53cc6be42d17247058"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/basic-languages/yaml/yaml.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			xAlE40zCttx4ipBDIAn1afpbqkc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"b6ba4c6b5001de00d1a3812c300070431ec5f59a" or cdhash H"c40944e34cc2b6dc788a90432009f569fa5baa47"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/editor/editor.main.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			p8ruRarYHp6u6X9DIWKT9nFwA34=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4839b0821727c66059b4b63ff3f03a011a842f94" or cdhash H"a7caee45aad81e9eaee97f43216293f67170037e"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/editor/editor.main.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			BtvdWd/Tc3pPXA5iPIqAVlfT5Us=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ba8b5e8e5f3e193ca521db9a9e6b5cf2ede4b5b0" or cdhash H"06dbdd59dfd3737a4f5c0e623c8a805657d3e54b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/css/cssMode.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SL33RvdVEDFY3thV317sFPHEgHs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"a3df8fa513d9cffcde9a5a0aac8d7840f09dc479" or cdhash H"48bdf746f755103158ded855df5eec14f1c4807b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/css/cssWorker.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			AhzmWffBWP7ZjIPZERPRjJQcCcQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"dd6968e9f5df6c918d5c48333ed5fbecf80591b8" or cdhash H"021ce659f7c158fed98c83d91113d18c941c09c4"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/html/htmlMode.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			GQgxyb0Qc5iQSY2EGBiNDEtZ7l0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7565b650bc3f89e89961159dd4dc09cafb40770a" or cdhash H"190831c9bd10739890498d8418188d0c4b59ee5d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/html/htmlWorker.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nqoZ7oTgu9Nzdma1PeLv9ztgEpI=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"28e169b6b2265c1aa096700a80f73c89679ff349" or cdhash H"9eaa19ee84e0bbd3737666b53de2eff73b601292"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/json/jsonMode.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			fvtWwHj2B066Gv74cc6FffIWlOs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bd0018bc484a981c8b9c864e84d23f5d6968442c" or cdhash H"7efb56c078f6074eba1afef871ce857df21694eb"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/json/jsonWorker.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			nboti7oLE+X7RQDfxOYiV/aKdGs=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6c791d9ab3b01d106c127d99e39d1fa64a10e1e1" or cdhash H"9dba2d8bba0b13e5fb4500dfc4e62257f68a746b"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/typescript/tsMode.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+KVIhhTXjTOgDcxrChquJaFnpJU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"2599f6cdf65760adb84d1b6bf204926e306608c6" or cdhash H"f8a5488614d78d33a00dcc6b0a1aae25a167a495"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/language/typescript/tsWorker.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			YlPTW+gPDtZVp2j0bLyztfGFdrY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"643eadb7c9d3d28e57f6da395a21d7bfc2137d24" or cdhash H"6253d35be80f0ed655a768f46cbcb3b5f18576b6"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/loader.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			sscKRccq/KjmiIJItfCKAguyuR0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"162367ea95925f45503af55edfb708089c0d0a96" or cdhash H"b2c70a45c72afca8e6888248b5f08a020bb2b91d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.de.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			hN6azCpiaETvc3c3JFv/6wK/Vpg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"419b964eebacdd2e1e712d256877072e6f90e1d4" or cdhash H"84de9acc2a626844ef737737245bffeb02bf5698"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.es.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4bvO22C6WVsLXdPpw9QEeMbCql8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1e49c45c50e6df3fe264e7d986a0b28193ee400b" or cdhash H"e1bbcedb60ba595b0b5dd3e9c3d40478c6c2aa5f"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.fr.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			SLRhwshcLKqX9pzlmSaCxhz6jm0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"e63af1a4d20f5ac1729263af30b2a04b9d750668" or cdhash H"48b461c2c85c2caa97f69ce5992682c61cfa8e6d"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.it.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			mAz/ueQwXstZK4aNRl1rpqRT4rU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"86388e793ae3b8cec3c3f9f5ef45a8beabca9d08" or cdhash H"980cffb9e4305ecb592b868d465d6ba6a453e2b5"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.ja.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			m1rRdfsPz17N95wHx799d5UQIck=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1a641ac0e5057871c67670de94480d545d73b569" or cdhash H"9b5ad175fb0fcf5ecdf79c07c7bf7d77951021c9"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.ko.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			6UTwShSnp4XI94AvfKSyh/56rSw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3f57b142ec088d8f1ae99c84bbe97252c190b9c7" or cdhash H"e944f04a14a7a785c8f7802f7ca4b287fe7aad2c"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.ru.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			4Ui7w42AIQePZUHSZ+m5opAeEYo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6425060b7e5cbf38092a4212151f9543c853a6a1" or cdhash H"e148bbc38d8021078f6541d267e9b9a2901e118a"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.zh-cn.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			3JxEpd16y8QDh+yd6dSq014Ace8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"159c29279a593d575ee4612d93fbe1be2a911902" or cdhash H"dc9c44a5dd7acbc40387ec9de9d4aad35e0071ef"</string>
+		</dict>
+		<key>MacOS/wwwroot/monaco-editor/min/vs/nls.messages.zh-tw.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			J81FVv9CS71wUqC9qI68yM33/Mc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"4f2bd6df930c9db5acbe59a5d5fbd9f03ee6e88e" or cdhash H"27cd4556ff424bbd7052a0bda88ebcc8cdf7fcc7"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/base.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			8h7xeNEFIbViy0vprl445eAhWBQ=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"ced1fb7bad44289ed9965a1e1b21e7ae07a07941" or cdhash H"f21ef178d10521b562cb4be9ae5e38e5e0215814"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/chatPanel.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			tnOsA+dNmRztX20HMJmr0zyDxvw=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6b82a39828b8b82a2695c725a9fb635cf36e86dc" or cdhash H"b673ac03e74d991ced5f6d073099abd33c83c6fc"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/codeHighlight.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			u/SBVy3rY8bWLNHUugW5s0fQxAg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"7abccf7aaa77fe6bb56e916d33550fffe79e78ec" or cdhash H"bbf481572deb63c6d62cd1d4ba05b9b347d0c408"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/contextMenu.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			cuO6up8i0QQoaBrSsDQhlKFpqrk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"326d5e27336e237bb0406c3d07124299885bb120" or cdhash H"72e3baba9f22d10428681ad2b0342194a169aab9"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/editorControls.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			LVCDSY3BwC4IqC7hQTFVX5Lo694=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6b5408cd41e039918c4b4a7c992dd2c572a8e58a" or cdhash H"2d5083498dc1c02e08a82ee14131555f92e8ebde"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/fileList.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			MziEwe5bnIGdXSNOsn63UNWAJEU=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"cd4d8f445992c26216b4b3e4564405c9435d257c" or cdhash H"333884c1ee5b9c819d5d234eb27eb750d5802445"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/modal.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ycMcv/5GL8p9njqmr2Cw3BiriW0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"3d0e7502fb8b2aec39b9f715b65614f848973b00" or cdhash H"c9c31cbffe462fca7d9e3aa6af60b0dc18ab896d"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/outputPanel.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			AXRjdju9UvAhWAncY91ENaNTIwk=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bde0131138ca06a733fc38a1c4badc4a526977c2" or cdhash H"017463763bbd52f0215809dc63dd4435a3532309"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/resizeHandles.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			WxvZJC89d72DQRLY9n3RgOTkVu0=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9d08cc00ef1e35045cbb86b2c6ac35de53ec268c" or cdhash H"5b1bd9242f3d77bd834112d8f67dd180e4e456ed"</string>
+		</dict>
+		<key>MacOS/wwwroot/styles/scrollbar.css</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			56gJTGtOdPbleGRRq8U8IlE+wTM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"eb636f4bbd8e60ef2b892fb6de71ce73a3a4c5f0" or cdhash H"e7a8094c6b4e74f6e5786451abc53c22513ec133"</string>
+		</dict>
+		<key>MacOS/wwwroot/utils/apiService.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			ajNROjCqcQQKcQDox2H6doyAhtY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9894daf4ebea2cf6399a01e2eee52a844a3024bf" or cdhash H"6a33513a30aa71040a7100e8c761fa768c8086d6"</string>
+		</dict>
+		<key>MacOS/wwwroot/utils/common.js</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			WzedfkgYq0qTjkVXATCGRy4rcRE=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"6cb23afd8d8cc3051efa6d5cfa60ba791fc758c0" or cdhash H"5b379d7e4818ab4a938e4557013086472e2b7111"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.CSharp.Features.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			q2rd1rl2H3bwyQzMj2QU45E25Zg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"9b38c852fb681b16f1c179384cbb9fd6baa5fcf2" or cdhash H"ab6addd6b9761f76f0c90ccc8f6414e39136e598"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.CSharp.Scripting.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			y6XrL/J5jQMmnzGODVaW6yTjaQc=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bd8b60b85d4bce311f1c596605f2db01c024dca8" or cdhash H"cba5eb2ff2798d03269f318e0d5696eb24e36907"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			HuyCsOrCdBNBX6zvB4AvlFbsHvY=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"f19bd1595659f98e74cc90fcb0c6257cd5464bd9" or cdhash H"1eec82b0eac27413415facef07802f9456ec1ef6"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.CSharp.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			x70V/t9aAuXRo//CsMALUQWkTMg=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"90053da28a020d9402b1120dc7b3ba6cefed5644" or cdhash H"c7bd15fedf5a02e5d1a3ffc2b0c00b5105a44cc8"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.Features.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			UoxPx/10aKPXhJSze/jUQUb3mLo=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"c793fd05f398270ebd280168fb98078a8f43d1b5" or cdhash H"528c4fc7fd7468a3d78494b37bf8d44146f798ba"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.Scripting.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			u/kbkAsz3hZAI2qw2v6wRNAfO98=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"bfc7549948625f24fd5a3a94160cf406b2ad5508" or cdhash H"bbf91b900b33de1640236ab0dafeb044d01f3bdf"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.Workspaces.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			+vxMuXTAWlUAVZOF29oezkxpnq8=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"cf7904f069d9f9f5e0903d66de867ed2c8a5daaf" or cdhash H"fafc4cb974c05a5500559385dbda1ece4c699eaf"</string>
+		</dict>
+		<key>MacOS/zh-Hans/Microsoft.CodeAnalysis.resources.dll</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			9slf78t8Re0wfkrzpCOkS+hSkDM=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"1687b06e72194bb8d5159f27b0fa5e551064f2e9" or cdhash H"f6c95fefcb7c45ed307e4af3a423a44be8529033"</string>
+		</dict>
+		<key>Resources/SharpPad.icns</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			I/uGozQx6XYbFMvI0olQxngLicU=
+			</data>
+			<key>hash2</key>
+			<data>
+			KxynJTO1v+XtENqK+Hhpq1L79ixPMZtTdnIUpjkHGlo=
+			</data>
+		</dict>
+	</dict>
+	<key>rules</key>
+	<dict>
+		<key>^Resources/</key>
+		<true/>
+		<key>^Resources/.*\.lproj/</key>
+		<dict>
+			<key>optional</key>
+			<true/>
+			<key>weight</key>
+			<real>1000</real>
+		</dict>
+		<key>^Resources/.*\.lproj/locversion.plist$</key>
+		<dict>
+			<key>omit</key>
+			<true/>
+			<key>weight</key>
+			<real>1100</real>
+		</dict>
+		<key>^Resources/Base\.lproj/</key>
+		<dict>
+			<key>weight</key>
+			<real>1010</real>
+		</dict>
+		<key>^version.plist$</key>
+		<true/>
+	</dict>
+	<key>rules2</key>
+	<dict>
+		<key>.*\.dSYM($|/)</key>
+		<dict>
+			<key>weight</key>
+			<real>11</real>
+		</dict>
+		<key>^(.*/)?\.DS_Store$</key>
+		<dict>
+			<key>omit</key>
+			<true/>
+			<key>weight</key>
+			<real>2000</real>
+		</dict>
+		<key>^(Frameworks|SharedFrameworks|PlugIns|Plug-ins|XPCServices|Helpers|MacOS|Library/(Automator|Spotlight|LoginItems))/</key>
+		<dict>
+			<key>nested</key>
+			<true/>
+			<key>weight</key>
+			<real>10</real>
+		</dict>
+		<key>^.*</key>
+		<true/>
+		<key>^Info\.plist$</key>
+		<dict>
+			<key>omit</key>
+			<true/>
+			<key>weight</key>
+			<real>20</real>
+		</dict>
+		<key>^PkgInfo$</key>
+		<dict>
+			<key>omit</key>
+			<true/>
+			<key>weight</key>
+			<real>20</real>
+		</dict>
+		<key>^Resources/</key>
+		<dict>
+			<key>weight</key>
+			<real>20</real>
+		</dict>
+		<key>^Resources/.*\.lproj/</key>
+		<dict>
+			<key>optional</key>
+			<true/>
+			<key>weight</key>
+			<real>1000</real>
+		</dict>
+		<key>^Resources/.*\.lproj/locversion.plist$</key>
+		<dict>
+			<key>omit</key>
+			<true/>
+			<key>weight</key>
+			<real>1100</real>
+		</dict>
+		<key>^Resources/Base\.lproj/</key>
+		<dict>
+			<key>weight</key>
+			<real>1010</real>
+		</dict>
+		<key>^[^/]+$</key>
+		<dict>
+			<key>nested</key>
+			<true/>
+			<key>weight</key>
+			<real>10</real>
+		</dict>
+		<key>^embedded\.provisionprofile$</key>
+		<dict>
+			<key>weight</key>
+			<real>20</real>
+		</dict>
+		<key>^version\.plist$</key>
+		<dict>
+			<key>weight</key>
+			<real>20</real>
+		</dict>
+	</dict>
+</dict>
+</plist>

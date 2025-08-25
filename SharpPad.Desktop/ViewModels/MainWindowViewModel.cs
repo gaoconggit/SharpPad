@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 using System.Windows.Input;
 using SharpPad.Desktop.Services;
 
@@ -9,6 +11,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
 {
     private string _webUrl = string.Empty;
     private bool _isWebViewVisible = false;
+    private bool _isMacFallbackVisible = false;
+    private bool _isLoading = true;
 
     public string WebUrl
     {
@@ -22,11 +26,24 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set => SetProperty(ref _isWebViewVisible, value);
     }
 
+    public bool IsMacFallbackVisible
+    {
+        get => _isMacFallbackVisible;
+        set => SetProperty(ref _isMacFallbackVisible, value);
+    }
+
+    public bool IsLoading
+    {
+        get => _isLoading;
+        set => SetProperty(ref _isLoading, value);
+    }
+
     public ICommand NewFileCommand { get; }
     public ICommand OpenFileCommand { get; }
     public ICommand SaveFileCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand AboutCommand { get; }
+    public ICommand OpenInBrowserCommand { get; }
 
     public MainWindowViewModel()
     {
@@ -35,6 +52,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         SaveFileCommand = new RelayCommand(() => { /* TODO: Implement */ });
         ExitCommand = new RelayCommand(() => Environment.Exit(0));
         AboutCommand = new RelayCommand(() => { /* TODO: Show about dialog */ });
+        OpenInBrowserCommand = new RelayCommand(OpenInBrowser);
 
         _ = InitializeAsync();
     }
@@ -48,12 +66,40 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
             // 设置WebView URL - 从appsettings.json配置读取
             WebUrl = WebServerManager.Instance.Url;
+            
+            // 统一使用WebView
             IsWebViewVisible = true;
+            IsMacFallbackVisible = false;
+            
+            IsLoading = false;
         }
         catch (Exception ex)
         {
-            // TODO: 显示错误对话框
             Console.WriteLine($"Failed to start web server: {ex.Message}");
+            IsLoading = false;
+        }
+    }
+
+    private void OpenInBrowser()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Process.Start("open", WebUrl);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Process.Start("xdg-open", WebUrl);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo(WebUrl) { UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to open browser: {ex.Message}");
         }
     }
 

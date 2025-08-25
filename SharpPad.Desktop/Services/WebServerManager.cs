@@ -32,7 +32,6 @@ public sealed class WebServerManager
         }
 
         // 设置正确的内容根路径
-        // 优先使用发布后的本地路径，如果不存在则使用开发环境路径
         var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
         var publishedConfigPath = Path.Combine(baseDirectory, "appsettings.json");
         var publishedWwwrootPath = Path.Combine(baseDirectory, "wwwroot");
@@ -41,7 +40,25 @@ public sealed class WebServerManager
         string contentRootPath;
         string webRootPath;
         
-        if (File.Exists(publishedConfigPath) && Directory.Exists(publishedWwwrootPath))
+        // 检查是否在macOS应用包中（.app bundle）
+        if (baseDirectory.Contains(".app/Contents/MacOS"))
+        {
+            // macOS应用包结构：SharpPad.app/Contents/MacOS/
+            configBasePath = baseDirectory;
+            contentRootPath = baseDirectory;
+            webRootPath = publishedWwwrootPath;
+            
+            // 验证必要文件是否存在
+            if (!File.Exists(publishedConfigPath))
+            {
+                throw new FileNotFoundException($"Configuration file not found: {publishedConfigPath}");
+            }
+            if (!Directory.Exists(publishedWwwrootPath))
+            {
+                throw new DirectoryNotFoundException($"Web root directory not found: {publishedWwwrootPath}");
+            }
+        }
+        else if (File.Exists(publishedConfigPath) && Directory.Exists(publishedWwwrootPath))
         {
             // 发布后的路径结构
             configBasePath = baseDirectory;
@@ -56,6 +73,12 @@ public sealed class WebServerManager
             configBasePath = absoluteSharpPadPath;
             contentRootPath = absoluteSharpPadPath;
             webRootPath = Path.Combine(absoluteSharpPadPath, "wwwroot");
+            
+            // 验证开发环境路径
+            if (!Directory.Exists(absoluteSharpPadPath))
+            {
+                throw new DirectoryNotFoundException($"SharpPad project directory not found: {absoluteSharpPadPath}");
+            }
         }
         
         // 读取配置
@@ -75,6 +98,14 @@ public sealed class WebServerManager
         else
         {
             Port = 5090; // 默认端口
+        }
+
+        // 检查端口是否可用，如果不可用则使用随机端口
+        if (!IsPortAvailable(Port))
+        {
+            Port = GetAvailablePort();
+            Url = $"http://localhost:{Port}";
+            kestrelUrl = Url;
         }
 
         try
@@ -117,5 +148,19 @@ public sealed class WebServerManager
         using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
         return ((IPEndPoint)socket.LocalEndPoint!).Port;
+    }
+
+    private static bool IsPortAvailable(int port)
+    {
+        try
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

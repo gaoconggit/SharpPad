@@ -1,0 +1,92 @@
+/* 编辑器控制按钮样式 */
+.editor-control-button {
+    position: absolute !important;
+    top: 10px !important;
+    z-index: 10000;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    background-color: #2d2d2d !important;
+    color: #fff !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0.7 !important;
+    transition: all 0.2s ease !important;
+}
+
+.editor-control-button:hover {
+    opacity: 1 !important;
+    background-color: #404040 !important;
+}
+
+.fullscreen-button {
+    right: 10px !important;
+}
+
+.theme-button {
+    right: 45px !important;
+}
+
+/* 深色主题下的主题按钮样式 */
+.theme-dark .theme-button {
+    background-color: #2d2d2d !important;
+    color: #fff !important;
+}
+
+/* 浅色主题下的主题按钮样式 */
+.theme-light .theme-button {
+    background-color: rgb(243, 239, 239) !important;
+    color: #242424 !important;
+}
+
+/* 全屏编辑器样式 */
+.fullscreen-editor {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.fullscreen-editor #container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 9999 !important;
+    transform: none !important;
+}
+
+.fullscreen-editor .monaco-editor {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.fullscreen-editor .monaco-editor .overflow-guard {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 在移动设备上隐藏全屏按钮 */
+@media (max-width: 768px) {
+    .fullscreen-button {
+        display: none !important;
+    }
+    
+    .theme-button {
+        right: 0px !important;
+    }
+} 

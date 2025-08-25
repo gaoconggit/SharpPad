@@ -18,10 +18,10 @@ namespace MonacoRoslynCompletionProvider.Api
     public class CodeRunner
     {
         // 用于同步Console重定向的锁对象
-        private static readonly Lock ConsoleLock = new Lock();
+        private static readonly object ConsoleLock = new object();
 
         // 用于创建AssemblyLoadContext的锁对象
-        private static readonly Lock LoadContextLock = new Lock();
+        private static readonly object LoadContextLock = new object();
 
         public class RunResult
         {
