@@ -328,3 +328,6 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 /SharpPad/.config
+
+# macOS app bundle
+SharpPad.app/
