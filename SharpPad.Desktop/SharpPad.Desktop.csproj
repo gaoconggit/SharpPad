@@ -1,107 +1,90 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">12.0</SupportedOSPlatformVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
-    <CFBundleIconFile Condition="$([MSBuild]::IsOSPlatform('osx'))">favicon.icns</CFBundleIconFile>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <SelfContained>false</SelfContained>
-    <PublishTrimmed>false</PublishTrimmed>
-    <!-- macOS specific build settings to fix linker issues -->
-    <LinkMode Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">None</LinkMode>
-    <PublishReadyToRun Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</PublishReadyToRun>
-    <UseNativeHttpHandler Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</UseNativeHttpHandler>
-    <AssemblyName>SharpPad.Desktop</AssemblyName>
-    <!-- Platform-specific settings -->
-    <!-- <RuntimeIdentifiers Condition="$([MSBuild]::IsOSPlatform('osx'))">osx-arm64;osx-x64</RuntimeIdentifiers> -->
-    <!-- <RuntimeIdentifiers Condition="$([MSBuild]::IsOSPlatform('windows'))">win-x64;win-x86;win-arm64</RuntimeIdentifiers> -->
-    <!-- <UseAppHost Condition="$([MSBuild]::IsOSPlatform('windows'))">true</UseAppHost> -->
-    <!-- <UseAppHost Condition="$([MSBuild]::IsOSPlatform('osx'))">false</UseAppHost> -->
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
+		<OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">12.0</SupportedOSPlatformVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
+		<CFBundleIconFile Condition="$([MSBuild]::IsOSPlatform('osx'))">favicon.icns</CFBundleIconFile>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<SelfContained>false</SelfContained>
+		<PublishTrimmed>false</PublishTrimmed>
+		<!-- macOS specific build settings to fix linker issues -->
+		<LinkMode Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">None</LinkMode>
+		<PublishReadyToRun Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</PublishReadyToRun>
+		<UseNativeHttpHandler Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</UseNativeHttpHandler>
+		<AssemblyName>SharpPad.Desktop</AssemblyName>
+	</PropertyGroup>
 
-  <ItemGroup>
- 
-    
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.4" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
-    <!-- Use stable version 11.0.0 -->
-    <PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
-    <PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
-  </ItemGroup>
+	<ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SharpPad\SharpPad.csproj" />
-  </ItemGroup>
 
-  <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
-  </ItemGroup>
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.4" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.4" />
+		<PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+		<!-- Use stable version 11.0.0 -->
+		<PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
+		<PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
+	</ItemGroup>
 
-  <!-- Exclude problematic native references on macOS -->
-  <!-- <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">
-    <NativeReference Remove="ImageKit" />
-    <NativeReference Remove="CoreWLAN" />
-  </ItemGroup> -->
+	<ItemGroup>
+		<ProjectReference Include="..\SharpPad\SharpPad.csproj" />
+	</ItemGroup>
 
-  <!-- Add linker flags for macOS to handle undefined symbols -->
-  <!-- <Target Name="AddMacOSLinkerFlags" BeforeTargets="_GenerateManagedAppManifest" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">
-    <PropertyGroup>
-      <_MtouchExtraArgs>$(_MtouchExtraArgs) -gcc_flags "-Wl,-undefined,dynamic_lookup"</_MtouchExtraArgs>
-    </PropertyGroup>
-  </Target> -->
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
 
-  <!-- Copy wwwroot and appsettings.json from SharpPad project to publish output -->
-  <Target Name="CopySharpPadAssets" AfterTargets="Publish">
-    <ItemGroup>
-      <SharpPadWwwroot Include="..\SharpPad\wwwroot\**\*" />
-      <SharpPadConfig Include="..\SharpPad\appsettings.json" />
-		<SharpPadWwwroot Include="..\SharpPad\Dll\**\*" />
-    </ItemGroup>
-    
-    <Copy SourceFiles="@(SharpPadWwwroot)" 
-          DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(SharpPadConfig)" 
-          DestinationFolder="$(PublishDir)" />
-  </Target>
+	<!-- Copy wwwroot and appsettings.json from SharpPad project to publish output -->
+	<Target Name="CopySharpPadAssets" AfterTargets="Publish">
+		<ItemGroup>
+			<SharpPadWwwroot Include="..\SharpPad\wwwroot\**\*" />
+			<SharpPadConfig Include="..\SharpPad\appsettings.json" />
+			<SharpPadWwwroot Include="..\SharpPad\Dll\**\*" />
+		</ItemGroup>
 
-  <!-- Remove unnecessary language packages, keep only Chinese -->
-  <Target Name="RemoveUnnecessaryLanguages" AfterTargets="CopySharpPadAssets">
-    <ItemGroup>
-      <FilesToDelete Include="$(PublishDir)**\cs\*" />
-      <FilesToDelete Include="$(PublishDir)**\de\*" />
-      <FilesToDelete Include="$(PublishDir)**\es\*" />
-      <FilesToDelete Include="$(PublishDir)**\fr\*" />
-      <FilesToDelete Include="$(PublishDir)**\it\*" />
-      <FilesToDelete Include="$(PublishDir)**\ja\*" />
-      <FilesToDelete Include="$(PublishDir)**\ko\*" />
-      <FilesToDelete Include="$(PublishDir)**\pl\*" />
-      <FilesToDelete Include="$(PublishDir)**\pt-BR\*" />
-      <FilesToDelete Include="$(PublishDir)**\ru\*" />
-      <FilesToDelete Include="$(PublishDir)**\tr\*" />
-      <FilesToDelete Include="$(PublishDir)**\zh-Hant\*" />
-      
-      <!-- Root level language directories -->
-      <DirectoriesToDelete Include="$(PublishDir)cs" />
-      <DirectoriesToDelete Include="$(PublishDir)de" />
-      <DirectoriesToDelete Include="$(PublishDir)es" />
-      <DirectoriesToDelete Include="$(PublishDir)fr" />
-      <DirectoriesToDelete Include="$(PublishDir)it" />
-      <DirectoriesToDelete Include="$(PublishDir)ja" />
-      <DirectoriesToDelete Include="$(PublishDir)ko" />
-      <DirectoriesToDelete Include="$(PublishDir)pl" />
-      <DirectoriesToDelete Include="$(PublishDir)pt-BR" />
-      <DirectoriesToDelete Include="$(PublishDir)ru" />
-      <DirectoriesToDelete Include="$(PublishDir)tr" />
-      <DirectoriesToDelete Include="$(PublishDir)zh-Hant" />
-    </ItemGroup>
-    
-    <Delete Files="@(FilesToDelete)" ContinueOnError="true" />
-    <RemoveDir Directories="@(DirectoriesToDelete)" ContinueOnError="true" />
-  </Target>
+		<Copy SourceFiles="@(SharpPadWwwroot)"
+			  DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(SharpPadConfig)"
+			  DestinationFolder="$(PublishDir)" />
+	</Target>
+
+	<!-- Remove unnecessary language packages, keep only Chinese -->
+	<Target Name="RemoveUnnecessaryLanguages" AfterTargets="CopySharpPadAssets">
+		<ItemGroup>
+			<FilesToDelete Include="$(PublishDir)**\cs\*" />
+			<FilesToDelete Include="$(PublishDir)**\de\*" />
+			<FilesToDelete Include="$(PublishDir)**\es\*" />
+			<FilesToDelete Include="$(PublishDir)**\fr\*" />
+			<FilesToDelete Include="$(PublishDir)**\it\*" />
+			<FilesToDelete Include="$(PublishDir)**\ja\*" />
+			<FilesToDelete Include="$(PublishDir)**\ko\*" />
+			<FilesToDelete Include="$(PublishDir)**\pl\*" />
+			<FilesToDelete Include="$(PublishDir)**\pt-BR\*" />
+			<FilesToDelete Include="$(PublishDir)**\ru\*" />
+			<FilesToDelete Include="$(PublishDir)**\tr\*" />
+			<FilesToDelete Include="$(PublishDir)**\zh-Hant\*" />
+
+			<!-- Root level language directories -->
+			<DirectoriesToDelete Include="$(PublishDir)cs" />
+			<DirectoriesToDelete Include="$(PublishDir)de" />
+			<DirectoriesToDelete Include="$(PublishDir)es" />
+			<DirectoriesToDelete Include="$(PublishDir)fr" />
+			<DirectoriesToDelete Include="$(PublishDir)it" />
+			<DirectoriesToDelete Include="$(PublishDir)ja" />
+			<DirectoriesToDelete Include="$(PublishDir)ko" />
+			<DirectoriesToDelete Include="$(PublishDir)pl" />
+			<DirectoriesToDelete Include="$(PublishDir)pt-BR" />
+			<DirectoriesToDelete Include="$(PublishDir)ru" />
+			<DirectoriesToDelete Include="$(PublishDir)tr" />
+			<DirectoriesToDelete Include="$(PublishDir)zh-Hant" />
+		</ItemGroup>
+
+		<Delete Files="@(FilesToDelete)" ContinueOnError="true" />
+		<RemoveDir Directories="@(DirectoriesToDelete)" ContinueOnError="true" />
+	</Target>
 </Project>
