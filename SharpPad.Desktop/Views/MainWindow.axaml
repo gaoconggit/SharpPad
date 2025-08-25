@@ -23,7 +23,7 @@
     </Grid.RowDefinitions>
 
     <!-- Menu Bar -->
-    <Menu Grid.Row="0">
+    <!--<Menu Grid.Row="0">
       <MenuItem Header="文件(_F)">
         <MenuItem Header="新建(_N)" Command="{Binding NewFileCommand}" InputGesture="Ctrl+N"/>
         <MenuItem Header="打开(_O)" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
@@ -45,7 +45,7 @@
       <MenuItem Header="帮助(_H)">
         <MenuItem Header="关于(_A)" Command="{Binding AboutCommand}"/>
       </MenuItem>
-    </Menu>
+    </Menu>-->
 
     <!-- Main Content - WebView -->
 	  <webview:WebView Grid.Row="1" 
