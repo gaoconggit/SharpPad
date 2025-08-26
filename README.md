@@ -30,7 +30,7 @@
    3. 在目录中按右键,选择导入 KingOfTool.json
    
 ## 开发向导
- #### 开发环境 建议 vs 2022 + net9.0
+ #### 开发环境 建议 vs 2022 + net8.0
 1. git clone 代码仓库
 2. 在 Visual Studio 中启动 SharpPad 项目。
 3. 使用 `Ctrl + Enter` 运行 "Hello World"。
@@ -74,5 +74,6 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
