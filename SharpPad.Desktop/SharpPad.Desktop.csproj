@@ -2,7 +2,8 @@
 	<PropertyGroup>
 		<OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
 		<OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0</TargetFramework>
+		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">12.0</SupportedOSPlatformVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>

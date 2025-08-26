@@ -1,73 +1,74 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputType>Library</OutputType>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
-    <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
-    <UserSecretsId>3e548aa3-96a0-47b5-89c6-d9e72f42c343</UserSecretsId>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="wwwroot\node_modules\**" />
-    <Content Remove="wwwroot\node_modules\**" />
-    <EmbeddedResource Remove="wwwroot\node_modules\**" />
-    <None Remove="wwwroot\node_modules\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Remove="wwwroot\index.css~RFd5c23a.TMP" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="Controllers\CodeRunController.cs~RF11926ca.TMP" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.11" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.8.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.1" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MonacoRoslynCompletionProvider\MonacoRoslynCompletionProvider.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="html\**\*">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Dll\CSRedisCore.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\FreeSql.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\Microsoft.Extensions.Hosting.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\RestSharp.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\SqlApi.AppService.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\System.ComponentModel.Annotations.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Dll\System.Text.Json.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="NugetPackages\packages\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Update="wwwroot\favicon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0</TargetFramework>
+		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
+		<OutputType>Library</OutputType>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+		<ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
+		<UserSecretsId>3e548aa3-96a0-47b5-89c6-d9e72f42c343</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="wwwroot\node_modules\**" />
+		<Content Remove="wwwroot\node_modules\**" />
+		<EmbeddedResource Remove="wwwroot\node_modules\**" />
+		<None Remove="wwwroot\node_modules\**" />
+	</ItemGroup>
+	<ItemGroup>
+		<Content Remove="wwwroot\index.css~RFd5c23a.TMP" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="Controllers\CodeRunController.cs~RF11926ca.TMP" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.11" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.8.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.1" />
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\MonacoRoslynCompletionProvider\MonacoRoslynCompletionProvider.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="html\**\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="Dll\CSRedisCore.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\FreeSql.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\Microsoft.Extensions.Hosting.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\RestSharp.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\SqlApi.AppService.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\System.ComponentModel.Annotations.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Dll\System.Text.Json.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<Folder Include="NugetPackages\packages\" />
+	</ItemGroup>
+	<ItemGroup>
+		<Content Update="wwwroot\favicon.ico">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>
