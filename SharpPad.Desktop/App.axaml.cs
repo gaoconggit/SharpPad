@@ -35,7 +35,7 @@ public partial class App : Application
                     await WebServerManager.Instance.StartAsync();
                     
                     // 在UI线程上更新URL
-                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         viewModel.WebUrl = WebServerManager.Instance.Url;
                         viewModel.IsLoading = false;
@@ -45,7 +45,7 @@ public partial class App : Application
                 catch (Exception ex)
                 {
                     // 在UI线程上显示错误
-                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         viewModel.IsLoading = false;
                         viewModel.IsMacFallbackVisible = true;

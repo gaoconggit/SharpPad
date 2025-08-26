@@ -51,7 +51,14 @@
 	  <webview:WebView Grid.Row="1" 
                      x:Name="MainWebView"
                      Url="{Binding WebUrl}"
-                     IsVisible="{Binding IsWebViewVisible}" />
+                     IsVisible="{Binding IsWebViewVisible}"
+                     Opacity="{Binding WebViewOpacity}">
+      <webview:WebView.Transitions>
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.6"/>
+        </Transitions>
+      </webview:WebView.Transitions>
+    </webview:WebView>
 
     <!-- Mac Alternative Content -->
     <Border Grid.Row="1" 
@@ -90,19 +97,115 @@
       </StackPanel>
     </Border>
 
-    <!-- Loading Indicator -->
+    <!-- Enhanced Loading Screen -->
     <Border Grid.Row="1" 
-            Background="White"
             IsVisible="{Binding IsLoading}">
-      <StackPanel HorizontalAlignment="Center" 
-                  VerticalAlignment="Center">
-        <TextBlock Text="正在启动 SharpPad..." 
-                   FontSize="16" 
-                   Margin="0,0,0,10"/>
-        <ProgressBar IsIndeterminate="True" 
-                     Width="200" 
-                     Height="4"/>
-      </StackPanel>
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Color="#1E1E1E" Offset="0"/>
+          <GradientStop Color="#252526" Offset="0.5"/>
+          <GradientStop Color="#1E1E1E" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      
+      <Grid>
+        <!-- Floating Code Elements -->
+        <Canvas>
+          <TextBlock Text="{}{" 
+                     FontSize="24" 
+                     Foreground="#333333"
+                     Canvas.Left="100" 
+                     Canvas.Top="150"
+                     Opacity="0.3"
+                     Classes="floating-code">
+            <TextBlock.RenderTransform>
+              <RotateTransform Angle="15"/>
+            </TextBlock.RenderTransform>
+          </TextBlock>
+          
+          <TextBlock Text="}}" 
+                     FontSize="20" 
+                     Foreground="#333333"
+                     Canvas.Right="120" 
+                     Canvas.Top="200"
+                     Opacity="0.25"
+                     Classes="floating-code">
+            <TextBlock.RenderTransform>
+              <RotateTransform Angle="-10"/>
+            </TextBlock.RenderTransform>
+          </TextBlock>
+          
+          <TextBlock Text="();" 
+                     FontSize="18" 
+                     Foreground="#333333"
+                     Canvas.Left="200" 
+                     Canvas.Bottom="180"
+                     Opacity="0.2"
+                     Classes="floating-code">
+            <TextBlock.RenderTransform>
+              <RotateTransform Angle="20"/>
+            </TextBlock.RenderTransform>
+          </TextBlock>
+        </Canvas>
+        
+        <!-- Main Loading Content -->
+        <StackPanel HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Spacing="20">
+          
+          <!-- Logo/Icon -->
+          <Border Width="80" Height="80" 
+                  CornerRadius="12"
+                  Background="#007ACC"
+                  Classes="loading-logo pulsing-logo">
+            <TextBlock Text="#" 
+                       FontSize="36" 
+                       FontWeight="Bold"
+                       Foreground="White"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+          </Border>
+          
+          <!-- Application Name -->
+          <TextBlock Text="SharpPad Desktop" 
+                     FontSize="28" 
+                     FontWeight="Light"
+                     Foreground="#E8E8E8"
+                     HorizontalAlignment="Center"
+                     Classes="loading-title"/>
+          
+          <!-- Loading Status -->
+          <TextBlock Text="{Binding LoadingStatus}" 
+                     FontSize="14" 
+                     Foreground="#999999"
+                     HorizontalAlignment="Center"/>
+          
+          <!-- Modern Progress Bar -->
+          <Border Width="320" 
+                  Height="3" 
+                  Background="#2A2A2A"
+                  CornerRadius="1.5">
+            <Border Height="3" 
+                    Background="#007ACC"
+                    CornerRadius="1.5"
+                    HorizontalAlignment="Left"
+                    Width="{Binding ProgressWidth}">
+              <Border.Transitions>
+                <Transitions>
+                  <DoubleTransition Property="Width" Duration="0:0:0.4"/>
+                </Transitions>
+              </Border.Transitions>
+            </Border>
+          </Border>
+          
+          <!-- Version Info -->
+          <TextBlock Text="版本 1.0.0 - 高效 C# 代码编辑器" 
+                     FontSize="11" 
+                     Foreground="#666666"
+                     HorizontalAlignment="Center"
+                     Margin="0,20,0,0"/>
+        </StackPanel>
+      </Grid>
     </Border>
   </Grid>
 </Window>
