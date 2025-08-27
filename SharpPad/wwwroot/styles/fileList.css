@@ -143,6 +143,17 @@ body.theme-light #fileFilter:focus {
     cursor: move;
 }
 
+#fileListItems a:hover {
+    background-color: #2a2d2e;
+    color: #4fc3f7;
+}
+
+#fileListItems a.selected {
+    background-color: #0d47a1;
+    color: #4fc3f7;
+    font-weight: 500;
+}
+
 body.theme-light #fileListItems a {
     color: #333333;
     opacity: 1;
