@@ -58,6 +58,7 @@
 - 仅显示当前目录
 - 支持选择c#版本
 - 移动端UI
+- 启动VS断点调试(参考 https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md)
 
 ## 期待实现的功能
 
@@ -74,6 +75,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
