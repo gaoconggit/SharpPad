@@ -59,14 +59,13 @@
 - 支持选择c#版本
 - 移动端UI
 - 启动VS断点调试(参考 https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md)
+- windows pc client(mac silicon / windows)
 
 ## 期待实现的功能
 
 - 进行中的任务
   - nuget 管理页面
-  - 断点调试(建议使用cs-script)
   - 多文件支持
-  - windows pc client
   
 
 ## 项目致谢
@@ -75,6 +74,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
