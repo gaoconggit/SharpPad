@@ -129,7 +129,7 @@ body.theme-light #fileFilter:focus {
     margin-bottom: 2px;
 }
 
-#fileListItems a {
+body.theme-dark #fileListItems a {
     text-decoration: none;
     color: #ffffff;
     transition: all 0.2s;
@@ -143,15 +143,16 @@ body.theme-light #fileFilter:focus {
     cursor: move;
 }
 
-#fileListItems a:hover {
+body.theme-dark #fileListItems a:hover {
     background-color: #2a2d2e;
     color: #4fc3f7;
 }
 
-#fileListItems a.selected {
-    background-color: #0d47a1;
-    color: #4fc3f7;
+body.theme-dark #fileListItems a.selected {
+    background-color: #37373d;
+    color: #ffffff;
     font-weight: 500;
+    border-left: 3px solid #007acc;
 }
 
 body.theme-light #fileListItems a {
