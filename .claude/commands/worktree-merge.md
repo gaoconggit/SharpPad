@@ -1,0 +1,1 @@
+使用 Git Merge 命令合并worktree目录下的所有worktree，并自行处理任何可能的合并冲突。
