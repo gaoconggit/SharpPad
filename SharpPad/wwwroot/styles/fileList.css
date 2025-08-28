@@ -140,7 +140,7 @@ body.theme-dark #fileListItems a {
     font-size: 13px;
     position: relative;
     opacity: 0.8;
-    cursor: move;
+    cursor: pointer;
 }
 
 body.theme-dark #fileListItems a:hover {
