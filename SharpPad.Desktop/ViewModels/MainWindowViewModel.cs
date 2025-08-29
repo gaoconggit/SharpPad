@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Windows.Input;
+using Avalonia.Threading;
 using SharpPad.Desktop.Services;
 
 namespace SharpPad.Desktop.ViewModels;
@@ -64,7 +65,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public ICommand SaveFileCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand AboutCommand { get; }
-    public ICommand OpenInBrowserCommand { get; }
 
     public MainWindowViewModel()
     {
@@ -73,7 +73,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
         SaveFileCommand = new RelayCommand(() => { /* TODO: Implement */ });
         ExitCommand = new RelayCommand(() => Environment.Exit(0));
         AboutCommand = new RelayCommand(() => { /* TODO: Show about dialog */ });
-        OpenInBrowserCommand = new RelayCommand(OpenInBrowser);
 
         _ = InitializeAsync();
     }
@@ -82,85 +81,36 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
-            // 更新加载状态和进度
+            // 第1步：桌面应用启动完成，显示加载界面
             LoadingStatus = "正在启动 Web 服务器...";
-            ProgressWidth = 30;
+            ProgressWidth = 70;
+            await Task.Delay(150); // 短暂显示完成状态
 
-            // 启动Web服务器
+            // 第2步：启动Web服务器
             await WebServerManager.Instance.StartAsync();
 
-            // 设置WebView URL - 从appsettings.json配置读取
+            LoadingStatus = "Web 服务器启动完成";
+            ProgressWidth = 140;
+            await Task.Delay(150); // 短暂显示完成状态
+
+            // 第3步：WebView组件初始化（透明，深色背景）
+            LoadingStatus = "正在初始化 WebView 组件...";
+            ProgressWidth = 210;
+            await Task.Delay(150); // 短暂显示完成状态
+
+            // 设置URL，开始导航到Web应用
             WebUrl = WebServerManager.Instance.Url;
-            
-            LoadingStatus = "正在加载界面...";
-            ProgressWidth = 80;
-            
-            // 统一使用WebView
-            IsWebViewVisible = true;
-            IsMacFallbackVisible = false;
-            WebViewOpacity = 1; // 直接设置为可见
-            
-            // 短暂延迟让WebView开始加载
-            await Task.Delay(100);
-            
-            LoadingStatus = "加载完成!";
-            ProgressWidth = 320;
-            
-            // 短暂延迟后隐藏加载界面
-            await Task.Delay(200);
-            IsLoading = false;
+            //// 给导航启动一点时间
+            //await Task.Delay(00);
+
+            //LoadingStatus = "加载完成!";
+            //ProgressWidth = 350;
+            //IsWebViewVisible = true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to start web server: {ex.Message}");
-            LoadingStatus = "加载失败: " + ex.Message;
-            IsLoading = false;
-        }
-    }
-
-    private void OpenInBrowser()
-    {
-        try
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                Process.Start("open", WebUrl);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                Process.Start("xdg-open", WebUrl);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Process.Start(new ProcessStartInfo(WebUrl) { UseShellExecute = true });
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to open browser: {ex.Message}");
-        }
-    }
-
-    public void OnWebViewNavigationStarting()
-    {
-        // 可以在这里添加导航开始的处理逻辑，暂时不修改透明度
-    }
-
-    public void OnWebViewNavigationCompleted(bool isSuccess)
-    {
-        if (isSuccess)
-        {
-            // WebView已成功加载，确保可见
-            WebViewOpacity = 1;
-            
-            // 确保加载界面隐藏
-            IsLoading = false;
-        }
-        else
-        {
-            // 加载失败，显示错误信息
-            LoadingStatus = "WebView 加载失败，请尝试重启应用";
-            IsLoading = true;
+            Console.WriteLine($"启动流程失败: {ex.Message}");
+            LoadingStatus = "启动失败: " + ex.Message;
         }
     }
 

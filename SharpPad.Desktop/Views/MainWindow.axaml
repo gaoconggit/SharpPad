@@ -10,20 +10,21 @@
         Height="800"
         MinWidth="800"
         MinHeight="600"
-        WindowState="Maximized">
+        WindowState="Maximized"
+        Background="#1E1E1E">
 
-  <Design.DataContext>
-    <vm:MainWindowViewModel/>
-  </Design.DataContext>
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
 
-  <Grid x:Name="MainGrid">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="*"/>
-    </Grid.RowDefinitions>
+	<Grid x:Name="MainGrid" Background="#1E1E1E">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
 
-    <!-- Menu Bar -->
-    <!--<Menu Grid.Row="0">
+		<!-- Menu Bar -->
+		<!--<Menu Grid.Row="0">
       <MenuItem Header="文件(_F)">
         <MenuItem Header="新建(_N)" Command="{Binding NewFileCommand}" InputGesture="Ctrl+N"/>
         <MenuItem Header="打开(_O)" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
@@ -47,165 +48,131 @@
       </MenuItem>
     </Menu>-->
 
-    <!-- Main Content - WebView -->
-	  <webview:WebView Grid.Row="1" 
-                     x:Name="MainWebView"
-                     Url="{Binding WebUrl}"
-                     IsVisible="{Binding IsWebViewVisible}"
-                     Opacity="{Binding WebViewOpacity}">
-      <webview:WebView.Transitions>
-        <Transitions>
-          <DoubleTransition Property="Opacity" Duration="0:0:0.6"/>
-        </Transitions>
-      </webview:WebView.Transitions>
-    </webview:WebView>
+		<!-- Main Content - WebView -->
+		<Border Grid.Row="1"
+				Background="#1E1E1E"
+				IsVisible="{Binding IsWebViewVisible}">
+			<webview:WebView x:Name="MainWebView"
+							 Url="{Binding WebUrl}"
+							 Opacity="{Binding WebViewOpacity}"
+							 Background="#1E1E1E">
+				<webview:WebView.Transitions>
+					<Transitions>
+						<DoubleTransition Property="Opacity" Duration="0:0:0.5" Easing="CubicEaseOut"/>
+					</Transitions>
+				</webview:WebView.Transitions>
+			</webview:WebView>
+		</Border>
 
-    <!-- Mac Alternative Content -->
-    <Border Grid.Row="1" 
-            Background="LightGray"
-            IsVisible="{Binding IsMacFallbackVisible}">
-      <StackPanel HorizontalAlignment="Center" 
-                  VerticalAlignment="Center"
-                  Spacing="20">
-        <TextBlock Text="SharpPad Desktop (Mac版本)" 
-                   FontSize="24" 
-                   FontWeight="Bold"
-                   HorizontalAlignment="Center"/>
-        <TextBlock Text="由于Mac平台WebView兼容性问题，请使用以下方式访问：" 
-                   FontSize="16" 
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   Margin="20,0"/>
-        <TextBlock x:Name="UrlTextBlock"
-                   Text="{Binding WebUrl}" 
-                   FontSize="14" 
-                   FontWeight="Bold"
-                   Foreground="Blue"
-                   TextDecorations="Underline"
-                   Cursor="Hand"
-                   HorizontalAlignment="Center"/>
-        <Button Content="在浏览器中打开" 
-                Command="{Binding OpenInBrowserCommand}"
-                FontSize="16"
-                Padding="20,10"/>
-        <TextBlock Text="提示：服务已在后台启动，您也可以手动复制上方链接到浏览器中访问" 
-                   FontSize="12" 
-                   Foreground="Gray"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   MaxWidth="400"/>
-      </StackPanel>
-    </Border>
+		<!-- Enhanced Loading Screen -->
+		<Border Grid.Row="1"
+				IsVisible="{Binding IsLoading}">
+			<Border.Background>
+				<LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+					<GradientStop Color="#1E1E1E" Offset="0"/>
+					<GradientStop Color="#252526" Offset="0.5"/>
+					<GradientStop Color="#1E1E1E" Offset="1"/>
+				</LinearGradientBrush>
+			</Border.Background>
 
-    <!-- Enhanced Loading Screen -->
-    <Border Grid.Row="1" 
-            IsVisible="{Binding IsLoading}">
-      <Border.Background>
-        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-          <GradientStop Color="#1E1E1E" Offset="0"/>
-          <GradientStop Color="#252526" Offset="0.5"/>
-          <GradientStop Color="#1E1E1E" Offset="1"/>
-        </LinearGradientBrush>
-      </Border.Background>
-      
-      <Grid>
-        <!-- Floating Code Elements -->
-        <Canvas>
-          <TextBlock Text="{}{" 
-                     FontSize="24" 
-                     Foreground="#333333"
-                     Canvas.Left="100" 
-                     Canvas.Top="150"
-                     Opacity="0.3"
-                     Classes="floating-code">
-            <TextBlock.RenderTransform>
-              <RotateTransform Angle="15"/>
-            </TextBlock.RenderTransform>
-          </TextBlock>
-          
-          <TextBlock Text="}}" 
-                     FontSize="20" 
-                     Foreground="#333333"
-                     Canvas.Right="120" 
-                     Canvas.Top="200"
-                     Opacity="0.25"
-                     Classes="floating-code">
-            <TextBlock.RenderTransform>
-              <RotateTransform Angle="-10"/>
-            </TextBlock.RenderTransform>
-          </TextBlock>
-          
-          <TextBlock Text="();" 
-                     FontSize="18" 
-                     Foreground="#333333"
-                     Canvas.Left="200" 
-                     Canvas.Bottom="180"
-                     Opacity="0.2"
-                     Classes="floating-code">
-            <TextBlock.RenderTransform>
-              <RotateTransform Angle="20"/>
-            </TextBlock.RenderTransform>
-          </TextBlock>
-        </Canvas>
-        
-        <!-- Main Loading Content -->
-        <StackPanel HorizontalAlignment="Center" 
-                    VerticalAlignment="Center"
-                    Spacing="20">
-          
-          <!-- Logo/Icon -->
-          <Border Width="80" Height="80" 
-                  CornerRadius="12"
-                  Background="#007ACC"
-                  Classes="loading-logo pulsing-logo">
-            <TextBlock Text="#" 
-                       FontSize="36" 
-                       FontWeight="Bold"
-                       Foreground="White"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
-          </Border>
-          
-          <!-- Application Name -->
-          <TextBlock Text="SharpPad Desktop" 
-                     FontSize="28" 
-                     FontWeight="Light"
-                     Foreground="#E8E8E8"
-                     HorizontalAlignment="Center"
-                     Classes="loading-title"/>
-          
-          <!-- Loading Status -->
-          <TextBlock Text="{Binding LoadingStatus}" 
-                     FontSize="14" 
-                     Foreground="#999999"
-                     HorizontalAlignment="Center"/>
-          
-          <!-- Modern Progress Bar -->
-          <Border Width="320" 
-                  Height="3" 
-                  Background="#2A2A2A"
-                  CornerRadius="1.5">
-            <Border Height="3" 
-                    Background="#007ACC"
-                    CornerRadius="1.5"
-                    HorizontalAlignment="Left"
-                    Width="{Binding ProgressWidth}">
-              <Border.Transitions>
-                <Transitions>
-                  <DoubleTransition Property="Width" Duration="0:0:0.4"/>
-                </Transitions>
-              </Border.Transitions>
-            </Border>
-          </Border>
-          
-          <!-- Version Info -->
-          <TextBlock Text="版本 1.0.0 - 高效 C# 代码编辑器" 
-                     FontSize="11" 
-                     Foreground="#666666"
-                     HorizontalAlignment="Center"
-                     Margin="0,20,0,0"/>
-        </StackPanel>
-      </Grid>
-    </Border>
-  </Grid>
+			<Grid>
+				<!-- Floating Code Elements -->
+				<Canvas>
+					<TextBlock Text="{}{"
+							   FontSize="24"
+							   Foreground="#333333"
+							   Canvas.Left="100"
+							   Canvas.Top="150"
+							   Opacity="0.3"
+							   Classes="floating-code">
+						<TextBlock.RenderTransform>
+							<RotateTransform Angle="15"/>
+						</TextBlock.RenderTransform>
+					</TextBlock>
+
+					<TextBlock Text="}}"
+							   FontSize="20"
+							   Foreground="#333333"
+							   Canvas.Right="120"
+							   Canvas.Top="200"
+							   Opacity="0.25"
+							   Classes="floating-code">
+						<TextBlock.RenderTransform>
+							<RotateTransform Angle="-10"/>
+						</TextBlock.RenderTransform>
+					</TextBlock>
+
+					<TextBlock Text="();"
+							   FontSize="18"
+							   Foreground="#333333"
+							   Canvas.Left="200"
+							   Canvas.Bottom="180"
+							   Opacity="0.2"
+							   Classes="floating-code">
+						<TextBlock.RenderTransform>
+							<RotateTransform Angle="20"/>
+						</TextBlock.RenderTransform>
+					</TextBlock>
+				</Canvas>
+
+				<!-- Main Loading Content -->
+				<StackPanel HorizontalAlignment="Center"
+							VerticalAlignment="Center"
+							Spacing="20">
+
+					<!-- Logo/Icon -->
+					<Border Width="80" Height="80"
+							CornerRadius="12"
+							Background="#007ACC"
+							Classes="loading-logo pulsing-logo">
+						<TextBlock Text="#"
+								   FontSize="36"
+								   FontWeight="Bold"
+								   Foreground="White"
+								   HorizontalAlignment="Center"
+								   VerticalAlignment="Center"/>
+					</Border>
+
+					<!-- Application Name -->
+					<TextBlock Text="SharpPad Desktop"
+							   FontSize="28"
+							   FontWeight="Light"
+							   Foreground="#E8E8E8"
+							   HorizontalAlignment="Center"
+							   Classes="loading-title"/>
+
+					<!-- Loading Status -->
+					<TextBlock Text="{Binding LoadingStatus}"
+							   FontSize="14"
+							   Foreground="#999999"
+							   HorizontalAlignment="Center"/>
+
+					<!-- Modern Progress Bar -->
+					<Border Width="320"
+							Height="3"
+							Background="#2A2A2A"
+							CornerRadius="1.5">
+						<Border Height="3"
+								Background="#007ACC"
+								CornerRadius="1.5"
+								HorizontalAlignment="Left"
+								Width="{Binding ProgressWidth}">
+							<Border.Transitions>
+								<Transitions>
+									<DoubleTransition Property="Width" Duration="0:0:0.4"/>
+								</Transitions>
+							</Border.Transitions>
+						</Border>
+					</Border>
+
+					<!-- Version Info -->
+					<TextBlock Text="版本 1.0.0 - 高效 C# 代码编辑器"
+							   FontSize="11"
+							   Foreground="#666666"
+							   HorizontalAlignment="Center"
+							   Margin="0,20,0,0"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+	</Grid>
 </Window>

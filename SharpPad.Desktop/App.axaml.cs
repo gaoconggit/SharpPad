@@ -26,34 +26,6 @@ public partial class App : Application
             };
 
             desktop.ShutdownRequested += OnShutdownRequested;
-
-            // 异步启动Web服务器
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await WebServerManager.Instance.StartAsync();
-                    
-                    // 在UI线程上更新URL
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        viewModel.WebUrl = WebServerManager.Instance.Url;
-                        viewModel.IsLoading = false;
-                        viewModel.IsWebViewVisible = true;
-                    });
-                }
-                catch (Exception ex)
-                {
-                    // 在UI线程上显示错误
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        viewModel.IsLoading = false;
-                        viewModel.IsMacFallbackVisible = true;
-                        // 可以在这里添加错误显示逻辑
-                        System.Diagnostics.Debug.WriteLine($"Web server start failed: {ex.Message}");
-                    });
-                }
-            });
         }
 
         base.OnFrameworkInitializationCompleted();

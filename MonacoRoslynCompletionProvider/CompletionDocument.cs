@@ -6,6 +6,8 @@ using MonacoRoslynCompletionProvider.Api;
 //using RoslynPad.Roslyn.QuickInfo;
 using System.Threading;
 using System.Threading.Tasks;
+using RoslynPad.Roslyn.QuickInfo;
+using MonacoRoslynCompletionProvider.RoslynPad;
 
 namespace MonacoRoslynCompletionProvider
 {
@@ -22,7 +24,7 @@ namespace MonacoRoslynCompletionProvider
         //    EmitResult = emitResult;
         //}
 
-        //private QuickInfoProvider quickInfoProvider;
+        private QuickInfoProvider quickInfoProvider;
 
         internal CompletionDocument(Document document, SemanticModel semanticModel, EmitResult emitResult)
         {
@@ -30,15 +32,16 @@ namespace MonacoRoslynCompletionProvider
             this.SemanticModel = semanticModel;
             this.EmitResult = emitResult;
 
-            //this.quickInfoProvider = new QuickInfoProvider(new DeferredQuickInfoContentProvider());
+            this.quickInfoProvider = new QuickInfoProvider(new DeferredQuickInfoContentProvider());
         }
 
-        public Task<HoverInfoResult> GetHoverInformation(int position, CancellationToken cancellationToken)
+        public async Task<HoverInfoResult> GetHoverInformation(int position, CancellationToken cancellationToken)
         {
-            //var info = await quickInfoProvider.GetItemAsync(document, position, cancellationToken);
-            //return new HoverInfoResult() { Information = info.Create().ToString() };
-            var hoverInformationProvider = new HoverInformationProvider();
-            return hoverInformationProvider.Provide(Document, position, SemanticModel);
+            var info = await quickInfoProvider.GetItemAsync(Document, position, cancellationToken);
+            return new HoverInfoResult() { Information = info.Create().ToString() };
+
+            //var hoverInformationProvider = new HoverInformationProvider();
+            //return hoverInformationProvider.Provide(Document, position, SemanticModel);
         }
 
         public Task<TabCompletionResult[]> GetTabCompletion(int position, CancellationToken cancellationToken)

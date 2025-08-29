@@ -30,7 +30,7 @@
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.1" />
 		<PackageReference Include="System.Net.Http" Version="4.3.4" />
-		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+		<PackageReference Include="System.Text.Json" Version="9.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\MonacoRoslynCompletionProvider\MonacoRoslynCompletionProvider.csproj" />
