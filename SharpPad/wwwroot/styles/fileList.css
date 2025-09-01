@@ -156,8 +156,17 @@ body.theme-dark #fileListItems a.selected {
 }
 
 body.theme-light #fileListItems a {
+    text-decoration: none;
     color: #333333;
+    transition: all 0.2s;
+    display: block;
+    padding: 6px 10px;
+    border-radius: 3px;
+    background-color: transparent;
+    font-size: 13px;
+    position: relative;
     opacity: 1;
+    cursor: pointer;
 }
 
 body.theme-light #fileListItems a:hover {
