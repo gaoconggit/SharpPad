@@ -74,7 +74,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         ExitCommand = new RelayCommand(() => Environment.Exit(0));
         AboutCommand = new RelayCommand(() => { /* TODO: Show about dialog */ });
 
-        _ = InitializeAsync();
+        _ = Task.Run(InitializeAsync);
     }
 
     private async Task InitializeAsync()
@@ -84,28 +84,20 @@ public class MainWindowViewModel : INotifyPropertyChanged
             // 第1步：桌面应用启动完成，显示加载界面
             LoadingStatus = "正在启动 Web 服务器...";
             ProgressWidth = 70;
-            await Task.Delay(150); // 短暂显示完成状态
 
             // 第2步：启动Web服务器
             await WebServerManager.Instance.StartAsync();
 
             LoadingStatus = "Web 服务器启动完成";
             ProgressWidth = 140;
-            await Task.Delay(150); // 短暂显示完成状态
+
+            // 设置URL，开始导航到Web应用
+            WebUrl = WebServerManager.Instance.Url;
 
             // 第3步：WebView组件初始化（透明，深色背景）
             LoadingStatus = "正在初始化 WebView 组件...";
             ProgressWidth = 210;
-            await Task.Delay(150); // 短暂显示完成状态
 
-            // 设置URL，开始导航到Web应用
-            WebUrl = WebServerManager.Instance.Url;
-            //// 给导航启动一点时间
-            //await Task.Delay(00);
-
-            //LoadingStatus = "加载完成!";
-            //ProgressWidth = 350;
-            //IsWebViewVisible = true;
         }
         catch (Exception ex)
         {

@@ -18,11 +18,10 @@
 		<PublishReadyToRun Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</PublishReadyToRun>
 		<UseNativeHttpHandler Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">false</UseNativeHttpHandler>
 		<AssemblyName>SharpPad.Desktop</AssemblyName>
+		<SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
 	</PropertyGroup>
 
 	<ItemGroup>
-
-
 		<PackageReference Include="Avalonia.Desktop" Version="11.3.4" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.4" />
 		<PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
@@ -48,10 +47,8 @@
 			<SharpPadWwwroot Include="..\SharpPad\Dll\**\*" />
 		</ItemGroup>
 
-		<Copy SourceFiles="@(SharpPadWwwroot)"
-			  DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
-		<Copy SourceFiles="@(SharpPadConfig)"
-			  DestinationFolder="$(PublishDir)" />
+		<Copy SourceFiles="@(SharpPadWwwroot)" DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(SharpPadConfig)" DestinationFolder="$(PublishDir)" />
 	</Target>
 
 	<!-- Remove unnecessary language packages, keep only Chinese -->

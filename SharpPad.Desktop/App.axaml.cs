@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using AvaloniaWebView;
 using SharpPad.Desktop.Services;
 using SharpPad.Desktop.ViewModels;
 using SharpPad.Desktop.Views;
@@ -13,6 +14,14 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void RegisterServices()
+    {
+        base.RegisterServices();
+        AvaloniaWebViewBuilder.Initialize((config) => {
+            config.DefaultWebViewBackgroundColor = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+        });
     }
 
     public override void OnFrameworkInitializationCompleted()
