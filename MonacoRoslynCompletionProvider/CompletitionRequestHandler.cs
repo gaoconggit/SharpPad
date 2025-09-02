@@ -66,6 +66,14 @@ namespace MonacoRoslynCompletionProvider
             return await document.GetSignatureHelp(signatureHelpRequest.Position, CancellationToken.None);
         }
 
+        public static async Task<DefinitionResult> DefinitionHandle(DefinitionRequest definitionRequest, string nuget)
+        {
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(definitionRequest.Code);
+            return await document.GetDefinition(definitionRequest.Position, CancellationToken.None);
+        }
+
         //格式化代码
         public static string FormatCode(string sourceCode)
         {

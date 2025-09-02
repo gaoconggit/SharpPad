@@ -52,6 +52,14 @@ namespace SharpPad.Controllers
             });
         }
 
+        [HttpPost("definition")]
+        public async Task<IActionResult> Definition([FromBody] DefinitionRequest request)
+        {
+            string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var definitionResult = await MonacoRequestHandler.DefinitionHandle(request, nugetPackages);
+            return Ok(definitionResult);
+        }
+
         [HttpPost("addPackages")]
         public IActionResult AddPackages([FromBody] AddPackagesRequest request)
         {

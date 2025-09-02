@@ -5,7 +5,10 @@
       "Bash(git add:*)",
       "mcp__playwright__browser_click",
       "Bash(git log:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__grep__searchGitHub",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []

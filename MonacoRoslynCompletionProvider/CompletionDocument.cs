@@ -62,5 +62,11 @@ namespace MonacoRoslynCompletionProvider
             return signatureHelpProvider.Provide(Document, position, SemanticModel);
         }
 
+        public Task<DefinitionResult> GetDefinition(int position, CancellationToken cancellationToken)
+        {
+            var definitionProvider = new DefinitionProvider();
+            return definitionProvider.Provide(Document, position, cancellationToken);
+        }
+
     }
 }

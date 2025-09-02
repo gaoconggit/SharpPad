@@ -198,4 +198,40 @@ export function registerCsharpProvider() {
             }
         }
     });
+
+    monaco.languages.registerDefinitionProvider('csharp', {
+        async provideDefinition(model, position) {
+            const file = getCurrentFile();
+            const packages = file?.nugetConfig?.packages || [];
+
+            let request = {
+                Code: model.getValue(),
+                Position: model.getOffsetAt(position),
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                }))
+            };
+
+            try {
+                const { data } = await sendRequest("definition", request);
+                if (!data || !data.locations || data.locations.length === 0) {
+                    return [];
+                }
+
+                return data.locations.map(location => ({
+                    uri: model.uri,
+                    range: new monaco.Range(
+                        location.range.startPosition.lineNumber,
+                        location.range.startPosition.column,
+                        location.range.endPosition.lineNumber,
+                        location.range.endPosition.column
+                    )
+                }));
+            } catch (error) {
+                console.error('Definition error:', error);
+                return [];
+            }
+        }
+    });
 }
