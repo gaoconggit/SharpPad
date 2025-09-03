@@ -8,7 +8,9 @@
       "Bash(git commit:*)",
       "mcp__context7__resolve-library-id",
       "mcp__grep__searchGitHub",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Bash(mkdir:*)",
+      "Bash(git worktree add:*)"
     ],
     "deny": [],
     "ask": []
