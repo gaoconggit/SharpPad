@@ -38,10 +38,10 @@ namespace MonacoRoslynCompletionProvider
         public async Task<HoverInfoResult> GetHoverInformation(int position, CancellationToken cancellationToken)
         {
             var info = await quickInfoProvider.GetItemAsync(Document, position, cancellationToken);
-            return new HoverInfoResult() { Information = info.Create().ToString() };
+            return new HoverInfoResult() { Information = info?.Create().ToString() ?? "" };
 
             //var hoverInformationProvider = new HoverInformationProvider();
-            //return hoverInformationProvider.Provide(Document, position, SemanticModel);
+            //return await hoverInformationProvider.Provide(Document, position, SemanticModel);
         }
 
         public Task<TabCompletionResult[]> GetTabCompletion(int position, CancellationToken cancellationToken)
@@ -66,6 +66,12 @@ namespace MonacoRoslynCompletionProvider
         {
             var definitionProvider = new DefinitionProvider();
             return definitionProvider.Provide(Document, position, cancellationToken);
+        }
+
+        public Task<SemanticTokensResult> GetSemanticTokens(CancellationToken cancellationToken)
+        {
+            var semanticTokensProvider = new SemanticTokensProvider();
+            return semanticTokensProvider.Provide(Document, cancellationToken);
         }
 
     }

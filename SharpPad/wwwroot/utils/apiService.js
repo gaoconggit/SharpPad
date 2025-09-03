@@ -8,6 +8,7 @@ export async function sendRequest(type, request) {
         case 'codeCheck': endPoint = '/completion/codeCheck'; break;
         case 'format': endPoint = '/completion/format'; break;
         case 'definition': endPoint = '/completion/definition'; break;
+        case 'semanticTokens': endPoint = '/completion/semanticTokens'; break;
         case 'run': endPoint = '/api/coderun/run'; break;
         case 'addPackages': endPoint = '/completion/addPackages'; break;
         default: throw new Error(`Unknown request type: ${type}`);

@@ -60,6 +60,14 @@ namespace SharpPad.Controllers
             return Ok(definitionResult);
         }
 
+        [HttpPost("semanticTokens")]
+        public async Task<IActionResult> SemanticTokens([FromBody] SemanticTokensRequest request)
+        {
+            string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(request, nugetPackages);
+            return Ok(semanticTokensResult);
+        }
+
         [HttpPost("addPackages")]
         public IActionResult AddPackages([FromBody] AddPackagesRequest request)
         {

@@ -74,6 +74,14 @@ namespace MonacoRoslynCompletionProvider
             return await document.GetDefinition(definitionRequest.Position, CancellationToken.None);
         }
 
+        public static async Task<SemanticTokensResult> SemanticTokensHandle(SemanticTokensRequest semanticTokensRequest, string nuget)
+        {
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(semanticTokensRequest.Code);
+            return await document.GetSemanticTokens(CancellationToken.None);
+        }
+
         //格式化代码
         public static string FormatCode(string sourceCode)
         {

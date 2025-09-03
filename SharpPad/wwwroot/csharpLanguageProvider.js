@@ -1,8 +1,12 @@
 ﻿import { getCurrentFile } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
+import { setupSemanticColoring } from './semanticColoring.js';
 
 export function registerCsharpProvider() {
     monaco.languages.register({ id: 'csharp' });
+    
+    // 设置语义着色
+    setupSemanticColoring();
 
     monaco.languages.registerCompletionItemProvider('csharp', {
         triggerCharacters: [".", " "],
