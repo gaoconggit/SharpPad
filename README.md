@@ -6,6 +6,10 @@
 ![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
 
 ## PC版本体验更好,推荐使用PC版本,从0.2.0 版本起只提供PC版本
+ - 快速体验
+ - 1. 下载windows或mac release 包
+ - 2. 解压后，运行 SharpPad.Desktop.exe
+ - 3. Enjoy !
 
 ## 演示站点:
 
@@ -76,6 +80,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
