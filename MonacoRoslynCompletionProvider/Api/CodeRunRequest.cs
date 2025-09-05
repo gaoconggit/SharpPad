@@ -13,6 +13,8 @@ namespace MonacoRoslynCompletionProvider.Api
         public List<Package> Packages { get; set; }
 
         public int LanguageVersion { get; set; }
+        
+        public string SessionId { get; set; }
     }
 
     public record Package(string Id, string Version);

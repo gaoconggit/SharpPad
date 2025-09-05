@@ -9,6 +9,7 @@ export class CodeRunner {
         this.runButton = document.getElementById('runButton');
         this.outputContent = document.getElementById('outputContent');
         this.notification = document.getElementById('notification');
+        this.currentSessionId = null;
         this.initializeEventListeners();
     }
 
@@ -45,69 +46,25 @@ export class CodeRunner {
     }
 
     streamOutput(message, type = 'info') {
-        const md = window.markdownit({
-            highlight: function (str, lang) {
-                if (lang && window.hljs.getLanguage(lang)) {
-                    try {
-                        const highlighted = window.hljs.highlight(str, { language: lang }).value;
-                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                    } catch (_) {
-                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${window.markdownit().utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                    }
-                } else {
-                    // 如果语言不存在或者无法识别，使用自动检测
-                    const detected = window.hljs.highlightAuto(str);
-                    const lang = detected.language || 'text';
-                    return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
-                }
-            }
-        });
-
         this.outputContent.classList.add("result-streaming");
-        const cursor = document.createElement("p");
-        this.outputContent.appendChild(cursor);
-
-        message = message.replace(/\r\n/g, '\n\r\n');
-        this.outputContent.innerHTML = md.render(message);
-
-        // 添加复制功能的样式
-        const style = document.createElement('style');
-        style.textContent = `
-            .hljs {
-                position: relative;
-                padding-top: 25px;
-            }
-            .lang-label {
-                position: absolute;
-                top: 0;
-                left: 0;
-                padding: 2px 8px;
-                font-size: 12px;
-                color: #001080;
-                background: #ffffff;
-                border-bottom: 1px solid #d4d4d4;
-                border-right: 1px solid #d4d4d4;
-                border-radius: 0 0 4px 0;
-            }
-            .copy-button {
-                position: absolute;
-                top: 5px;
-                right: 5px;
-                padding: 4px 8px;
-                background: #ffffff;
-                border: 1px solid #d4d4d4;
-                border-radius: 3px;
-                cursor: pointer;
-                opacity: 1;
-                color: #001080;
-                font-family: Consolas, monospace;
-            }
-            .copy-button:hover {
-                background: #f0f0f0;
-                border-color: #007acc;
-            }
-        `;
-        document.head.appendChild(style);
+        
+        // 直接使用 pre 元素显示输出，保持换行符
+        const outputDiv = document.createElement('div');
+        outputDiv.className = `output-${type}`;
+        
+        const pre = document.createElement('pre');
+        pre.textContent = message;
+        pre.style.margin = '0';
+        pre.style.fontFamily = 'Consolas, monospace';
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.style.wordBreak = 'break-word';
+        
+        outputDiv.appendChild(pre);
+        this.outputContent.innerHTML = '';
+        this.outputContent.appendChild(outputDiv);
+        
+        // 滚动到底部
+        this.outputContent.scrollTop = this.outputContent.scrollHeight;
     }
 
     formatJSON(str) {
@@ -136,13 +93,17 @@ export class CodeRunner {
         // 获取选择的C#版本
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
 
+        // 生成会话ID
+        this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
         const request = {
             SourceCode: code,
             Packages: packages.map(p => ({
                 Id: p.id,
                 Version: p.version
             })),
-            LanguageVersion: parseInt(csharpVersion)
+            LanguageVersion: parseInt(csharpVersion),
+            SessionId: this.currentSessionId
         };
 
         // 清空输出区域
@@ -167,8 +128,13 @@ export class CodeRunner {
                     const data = JSON.parse(line.substring(6));
                     switch (data.type) {
                         case 'output':
-                            result += data.content;
-                            this.streamOutput(result, 'success');
+                            // 检查是否是输入请求
+                            if (data.content.includes('[INPUT REQUIRED]')) {
+                                this.showInputRequest(data.content);
+                            } else {
+                                result += data.content;
+                                this.streamOutput(result, 'success');
+                            }
                             break;
                         case 'error':
                             this.appendOutput(data.content, 'error');
@@ -180,6 +146,7 @@ export class CodeRunner {
                             clearTimeout(showNotificationTimer); // 清除显示通知的定时器
                             this.notification.style.display = 'none';
                             this.outputContent.classList.remove("result-streaming");
+                            this.currentSessionId = null; // 清空会话ID
                             return;
                     }
                 }
@@ -204,6 +171,114 @@ export class CodeRunner {
         } catch (error) {
             console.error('保存文件时出错:', error);
             return false;
+        }
+    }
+
+    showInputRequest(message) {
+        // 移除已存在的输入框
+        const existingInputs = this.outputContent.querySelectorAll('.input-container');
+        existingInputs.forEach(input => input.remove());
+        
+        // 显示输入请求消息
+        this.appendOutput(message, 'info');
+        
+        // 创建输入框
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'input-container';
+        inputContainer.style.cssText = `
+            display: flex;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        `;
+
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.placeholder = '请输入数据...';
+        inputField.style.cssText = `
+            flex: 1;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+        `;
+
+        const sendButton = document.createElement('button');
+        sendButton.textContent = '发送';
+        sendButton.style.cssText = `
+            margin-left: 10px;
+            padding: 5px 15px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        `;
+
+        // 发送输入事件
+        const sendInput = async () => {
+            const input = inputField.value;
+            if (input.trim() === '') {
+                inputField.focus();
+                return;
+            }
+            
+            // 显示用户输入
+            this.appendOutput(`> ${input}`, 'input');
+            
+            // 发送到后端
+            await this.sendInput(input);
+            
+            // 移除输入框
+            inputContainer.remove();
+        };
+
+        sendButton.addEventListener('click', sendInput);
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendInput();
+            }
+        });
+
+        inputContainer.appendChild(inputField);
+        inputContainer.appendChild(sendButton);
+        this.outputContent.appendChild(inputContainer);
+
+        // 自动聚焦输入框
+        inputField.focus();
+        this.outputContent.scrollTop = this.outputContent.scrollHeight;
+    }
+
+    async sendInput(input) {
+        if (!this.currentSessionId) {
+            this.appendOutput('错误：没有活动的执行会话', 'error');
+            return;
+        }
+
+        try {
+            const request = {
+                SessionId: this.currentSessionId,
+                Input: input
+            };
+
+            const response = await fetch('/api/coderun/input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request)
+            });
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                this.appendOutput('发送输入失败', 'error');
+            }
+            // 用户输入已经在 sendInput 函数中显示了，这里不需要重复显示
+        } catch (error) {
+            this.appendOutput('发送输入时出错: ' + error.message, 'error');
         }
     }
 }

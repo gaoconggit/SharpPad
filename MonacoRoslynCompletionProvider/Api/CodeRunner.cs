@@ -23,6 +23,25 @@ namespace MonacoRoslynCompletionProvider.Api
         // 用于创建AssemblyLoadContext的锁对象
         private static readonly object LoadContextLock = new object();
 
+        // 存储正在运行的代码的交互式读取器
+        private static readonly Dictionary<string, InteractiveTextReader> _activeReaders = new();
+
+        public static bool ProvideInput(string sessionId, string input)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return false;
+
+            lock (_activeReaders)
+            {
+                if (_activeReaders.TryGetValue(sessionId, out var reader))
+                {
+                    reader.ProvideInput(input);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public class RunResult
         {
             public string Output { get; set; }
@@ -34,7 +53,8 @@ namespace MonacoRoslynCompletionProvider.Api
     string nuget,
     int languageVersion,
     Func<string, Task> onOutput,
-    Func<string, Task> onError)
+    Func<string, Task> onError,
+    string sessionId = null)
         {
             var result = new RunResult();
             // 低内存版本：不使用 StringBuilder 缓存输出，只依赖回调传递实时数据
@@ -111,16 +131,34 @@ namespace MonacoRoslynCompletionProvider.Api
                         async void ErrorAction(string text) => await onError(text).ConfigureAwait(false);
                         await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
 
+                        // 创建交互式输入读取器
+                        var interactiveReader = new InteractiveTextReader(async prompt =>
+                        {
+                            await onOutput($"[INPUT REQUIRED] Please provide input: ").ConfigureAwait(false);
+                        });
+
+                        // 如果提供了会话ID，将读取器存储起来以便后续提供输入
+                        if (!string.IsNullOrEmpty(sessionId))
+                        {
+                            lock (_activeReaders)
+                            {
+                                _activeReaders[sessionId] = interactiveReader;
+                            }
+                        }
+
                         // 异步执行入口点代码
                         var executionTask = Task.Run(async () =>
                         {
                             TextWriter originalOut = null, originalError = null;
+                            TextReader originalIn = null;
                             lock (ConsoleLock)
                             {
                                 originalOut = Console.Out;
                                 originalError = Console.Error;
+                                originalIn = Console.In;
                                 Console.SetOut(outputWriter);
                                 Console.SetError(errorWriter);
+                                Console.SetIn(interactiveReader);
                             }
                             try
                             {
@@ -145,7 +183,18 @@ namespace MonacoRoslynCompletionProvider.Api
                                 {
                                     Console.SetOut(originalOut);
                                     Console.SetError(originalError);
+                                    Console.SetIn(originalIn);
                                 }
+                                
+                                // 清理会话
+                                if (!string.IsNullOrEmpty(sessionId))
+                                {
+                                    lock (_activeReaders)
+                                    {
+                                        _activeReaders.Remove(sessionId);
+                                    }
+                                }
+                                interactiveReader?.Dispose();
                             }
                         });
                         await executionTask.ConfigureAwait(false);

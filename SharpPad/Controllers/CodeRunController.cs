@@ -38,7 +38,8 @@ namespace SharpPad.Controllers
                     nugetPackages,
                     request?.LanguageVersion ?? 2147483647,
                     message => OnOutputAsync(message, channel.Writer, cts.Token),
-                    error => OnErrorAsync(error, channel.Writer, cts.Token)
+                    error => OnErrorAsync(error, channel.Writer, cts.Token),
+                    request?.SessionId
                 );
 
                 // 发送完成消息
@@ -130,5 +131,23 @@ namespace SharpPad.Controllers
                 Console.WriteLine($"处理 Channel 时发生异常: {ex.Message}");
             }
         }
+
+        [HttpPost("input")]
+        public IActionResult ProvideInput([FromBody] InputRequest request)
+        {
+            if (string.IsNullOrEmpty(request?.SessionId))
+            {
+                return BadRequest("SessionId is required");
+            }
+
+            var success = CodeRunner.ProvideInput(request.SessionId, request.Input);
+            return Ok(new { success });
+        }
+    }
+
+    public class InputRequest
+    {
+        public string SessionId { get; set; }
+        public string Input { get; set; }
     }
 }

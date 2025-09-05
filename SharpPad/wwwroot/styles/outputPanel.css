@@ -595,3 +595,54 @@ body.theme-light html.ew-resizing #outputPanel.vertical .resize-handle {
 body.theme-dark .output-error {
     color: #ff302a;
 }
+
+.output-input {
+    color: #00d7ff;
+    font-weight: bold;
+    border-left: 3px solid #00d7ff;
+    padding-left: 8px;
+}
+
+.input-container {
+    display: flex !important;
+    margin: 10px 0 !important;
+    padding: 10px !important;
+    background: #2d2d2d !important;
+    border-radius: 4px !important;
+    border: 1px solid #555 !important;
+}
+
+body.theme-light .input-container {
+    background: #f8f8f8 !important;
+    border: 1px solid #ddd !important;
+}
+
+.input-container input {
+    flex: 1 !important;
+    padding: 5px 10px !important;
+    border: 1px solid #555 !important;
+    border-radius: 3px !important;
+    font-family: Consolas, monospace !important;
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+}
+
+body.theme-light .input-container input {
+    border: 1px solid #ccc !important;
+    background: #ffffff !important;
+    color: #333 !important;
+}
+
+.input-container button {
+    margin-left: 10px !important;
+    padding: 5px 15px !important;
+    background: #007acc !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+}
+
+.input-container button:hover {
+    background: #005f9c !important;
+}
