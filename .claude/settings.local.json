@@ -10,7 +10,8 @@
       "mcp__grep__searchGitHub",
       "mcp__context7__get-library-docs",
       "Bash(mkdir:*)",
-      "Bash(git worktree add:*)"
+      "Bash(git worktree add:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []
