@@ -155,14 +155,25 @@ function applySemanticDecorations(model, tokenData, legend) {
 
         const tokenType = legend.tokenTypes[tokenTypeIndex];
         if (tokenType) {
-            const className = getTokenClassName(tokenType, tokenModifiers);
-            decorations.push({
-                range: new monaco.Range(
-                    currentLine + 1, currentChar + 1,
-                    currentLine + 1, currentChar + length + 1
-                ),
-                options: { inlineClassName: className }
-            });
+            // 检查是否在注释范围内
+            const lineContent = model.getLineContent(currentLine + 1);
+            const tokenStartPos = currentChar;
+            
+            // 查找该行是否有注释标记
+            const commentStart = lineContent.indexOf('//');
+            const isInComment = commentStart !== -1 && tokenStartPos >= commentStart;
+            
+            // 如果在注释中，跳过语义着色，让原生注释样式生效
+            if (!isInComment) {
+                const className = getTokenClassName(tokenType, tokenModifiers);
+                decorations.push({
+                    range: new monaco.Range(
+                        currentLine + 1, currentChar + 1,
+                        currentLine + 1, currentChar + length + 1
+                    ),
+                    options: { inlineClassName: className }
+                });
+            }
         }
     }
 
