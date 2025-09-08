@@ -74,5 +74,11 @@ namespace MonacoRoslynCompletionProvider
             return semanticTokensProvider.Provide(Document, cancellationToken);
         }
 
+        public Task<CodeActionResult[]> GetCodeActions(int position, int selectionStart, int selectionEnd, CancellationToken cancellationToken)
+        {
+            var codeActionProvider = new CodeActionProvider();
+            return codeActionProvider.ProvideAsync(Document, position, selectionStart, selectionEnd, cancellationToken);
+        }
+
     }
 }

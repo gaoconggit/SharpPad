@@ -11,7 +11,9 @@
       "mcp__context7__get-library-docs",
       "Bash(mkdir:*)",
       "Bash(git worktree add:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)"
     ],
     "deny": [],
     "ask": []

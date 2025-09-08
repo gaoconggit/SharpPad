@@ -446,6 +446,9 @@ async function initializeApp() {
 
     // 将编辑器实例暴露给全局，以便其他模块使用
     window.editor = editor;
+    window.editorInstance = editorInstance;
+    // 暴露 CodeActionProvider 用于调试
+    window.editor.codeActionProvider = editorInstance.codeActionProvider;
 }
 
 // 从 localStorage 加载系统设置

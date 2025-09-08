@@ -2,6 +2,7 @@
 import { layoutEditor, DEFAULT_CODE, getSelectedModel, GPT_COMPLETION_SYSTEM_PROMPT } from '../utils/common.js';
 import { registerCompletion } from './index.mjs';
 import { getSystemSettings } from '../index.js';
+import { CodeActionProvider } from './codeActionProvider.js';
 
 export class Editor {
     constructor() {
@@ -9,6 +10,7 @@ export class Editor {
         this.defaultCode = DEFAULT_CODE;
         this.container = document.getElementById('container');
         this.completion = null;
+        this.codeActionProvider = null;
 
         // 从localStorage读取主题设置，如果没有则默认为dark主题
         this.currentTheme = localStorage.getItem('editorTheme') || 'vs-dark';
@@ -28,7 +30,13 @@ export class Editor {
         this.editor = monaco.editor.create(document.getElementById(containerId), {
             value: this.defaultCode,
             language: 'csharp',
-            theme: this.currentTheme
+            theme: this.currentTheme,
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            lineNumbers: 'on',
+            renderWhitespace: 'selection',
+            scrollBeyondLastLine: false
         });
 
         this.completion = registerCompletion(monaco, this.editor, {
@@ -107,8 +115,13 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
             },
         });
 
+        // 初始化 Code Actions Provider
+        this.codeActionProvider = new CodeActionProvider(this.editor);
+
+
         return this.editor;
     }
+
 
     setupFullscreen() {
         // 创建全屏按钮
@@ -190,6 +203,7 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
                 '</svg>';
         }
     }
+
 
     getValue() {
         return this.editor ? this.editor.getValue() : '';

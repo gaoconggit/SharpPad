@@ -82,6 +82,18 @@ namespace MonacoRoslynCompletionProvider
             return await document.GetSemanticTokens(CancellationToken.None);
         }
 
+        public static async Task<CodeActionResult[]> CodeActionsHandle(CodeActionRequest codeActionRequest, string nuget)
+        {
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var document = await workspace.CreateDocumentAsync(codeActionRequest.Code);
+            return await document.GetCodeActions(
+                codeActionRequest.Position, 
+                codeActionRequest.SelectionStart, 
+                codeActionRequest.SelectionEnd, 
+                CancellationToken.None);
+        }
+
         //格式化代码
         public static string FormatCode(string sourceCode)
         {

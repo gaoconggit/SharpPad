@@ -91,5 +91,25 @@ namespace SharpPad.Controllers
                 });
             }
         }
+
+        [HttpPost("codeActions")]
+        public async Task<IActionResult> CodeActions([FromBody] CodeActionRequest request)
+        {
+            try
+            {
+                string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+                var codeActionResults = await MonacoRequestHandler.CodeActionsHandle(request, nugetPackages);
+                return Ok(codeActionResults);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    data = Array.Empty<CodeActionResult>(),
+                    message = ex.Message
+                });
+            }
+        }
     }
 } 
