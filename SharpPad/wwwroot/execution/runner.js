@@ -32,13 +32,21 @@ export class CodeRunner {
             pre.style.whiteSpace = 'pre-wrap';
             outputLine.appendChild(pre);
         } else {
-            // 如果不是 JSON，也使用 pre 元素来保持格式
-            const pre = document.createElement('pre');
-            pre.textContent = message;
-            pre.style.margin = '0';
-            pre.style.fontFamily = 'Consolas, monospace';
-            pre.style.whiteSpace = 'pre-wrap';
-            outputLine.appendChild(pre);
+            // 检查是否包含 markdown 格式（如代码块、链接等）
+            if (this.containsMarkdown(message)) {
+                // 如果包含 markdown，使用 markdown-it 渲染
+                const md = this.createMarkdownRenderer();
+                outputLine.innerHTML = md.render(message);
+                outputLine.classList.add('markdown-content');
+            } else {
+                // 如果不包含 markdown，使用 pre 元素来保持格式
+                const pre = document.createElement('pre');
+                pre.textContent = message;
+                pre.style.margin = '0';
+                pre.style.fontFamily = 'Consolas, monospace';
+                pre.style.whiteSpace = 'pre-wrap';
+                outputLine.appendChild(pre);
+            }
         }
 
         this.outputContent.appendChild(outputLine);
@@ -48,18 +56,26 @@ export class CodeRunner {
     streamOutput(message, type = 'info') {
         this.outputContent.classList.add("result-streaming");
         
-        // 直接使用 pre 元素显示输出，保持换行符
         const outputDiv = document.createElement('div');
         outputDiv.className = `output-${type}`;
         
-        const pre = document.createElement('pre');
-        pre.textContent = message;
-        pre.style.margin = '0';
-        pre.style.fontFamily = 'Consolas, monospace';
-        pre.style.whiteSpace = 'pre-wrap';
-        pre.style.wordBreak = 'break-word';
+        // 检查是否包含 markdown 格式（如代码块、链接等）
+        if (this.containsMarkdown(message)) {
+            // 如果包含 markdown，使用 markdown-it 渲染
+            const md = this.createMarkdownRenderer();
+            outputDiv.innerHTML = md.render(message);
+            outputDiv.classList.add('markdown-content');
+        } else {
+            // 如果不包含 markdown，使用 pre 元素显示输出，保持换行符
+            const pre = document.createElement('pre');
+            pre.textContent = message;
+            pre.style.margin = '0';
+            pre.style.fontFamily = 'Consolas, monospace';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.wordBreak = 'break-word';
+            outputDiv.appendChild(pre);
+        }
         
-        outputDiv.appendChild(pre);
         this.outputContent.innerHTML = '';
         this.outputContent.appendChild(outputDiv);
         
@@ -74,6 +90,57 @@ export class CodeRunner {
         } catch (e) {
             return str;
         }
+    }
+
+    // 检查文本是否包含 markdown 格式
+    containsMarkdown(text) {
+        // 检查常见的 markdown 模式
+        const markdownPatterns = [
+            /```[\s\S]*?```/,           // 代码块
+            /`[^`]+`/,                  // 行内代码
+            /^\s*#{1,6}\s+/m,           // 标题
+            /\[([^\]]+)\]\([^)]+\)/,    // 链接
+            /!\[([^\]]*)\]\([^)]+\)/,   // 图片
+            /^\s*[-*+]\s+/m,            // 无序列表
+            /^\s*\d+\.\s+/m,            // 有序列表
+            /\*\*[^*]+\*\*/,            // 粗体
+            /\*[^*]+\*/,                // 斜体
+            /~~[^~]+~~/,                // 删除线
+            /^\s*>\s+/m,                // 引用
+            /^\s*---+\s*$/m,            // 分隔线
+            /^\s*\|\s*.+\s*\|/m         // 表格
+        ];
+        
+        return markdownPatterns.some(pattern => pattern.test(text));
+    }
+
+    // 创建 markdown 渲染器
+    createMarkdownRenderer() {
+        // 检查 markdown-it 是否可用
+        if (typeof window.markdownit === 'undefined') {
+            console.warn('markdown-it 未加载，无法渲染 markdown');
+            return null;
+        }
+
+        return window.markdownit({
+            breaks: true,
+            highlight: function (str, lang) {
+                if (lang && window.hljs && window.hljs.getLanguage && window.hljs.getLanguage(lang)) {
+                    try {
+                        const highlighted = window.hljs.highlight(str, { language: lang }).value;
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${highlighted}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    } catch (_) {
+                        return `<pre class="hljs"><code><div class="lang-label">${lang}</div>${window.markdownit().utils.escapeHtml(str)}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                    }
+                } else if (window.hljs && window.hljs.highlightAuto) {
+                    const detected = window.hljs.highlightAuto(str);
+                    const detectedLang = detected.language || 'text';
+                    return `<pre class="hljs"><code><div class="lang-label">${detectedLang}</div>${detected.value}</code><button class="copy-button" onclick="copyCode(this)">复制</button></pre>`;
+                } else {
+                    return `<pre class="hljs"><code>${window.markdownit().utils.escapeHtml(str)}</code></pre>`;
+                }
+            }
+        });
     }
 
     async runCode(code) {

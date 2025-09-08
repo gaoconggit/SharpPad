@@ -97,18 +97,19 @@ body.theme-light pre {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* 代码高亮颜色 - 亮色主题 */
+/* 代码高亮颜色 - VS 2022 Light 主题 */
 body.theme-light .hljs {
-    color: #333333;
+    color: #1E1E1E;
     background: #ffffff;
 }
 
 body.theme-light .hljs-keyword {
-    color: #0000ff;
+    color: #0000FF;
+    font-weight: normal;
 }
 
 body.theme-light .hljs-string {
-    color: #a31515;
+    color: #A31515;
 }
 
 body.theme-light .hljs-comment {
@@ -116,7 +117,7 @@ body.theme-light .hljs-comment {
 }
 
 body.theme-light .hljs-function {
-    color: #795e26;
+    color: #795E26;
 }
 
 body.theme-light .hljs-number {
@@ -124,7 +125,7 @@ body.theme-light .hljs-number {
 }
 
 body.theme-light .hljs-title {
-    color: #267f99;
+    color: #2B91AF;
 }
 
 body.theme-light .hljs-params {
@@ -132,7 +133,47 @@ body.theme-light .hljs-params {
 }
 
 body.theme-light .hljs-built_in {
-    color: #0451a5;
+    color: #2B91AF;
+}
+
+body.theme-light .hljs-class {
+    color: #2B91AF;
+}
+
+body.theme-light .hljs-type {
+    color: #2B91AF;
+}
+
+body.theme-light .hljs-variable {
+    color: #001080;
+}
+
+body.theme-light .hljs-operator {
+    color: #000000;
+}
+
+body.theme-light .hljs-punctuation {
+    color: #000000;
+}
+
+body.theme-light .hljs-attribute {
+    color: #001080;
+}
+
+body.theme-light .hljs-name {
+    color: #795E26;
+}
+
+body.theme-light .hljs-selector-tag {
+    color: #0000FF;
+}
+
+body.theme-light .hljs-selector-class {
+    color: #A31515;
+}
+
+body.theme-light .hljs-selector-id {
+    color: #A31515;
 }
 
 /* 代码高亮颜色 - 暗色主题 (Visual Studio Dark) */

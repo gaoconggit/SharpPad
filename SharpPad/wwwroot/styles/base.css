@@ -278,19 +278,7 @@ body.theme-light #systemSettingsBtn:active {
     margin-right: 2.5rem;
 }
 
-#themeButton {
-    padding: 5px 15px;
-    border: none;
-    border-radius: 4px;
-    background-color: #0e639c;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-    visibility: hidden;
-    padding: 5px 10px;
-    font-size: 16px;
-}
+/* 主题按钮样式在 editorControls.css 中定义 */
 
 @media only screen and (max-width: 768px) {
     #runButton {

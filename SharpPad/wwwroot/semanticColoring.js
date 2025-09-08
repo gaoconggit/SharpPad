@@ -696,33 +696,62 @@ function addVSStyles() {
     const style = document.createElement('style');
     style.textContent = `
         /* Visual Studio Dark 语义着色样式 */
-        .semantic-token-class { color: #4EC9B0 !important; }
-        .semantic-token-interface { color: #4EC9B0 !important; }
-        .semantic-token-struct { color: #4EC9B0 !important; }
-        .semantic-token-enum { color: #4EC9B0 !important; }
+        body.theme-dark .semantic-token-class { color: #4EC9B0 !important; }
+        body.theme-dark .semantic-token-interface { color: #4EC9B0 !important; }
+        body.theme-dark .semantic-token-struct { color: #4EC9B0 !important; }
+        body.theme-dark .semantic-token-enum { color: #4EC9B0 !important; }
         
-        .semantic-token-method { color: #DCDCAA !important; }
-        .semantic-token-function { color: #DCDCAA !important; }
+        body.theme-dark .semantic-token-method { color: #DCDCAA !important; }
+        body.theme-dark .semantic-token-function { color: #DCDCAA !important; }
         
-        .semantic-token-property { color: #9CDCFE !important; }
-        .semantic-token-variable { color: #9CDCFE !important; }
-        .semantic-token-parameter { color: #9CDCFE !important; }
+        body.theme-dark .semantic-token-property { color: #9CDCFE !important; }
+        body.theme-dark .semantic-token-variable { color: #9CDCFE !important; }
+        body.theme-dark .semantic-token-parameter { color: #9CDCFE !important; }
         
-        .semantic-token-event { color: #9CDCFE !important; }
-        .semantic-token-enumMember { color: #B5CEA8 !important; }
-        .semantic-token-namespace { color: #FFFFFF !important; }
+        body.theme-dark .semantic-token-event { color: #9CDCFE !important; }
+        body.theme-dark .semantic-token-enumMember { color: #B5CEA8 !important; }
+        body.theme-dark .semantic-token-namespace { color: #FFFFFF !important; }
         
-        .semantic-token-keyword { color: #569CD6 !important; }
-        .semantic-token-string { color: #CE9178 !important; }
-        .semantic-token-number { color: #B5CEA8 !important; }
-        .semantic-token-comment { color: #57A64A !important; }
-        .semantic-token-comment-override { 
+        body.theme-dark .semantic-token-keyword { color: #569CD6 !important; }
+        body.theme-dark .semantic-token-string { color: #CE9178 !important; }
+        body.theme-dark .semantic-token-number { color: #B5CEA8 !important; }
+        body.theme-dark .semantic-token-comment { color: #57A64A !important; }
+        body.theme-dark .semantic-token-comment-override { 
             color: #57A64A !important; 
             font-style: inherit !important;
             font-weight: inherit !important;
         }
-        .semantic-token-operator { color: #D4D4D4 !important; }
-        .semantic-token-modifier { color: #569CD6 !important; }
+        body.theme-dark .semantic-token-operator { color: #D4D4D4 !important; }
+        body.theme-dark .semantic-token-modifier { color: #569CD6 !important; }
+        
+        /* Visual Studio 2022 Light 语义着色样式 */
+        body.theme-light .semantic-token-class { color: #2B91AF !important; }
+        body.theme-light .semantic-token-interface { color: #2B91AF !important; }
+        body.theme-light .semantic-token-struct { color: #2B91AF !important; }
+        body.theme-light .semantic-token-enum { color: #2B91AF !important; }
+        
+        body.theme-light .semantic-token-method { color: #795E26 !important; }
+        body.theme-light .semantic-token-function { color: #795E26 !important; }
+        
+        body.theme-light .semantic-token-property { color: #001080 !important; }
+        body.theme-light .semantic-token-variable { color: #001080 !important; }
+        body.theme-light .semantic-token-parameter { color: #001080 !important; }
+        
+        body.theme-light .semantic-token-event { color: #001080 !important; }
+        body.theme-light .semantic-token-enumMember { color: #0451A5 !important; }
+        body.theme-light .semantic-token-namespace { color: #000000 !important; }
+        
+        body.theme-light .semantic-token-keyword { color: #0000FF !important; }
+        body.theme-light .semantic-token-string { color: #A31515 !important; }
+        body.theme-light .semantic-token-number { color: #098658 !important; }
+        body.theme-light .semantic-token-comment { color: #008000 !important; }
+        body.theme-light .semantic-token-comment-override { 
+            color: #008000 !important; 
+            font-style: inherit !important;
+            font-weight: inherit !important;
+        }
+        body.theme-light .semantic-token-operator { color: #000000 !important; }
+        body.theme-light .semantic-token-modifier { color: #0000FF !important; }
         
         .semantic-abstract { opacity: 0.9 !important; }
     `;
