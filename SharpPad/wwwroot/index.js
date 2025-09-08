@@ -39,6 +39,7 @@ import { CodeRunner } from './execution/runner.js';
 import { OutputPanel } from './execution/outputPanel.js';
 import { sendRequest } from './utils/apiService.js';
 import { showNotification } from './utils/common.js';
+import { setupSemanticColoring } from './semanticColoring.js';
 
 // 初始化应用
 async function initializeApp() {
@@ -412,6 +413,9 @@ async function initializeApp() {
 
     // 注册C#语言支持
     registerCsharpProvider();
+    
+    // 设置语义着色
+    setupSemanticColoring();
 
     // 初始化编辑器
     const editorInstance = new Editor();

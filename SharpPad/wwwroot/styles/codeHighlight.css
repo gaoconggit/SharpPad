@@ -135,40 +135,80 @@ body.theme-light .hljs-built_in {
     color: #0451a5;
 }
 
-/* 代码高亮颜色 - 暗色主题 */
+/* 代码高亮颜色 - 暗色主题 (Visual Studio Dark) */
 body.theme-dark .hljs {
-    color: #d4d4d4;
-    background: #1e1e1e;
+    color: #D4D4D4;
+    background: #1E1E1E;
 }
 
 body.theme-dark .hljs-keyword {
-    color: #569cd6;
+    color: #569CD6;
 }
 
 body.theme-dark .hljs-string {
-    color: #ce9178;
+    color: #CE9178;
 }
 
 body.theme-dark .hljs-comment {
-    color: #6a9955;
+    color: #57A64A;
 }
 
 body.theme-dark .hljs-function {
-    color: #dcdcaa;
+    color: #DCDCAA;
 }
 
 body.theme-dark .hljs-number {
-    color: #b5cea8;
+    color: #B5CEA8;
 }
 
 body.theme-dark .hljs-title {
-    color: #4ec9b0;
+    color: #4EC9B0;
 }
 
 body.theme-dark .hljs-params {
-    color: #9cdcfe;
+    color: #9CDCFE;
 }
 
 body.theme-dark .hljs-built_in {
-    color: #4ec9b0;
+    color: #4EC9B0;
+}
+
+body.theme-dark .hljs-class {
+    color: #4EC9B0;
+}
+
+body.theme-dark .hljs-type {
+    color: #4EC9B0;
+}
+
+body.theme-dark .hljs-variable {
+    color: #9CDCFE;
+}
+
+body.theme-dark .hljs-operator {
+    color: #D4D4D4;
+}
+
+body.theme-dark .hljs-punctuation {
+    color: #D4D4D4;
+}
+
+body.theme-dark .hljs-attribute {
+    color: #9CDCFE;
+}
+
+body.theme-dark .hljs-name {
+    color: #DCDCAA;
+}
+
+body.theme-dark .hljs-selector-tag {
+    color: #569CD6;
+}
+
+body.theme-dark .hljs-selector-class {
+    color: #D7BA7D;
+}
+
+body.theme-dark .hljs-selector-id {
+    color: #D7BA7D;
 } 
