@@ -170,7 +170,32 @@ namespace MonacoRoslynCompletionProvider
             {
                 try
                 {
-                    return MetadataReference.CreateFromFile(path);
+                    XmlDocumentationProvider documentationProvider = null;
+                    
+                    // 查找 XML 文档文件
+                    var xmlDocPaths = FindXmlDocumentationFiles(path);
+                    
+                    if (xmlDocPaths.Count > 0)
+                    {
+                        var assemblyFileName = Path.GetFileNameWithoutExtension(path);
+                        
+                        // 对于 System.Private.CoreLib，使用专用的全量文档提供者
+                        if (assemblyFileName == "System.Private.CoreLib")
+                        {
+                            documentationProvider = CoreLibXmlDocumentationProvider.Instance;
+                        }
+                        else if (xmlDocPaths.Count == 1)
+                        {
+                            documentationProvider = XmlDocumentationProvider.CreateFromFile(xmlDocPaths[0]);
+                        }
+                        else
+                        {
+                            // 对于多个文档文件，使用组合文档提供者
+                            documentationProvider = new CompositeXmlDocumentationProvider(xmlDocPaths);
+                        }
+                    }
+                    
+                    return MetadataReference.CreateFromFile(path, documentation: documentationProvider);
                 }
                 catch
                 {
@@ -178,6 +203,85 @@ namespace MonacoRoslynCompletionProvider
                     return null;
                 }
             });
+        }
+        
+        // 查找 XML 文档文件的多个可能位置
+        private static List<string> FindXmlDocumentationFiles(string assemblyPath)
+        {
+            var results = new List<string>();
+            var assemblyFileName = Path.GetFileNameWithoutExtension(assemblyPath);
+            var xmlFileName = assemblyFileName + ".xml";
+            
+            // 1. 同目录下查找
+            var sameDirectoryXml = Path.Combine(Path.GetDirectoryName(assemblyPath), xmlFileName);
+            if (File.Exists(sameDirectoryXml))
+            {
+                results.Add(sameDirectoryXml);
+                return results;
+            }
+            
+            // 2. 对于 .NET Core 程序集，查找参考程序集目录
+            if (assemblyPath.Contains("Microsoft.NETCore.App") || assemblyPath.Contains("System.") || assemblyFileName == "System.Private.CoreLib")
+            {
+                // 检测当前 .NET 版本
+                var dotnetVersion = Environment.Version;
+                var majorVersion = dotnetVersion.Major;
+                
+                // 构建参考程序集路径
+                var dotnetPacksPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", "packs", "Microsoft.NETCore.App.Ref");
+                
+                if (Directory.Exists(dotnetPacksPath))
+                {
+                    // 查找对应版本的参考程序集
+                    var versions = Directory.GetDirectories(dotnetPacksPath)
+                        .Select(d => Path.GetFileName(d))
+                        .Where(v => v.StartsWith($"{majorVersion}."))
+                        .OrderByDescending(v => v)
+                        .ToList();
+                    
+                    foreach (var version in versions)
+                    {
+                        var refPath = Path.Combine(dotnetPacksPath, version, "ref", $"net{majorVersion}.0");
+                        
+                        // 首先尝试直接匹配文件名
+                        var refXmlPath = Path.Combine(refPath, xmlFileName);
+                        if (File.Exists(refXmlPath))
+                        {
+                            results.Add(refXmlPath);
+                            return results;
+                        }
+                        
+                        // 对于 System.Private.CoreLib，使用终极解决方案：加载所有 XML 文档文件
+                        if (assemblyFileName == "System.Private.CoreLib")
+                        {
+                            // 加载所有可用的 XML 文档文件以确保最大覆盖率
+                            var xmlFiles = Directory.GetFiles(refPath, "*.xml", SearchOption.TopDirectoryOnly);
+                            results.AddRange(xmlFiles.Where(File.Exists));
+                            
+                            if (results.Count > 0)
+                                return results;
+                        }
+                    }
+                }
+            }
+            
+            // 3. 对于第三方库，尝试 NuGet 包缓存位置
+            var nugetCachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+            if (Directory.Exists(nugetCachePath))
+            {
+                var packageDirectories = Directory.GetDirectories(nugetCachePath, assemblyFileName.ToLower() + "*", SearchOption.TopDirectoryOnly);
+                foreach (var packageDir in packageDirectories.Take(1)) // 只检查第一个匹配的包
+                {
+                    var xmlFiles = Directory.GetFiles(packageDir, xmlFileName, SearchOption.AllDirectories);
+                    if (xmlFiles.Length > 0)
+                    {
+                        results.Add(xmlFiles[0]);
+                        return results;
+                    }
+                }
+            }
+            
+            return results;
         }
 
         /// <summary>
@@ -254,6 +358,66 @@ namespace MonacoRoslynCompletionProvider
             }
         }
 
+        /// <summary>
+        /// 清理 MetadataReference 缓存，用于重新加载包含文档的引用
+        /// </summary>
+        public static void ClearReferenceCache()
+        {
+            ReferenceCache.Clear();
+        }
+        
+        /// <summary>
+        /// 测试方法：检查特定程序集的 XML 文档是否可以加载
+        /// </summary>
+        public static string TestXmlDocumentationLoading(string assemblyName = "System.Console")
+        {
+            try
+            {
+                Assembly assembly;
+                if (assemblyName == "System.Private.CoreLib")
+                {
+                    assembly = typeof(List<>).Assembly;
+                }
+                else
+                {
+                    assembly = Assembly.Load(assemblyName);
+                }
+                
+                var xmlDocPaths = FindXmlDocumentationFiles(assembly.Location);
+                
+                if (xmlDocPaths.Count == 0)
+                    return $"未找到 {assemblyName} 的 XML 文档文件";
+                
+                var nonExistentFiles = xmlDocPaths.Where(path => !File.Exists(path)).ToList();
+                if (nonExistentFiles.Count > 0)
+                    return $"XML 文档文件不存在: {string.Join(", ", nonExistentFiles)}";
+                
+                if (assemblyName == "System.Private.CoreLib")
+                {
+                    var coreLibProvider = CoreLibXmlDocumentationProvider.Instance;
+                    return $"成功加载 System.Private.CoreLib 全量文档提供者 (已加载 {coreLibProvider.LoadedDocumentCount} 个 XML 文档)";
+                }
+                else if (xmlDocPaths.Count == 1)
+                {
+                    var docProvider = XmlDocumentationProvider.CreateFromFile(xmlDocPaths[0]);
+                    return $"成功加载 XML 文档: {xmlDocPaths[0]}";
+                }
+                else
+                {
+                    var compositeProvider = new CompositeXmlDocumentationProvider(xmlDocPaths);
+                    var fileNames = xmlDocPaths.Select(p => Path.GetFileName(p)).Take(5).ToArray();
+                    var displayNames = string.Join(", ", fileNames);
+                    if (xmlDocPaths.Count > 5)
+                        displayNames += $" 等{xmlDocPaths.Count}个文件";
+                    return $"成功加载组合 XML 文档 ({xmlDocPaths.Count} 个): {displayNames}";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"加载 XML 文档时出错: {ex.Message}";
+            }
+        }
+        
         /// <summary>
         /// 应用退出时调用，释放所有工作空间及缓存资源。
         /// </summary>

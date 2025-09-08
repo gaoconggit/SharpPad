@@ -111,5 +111,21 @@ namespace SharpPad.Controllers
                 });
             }
         }
+
+        [HttpGet("testXmlDoc")]
+        public IActionResult TestXmlDocumentation()
+        {
+            var result = MonacoRoslynCompletionProvider.CompletionWorkspace.TestXmlDocumentationLoading();
+            MonacoRoslynCompletionProvider.CompletionWorkspace.ClearReferenceCache(); // 清理缓存以应用新的逻辑
+            return Ok(new { message = result });
+        }
+
+        [HttpGet("testCoreLibXmlDoc")]
+        public IActionResult TestCoreLibXmlDocumentation()
+        {
+            var result = MonacoRoslynCompletionProvider.CompletionWorkspace.TestXmlDocumentationLoading("System.Private.CoreLib");
+            MonacoRoslynCompletionProvider.CompletionWorkspace.ClearReferenceCache(); // 清理缓存以应用新的逻辑
+            return Ok(new { message = result });
+        }
     }
 } 

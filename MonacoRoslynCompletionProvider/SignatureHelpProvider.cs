@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using System.Text;
 
 namespace MonacoRoslynCompletionProvider
 {
@@ -78,18 +80,87 @@ namespace MonacoRoslynCompletionProvider
         private static Signatures BuildSignature(IMethodSymbol symbol)
         {
             var parameters = new List<Parameter>();
+            var xmlDoc = symbol.GetDocumentationCommentXml();
+            var parameterDocs = ParseParameterDocumentation(xmlDoc);
+            
             foreach (var parameter in symbol.Parameters)
             {
-                parameters.Add(new Parameter() { Label = parameter.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) });
+                var paramLabel = parameter.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                var paramDoc = parameterDocs.TryGetValue(parameter.Name, out var doc) ? doc : "";
+                parameters.Add(new Parameter() { 
+                    Label = paramLabel,
+                    Documentation = paramDoc
+                });
             };
+            
             var signature = new Signatures
             {
-                Documentation = symbol.GetDocumentationCommentXml(),
+                Documentation = ParseMethodDocumentation(xmlDoc),
                 Label = symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
                 Parameters = parameters.ToArray()
             };
 
             return signature;
+        }
+        
+        private static string ParseMethodDocumentation(string xmlDoc)
+        {
+            if (string.IsNullOrEmpty(xmlDoc))
+                return "";
+                
+            try
+            {
+                var doc = XDocument.Parse(xmlDoc);
+                var summary = doc.Descendants("summary").FirstOrDefault()?.Value?.Trim();
+                var returns = doc.Descendants("returns").FirstOrDefault()?.Value?.Trim();
+                
+                var sb = new StringBuilder();
+                if (!string.IsNullOrEmpty(summary))
+                {
+                    sb.AppendLine(summary);
+                }
+                if (!string.IsNullOrEmpty(returns))
+                {
+                    sb.AppendLine($"Returns: {returns}");
+                }
+                
+                return sb.ToString().Trim();
+            }
+            catch
+            {
+                return xmlDoc;
+            }
+        }
+        
+        private static Dictionary<string, string> ParseParameterDocumentation(string xmlDoc)
+        {
+            var paramDocs = new Dictionary<string, string>();
+            
+            if (string.IsNullOrEmpty(xmlDoc))
+                return paramDocs;
+                
+            try
+            {
+                var doc = XDocument.Parse(xmlDoc);
+                var paramElements = doc.Descendants("param");
+                
+                foreach (var param in paramElements)
+                {
+                    var name = param.Attribute("name")?.Value;
+                    var description = param.Value?.Trim();
+                    
+                    if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(description))
+                    {
+                        paramDocs[name] = description;
+                    }
+                }
+            }
+            catch
+            {
+                // 解析失败时返回空字典
+            }
+            
+            return paramDocs;
         }
 
         private int InvocationScore(IMethodSymbol symbol, IEnumerable<TypeInfo> types)
