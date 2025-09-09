@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Net;
+using System.Net.Sockets;
 
 public class Program
 {
@@ -51,8 +53,32 @@ public class Program
 
         app.MapControllers();
 
-        "注意：退出程序访问 http://localhost:3030/exit".Dump();
-        await app.RunAsync("http://localhost:3030");
+        int port = GetAvailablePort();
+        $"注意：退出程序访问 http://localhost:{port}/exit".Dump();
+        await app.RunAsync($"http://localhost:{port}");
+    }
+
+    public static int GetAvailablePort()
+    {
+        // 尝试从 1024 到 65535 之间查找可用端口
+        for (int port = 1024; port <= 65535; port++)
+        {
+            try
+            {
+                // 创建一个 TcpListener 实例，尝试绑定到指定端口
+                TcpListener listener = new TcpListener(IPAddress.Loopback, port);
+                listener.Start(); // 尝试启动监听
+                listener.Stop();  // 成功启动后停止监听，表示端口可用
+                return port; // 如果没有抛出异常，说明端口可用，返回该端口
+            }
+            catch (SocketException)
+            {
+                // 如果端口被占用，会抛出 SocketException，我们继续尝试下一个端口
+                continue;
+            }
+        }
+
+        throw new InvalidOperationException("No available port found.");
     }
 }
 
@@ -79,3 +105,4 @@ public class TestController : ControllerBase
     }
 }
 ```
+
