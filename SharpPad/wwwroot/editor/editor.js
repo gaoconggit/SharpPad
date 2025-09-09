@@ -48,11 +48,11 @@ export class Editor {
             language: 'csharp',
             theme: this.currentTheme,
             automaticLayout: true,
-            minimap: { enabled: false },
+            minimap: { enabled: true },
             fontSize: 14,
             lineNumbers: 'on',
             renderWhitespace: 'selection',
-            scrollBeyondLastLine: false
+            scrollBeyondLastLine: true
         });
 
         this.completion = registerCompletion(monaco, this.editor, {
