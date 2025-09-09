@@ -36,17 +36,25 @@ export function layoutEditor() {
     }
 }
 
-// 检测设备类型
+// 检测设备类型 - 改进逻辑，避免macOS笔记本误判
 export function isMobileDevice() {
     // 使用多种方法来检测移动设备
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
     const touchPoints = navigator.maxTouchPoints || 0;
     
-    // 检查屏幕宽度是否小于特定值（例如768px作为平板/移动设备的分界点）
-    const smallScreen = window.innerWidth < 768;
+    // 优先检查User Agent，避免依赖屏幕尺寸
+    if (mobileRegex.test(userAgent)) {
+        return true;
+    }
     
-    return mobileRegex.test(userAgent) || touchPoints > 0 || smallScreen;
+    // 检查是否有粗糙指针（触摸屏）且屏幕较小
+    const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+    const isSmallScreen = window.innerWidth < 768;
+    const isVerySmallScreen = window.innerWidth < 480;
+    
+    // 只有同时满足触摸屏和小屏幕，或非常小的屏幕才认为是移动设备
+    return (hasCoarsePointer && isSmallScreen) || isVerySmallScreen || touchPoints > 1;
 }
 
 // 根据设备类型获取合适的尺寸
@@ -57,7 +65,7 @@ export function getResponsiveSize(defaultSize, mobileSize) {
 // 响应式设置container宽度
 export function setContainerWidth(container, fileListWidth, chatPanelWidth, chatPanelVisible) {
     // 使用媒体查询检测移动设备
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
     
     if (isMobile) {
         // 移动设备适配

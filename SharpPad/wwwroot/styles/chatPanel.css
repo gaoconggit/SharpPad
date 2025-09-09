@@ -18,8 +18,9 @@
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
+/* 移动端适配 - 调整断点，避免macOS小屏笔记本误判 */
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     #chatPanel {
         width: 100%;
         height: 100%; /* 使用100%高度而不是固定的vh值，避免键盘弹出时高度变化 */
@@ -135,7 +136,8 @@ body.theme-light #chatPanel {
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     body.theme-light #chatPanel {
         border-left: none;
         border-top: 1px solid #e0e0e0;
@@ -354,7 +356,8 @@ body.theme-light #chatInput {
     display: none; /* 默认隐藏，JavaScript 会在桌面模式下适当控制 */
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     .minimized-chat-button {
         display: block; /* 移动端默认显示 */
         bottom: 16px;
@@ -393,7 +396,8 @@ body.theme-light .minimized-chat-button .icon-button {
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     body.theme-light .minimized-chat-button .icon-button {
         background: #0078d4;
         color: white;
@@ -519,7 +523,8 @@ body.theme-light .think {
     z-index: 1000;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     #chatPanel .resize-handle {
         display: none; /* 移动端不显示调整大小的手柄 */
     }
@@ -536,7 +541,8 @@ body.theme-light .think {
     transform: translateX(calc(100% - 30px));
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     #chatPanel.minimized {
         transform: translateY(100%) !important; /* 确保在移动端完全隐藏 */
         visibility: hidden; /* 增加可见性设置，确保完全不可见 */
@@ -544,7 +550,8 @@ body.theme-light .think {
 }
 
 /* 确保在小屏幕设备上消息不会太宽 */
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     .chat-message {
         max-width: 90%;
     }
@@ -566,7 +573,8 @@ body.theme-light .think {
     display: inline-block;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (pointer: coarse), 
+       (max-width: 480px) {
     .mobile-icon {
         display: inline-block;
         font-size: 24px;

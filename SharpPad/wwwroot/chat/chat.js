@@ -19,11 +19,11 @@ export class ChatManager {
         this.startWidth = 0;
         this.startHeight = 0;
         this.isInputResizing = false;
-        this.isMobile = window.matchMedia('(max-width: 768px)').matches;
+        this.isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
         this.isInitialized = false;
         
         // 监听媒体查询变化
-        window.matchMedia('(max-width: 768px)').addEventListener('change', (e) => {
+        window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').addEventListener('change', (e) => {
             this.isMobile = e.matches;
             // this.updateResizeHandle();
             // this.handleResize();
@@ -403,7 +403,7 @@ export class ChatManager {
     }
 
     handleResize() {
-        this.isMobile = window.matchMedia('(max-width: 768px)').matches;
+        this.isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
         
         if (this.isMobile) {
             // 移动端适配，固定高度和宽度

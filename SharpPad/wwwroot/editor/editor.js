@@ -143,13 +143,13 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
         // 创建全屏按钮
         const fullscreenButton = document.createElement('button');
         fullscreenButton.className = 'editor-control-button fullscreen-button';
-        fullscreenButton.innerHTML = '⛶';
+        fullscreenButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Fullscreen corners"><path d="M8 3H3v5" /><path d="M16 3h5v5" /><path d="M21 16v5h-5" /><path d="M8 21H3v-5" /></svg>';
         fullscreenButton.title = '全屏';
         this.container.appendChild(fullscreenButton);
 
         // 检测是否为移动设备，如果是则隐藏全屏按钮
         // 注：我们已经在CSS中通过媒体查询设置了隐藏，这里做双重保障
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
         if (isMobile) {
             fullscreenButton.style.display = 'none';
         }
@@ -160,11 +160,11 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
             const editorContainer = this.container;
             if (isFullscreen) {
                 editorContainer.classList.add('fullscreen-editor');
-                fullscreenButton.innerHTML = '⮌';
+                fullscreenButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="U-turn arrow"><path d="M9 11L5 15L9 19" /><path d="M5 15h7a5 5 0 1 0 0-10h-1" /></svg>';
                 fullscreenButton.title = '退出全屏';
             } else {
                 editorContainer.classList.remove('fullscreen-editor');
-                fullscreenButton.innerHTML = '⛶';
+                fullscreenButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Fullscreen corners"><path d="M8 3H3v5" /><path d="M16 3h5v5" /><path d="M21 16v5h-5" /><path d="M8 21H3v-5" /></svg>';
                 fullscreenButton.title = '全屏';
             }
             layoutEditor();
@@ -176,7 +176,7 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
                 isFullscreen = false;
                 const editorContainer = this.container;
                 editorContainer.classList.remove('fullscreen-editor');
-                fullscreenButton.innerHTML = '⛶';
+                fullscreenButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Fullscreen corners"><path d="M8 3H3v5" /><path d="M16 3h5v5" /><path d="M21 16v5h-5" /><path d="M8 21H3v-5" /></svg>';
                 fullscreenButton.title = '全屏';
                 layoutEditor();
             }
