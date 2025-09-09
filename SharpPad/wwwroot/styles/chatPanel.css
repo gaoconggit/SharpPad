@@ -638,25 +638,26 @@ body.theme-light #chatInput {
 }
 
 .minimized-chat-button .icon-button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    font-size: 18px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #0078d4;
-    border: none;
-    color: white;
-    transition: all 0.2s ease;
+    background: #2d2d2d;
+    border: 1px solid #444;
     cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: all 0.2s;
+    padding: 0;
 }
 
 .minimized-chat-button .icon-button:hover {
-    background: #0066b8;
-    transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(0, 120, 212, 0.3);
+    background: #404040;
+    opacity: 1;
+    transform: translateY(-1px);
 }
 
 /* 响应式最小化按钮适配 */
@@ -666,9 +667,9 @@ body.theme-light #chatInput {
     }
     
     .minimized-chat-button .icon-button {
-        width: 44px;
-        height: 44px;
-        font-size: 16px;
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
     }
 }
 
@@ -678,9 +679,9 @@ body.theme-light #chatInput {
     }
     
     .minimized-chat-button .icon-button {
-        width: 40px;
-        height: 40px;
-        font-size: 14px;
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
     }
 }
 
@@ -718,10 +719,8 @@ body.theme-light #chatInput {
 }
 
 body.theme-light .minimized-chat-button .icon-button {
-    background: #f5f5f5;
-    border: 1px solid #e0e0e0;
+    background: #e0e0e0;
     color: #333333;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) and (pointer: coarse), 
@@ -734,7 +733,7 @@ body.theme-light .minimized-chat-button .icon-button {
     
     body.theme-light .minimized-chat-button .icon-button:hover,
     body.theme-light .minimized-chat-button .icon-button:active {
-        background: #0066b8;
+        background: #d0d0d0;
     }
 }
 
