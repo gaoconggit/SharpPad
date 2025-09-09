@@ -85,7 +85,7 @@
         </div>
         <div id="outputContent"></div>
     </div>
-    <div id="chatPanel" style="display: flex; transform: translateY(100%);">
+    <div id="chatPanel" style="display: flex; opacity: 0; transition: opacity 0.3s ease;">
         <div class="resize-handle"></div>
         <div class="chat-header">
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -303,17 +303,18 @@
         </div>
     </div>
 
-    <script src="axios.min.js"></script>
-    <!-- 引入 markdown-it -->
-    <script src="./markdown/markdown-it.min.js"></script>
-    <!-- 引入 highlight.js 的 CSS 样式 -->
+    <!-- 确保CSS优先加载 -->
     <link rel="stylesheet" href="./markdown/default.min.css">
-    <!-- 引入 highlight.js 的 JavaScript -->
+    
+    <!-- 依赖库按顺序加载 -->
+    <script src="axios.min.js"></script>
+    <script src="./markdown/markdown-it.min.js"></script>
     <script src="./markdown/highlight.min.js"></script>
 
-    <script type="module" src="csharpLanguageProvider.js"></script>
-    <script type="module" src="index.js"></script>
-    <script type="module" src="chat/chat.js"></script>
+    <!-- 主要应用脚本 - 使用defer确保DOM就绪后执行 -->
+    <script type="module" src="csharpLanguageProvider.js" defer></script>
+    <script type="module" src="index.js" defer></script>
+    <script type="module" src="chat/chat.js" defer></script>
 </body>
 
 </html>

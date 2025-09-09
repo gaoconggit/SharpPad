@@ -30,9 +30,6 @@ export class ChatManager {
             this.updateMobileLayout();
         });
 
-        // 立即初始化移动端布局，确保在构造函数中就应用正确的状态
-        this.applyMobileInitialState();
-
         this.initializeEventListeners();
         this.loadChatHistory();
         this.initializeModels();
@@ -41,6 +38,9 @@ export class ChatManager {
         
         // 初始化chatPanel显示状态监听器
         this.initializeChatPanelObserver();
+        
+        // 修复输入框显示问题（特别是在Mac WebView中）
+        this.fixInputBoxDisplay();
     }
 
     initializeEventListeners() {
@@ -941,39 +941,61 @@ export class ChatManager {
 
     // 初始化移动端布局
     initializeMobileLayout() {
-        if (this.isMobile) {
-            // 移动端默认收起聊天面板
-            this.minimizedChatButton.style.display = 'block';
-            this.chatPanel.classList.remove('active', 'minimized'); // 移除可能导致部分显示的类
-            this.chatPanel.style.transform = 'translateY(100%)'; // 确保完全隐藏
-            this.chatPanel.style.display = 'flex'; // 保持flex布局，但通过transform隐藏
-            
-            // 隐藏调整大小的手柄
-            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
-            if (resizeHandle) {
-                resizeHandle.style.display = 'none';
+        try {
+            if (this.isMobile) {
+                // 移动端默认收起聊天面板
+                this.minimizedChatButton.style.display = 'block';
+                this.chatPanel.classList.remove('active', 'minimized'); // 移除可能导致部分显示的类
+                this.chatPanel.style.transform = 'translateY(100%)'; // 确保完全隐藏
+                this.chatPanel.style.display = 'flex'; // 保持flex布局，但通过transform隐藏
+                
+                // 隐藏调整大小的手柄
+                const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+                if (resizeHandle) {
+                    resizeHandle.style.display = 'none';
+                }
+                
+                // 确保容器宽度正确
+                const container = document.getElementById('container');
+                if (container) {
+                    container.style.marginRight = '0';
+                    container.style.width = '100%';
+                }
+                
+                // 告知其他组件聊天面板已隐藏
+                setTimeout(() => {
+                    fileListResizer?.updateContainerWidth();
+                }, 10);
+            } else {
+                // 桌面端默认显示
+                this.chatPanel.style.display = 'flex';
+                this.chatPanel.style.transform = ''; // 清除任何transform
+                this.minimizedChatButton.style.display = 'none';
+                
+                // 显示调整大小的手柄
+                const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+                if (resizeHandle) {
+                    resizeHandle.style.display = '';
+                }
+                
+                // 使用多重延迟确保布局正确应用
+                setTimeout(() => {
+                    fileListResizer?.updateContainerWidth();
+                }, 50);
+                
+                // 备份延迟以防第一次失败
+                setTimeout(() => {
+                    fileListResizer?.updateContainerWidth();
+                }, 150);
             }
-            
-            // 确保容器宽度正确
-            const container = document.getElementById('container');
-            container.style.marginRight = '0';
-            container.style.width = '100%';
-            
-            // 告知其他组件聊天面板已隐藏
-            fileListResizer?.updateContainerWidth();
-        } else {
-            // 桌面端默认显示
+            this.isInitialized = true;
+        } catch (error) {
+            console.error('Error initializing mobile layout:', error);
+            // 发生错误时，设置一个安全的默认状态
             this.chatPanel.style.display = 'flex';
-            this.chatPanel.style.transform = '';
             this.minimizedChatButton.style.display = 'none';
-            
-            // 显示调整大小的手柄
-            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
-            if (resizeHandle) {
-                resizeHandle.style.display = '';
-            }
+            this.isInitialized = true;
         }
-        this.isInitialized = true;
     }
 
     // 更新移动端布局
@@ -1011,30 +1033,6 @@ export class ChatManager {
         }
     }
 
-    // 立即应用移动端初始状态
-    applyMobileInitialState() {
-        if (!this.isMobile) return;
-        
-        const isMobileScreenSize = window.innerWidth <= 768;
-        if (!isMobileScreenSize) return;
-        
-        // 确保聊天面板初始状态是隐藏的（如果是移动设备）
-        this.chatPanel.style.transform = 'translateY(100%)';
-        this.chatPanel.style.display = 'flex';  // 设置为flex但使用transform隐藏
-        this.chatPanel.classList.remove('active');
-        
-        // 隐藏调整大小的手柄
-        const resizeHandle = this.chatPanel.querySelector('.resize-handle');
-        if (resizeHandle) {
-            resizeHandle.style.display = 'none';
-        }
-        
-        // 确保最小化按钮可见
-        this.minimizedChatButton.style.display = 'block';
-        
-        // 更新编辑器容器宽度
-        fileListResizer?.updateContainerWidth();
-    }
 
     // 添加chatPanel显示状态监听器
     initializeChatPanelObserver() {
@@ -1076,30 +1074,439 @@ export class ChatManager {
             this.minimizedChatButton.style.display = 'block';
         }
     }
+    
+    // 修复输入框显示问题（特别是Mac WebView中的偶发问题）
+    fixInputBoxDisplay() {
+        try {
+            const chatInputArea = document.querySelector('.chat-input-area');
+            const chatInput = document.getElementById('chatInput');
+            
+            if (!chatInputArea || !chatInput) {
+                console.warn('Chat input elements not found, retrying in 100ms...');
+                setTimeout(() => this.fixInputBoxDisplay(), 100);
+                return;
+            }
+            
+            // 确保输入区域有正确的高度和可见性
+            chatInputArea.style.minHeight = '80px';
+            chatInputArea.style.flexShrink = '0';
+            chatInputArea.style.visibility = 'visible';
+            chatInputArea.style.opacity = '1';
+            chatInputArea.style.position = 'relative';
+            chatInputArea.style.zIndex = '100';
+            
+            // 确保输入框本身正确显示
+            chatInput.style.minHeight = '60px';
+            chatInput.style.visibility = 'visible';
+            chatInput.style.opacity = '1';
+            chatInput.style.display = 'block';
+            
+            // 特别针对Mac WebView的修复
+            if (navigator.userAgent.includes('Mac')) {
+                // 强制重新计算布局
+                setTimeout(() => {
+                    chatInputArea.style.height = 'auto';
+                    chatInputArea.offsetHeight; // 触发重排
+                    
+                    // 确保输入框在聊天面板完全加载后可见
+                    if (this.chatPanel && getComputedStyle(this.chatPanel).opacity === '1') {
+                        chatInput.style.height = 'auto';
+                        chatInput.offsetHeight; // 触发重排
+                    }
+                }, 50);
+            }
+            
+            console.log('Chat input box display fixed');
+        } catch (error) {
+            console.error('Error fixing chat input display:', error);
+            // 重试一次
+            setTimeout(() => this.fixInputBoxDisplay(), 200);
+        }
+    }
 }
 
-// 初始化聊天管理器
-const chatManager = new ChatManager(); 
+// 聊天管理器初始化状态跟踪
+let chatInitializationState = {
+    attempts: 0,
+    maxAttempts: 10,
+    initialized: false,
+    initPromise: null
+};
 
-// 立即处理移动端首次加载
-document.addEventListener('DOMContentLoaded', () => {
-    // 立即检查是否为移动设备并设置初始状态
-    if (window.matchMedia('(max-width: 768px)').matches) {
+// 检测操作系统
+function isMacOS() {
+    return navigator.platform.toUpperCase().indexOf('MAC') >= 0 || 
+           navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+}
+
+// 检测是否在Avalonia WebView中运行
+function isAvaloniaWebView() {
+    return window.chrome && window.chrome.webview || 
+           navigator.userAgent.includes('AvaloniaWebView') ||
+           window.location.protocol === 'file:' ||
+           window.webkit && window.webkit.messageHandlers;
+}
+
+// macOS特定的资源检查
+function checkMacOSSpecificResources() {
+    if (!isMacOS()) return true;
+    
+    // 检查WebKit特定的API是否可用
+    if (window.webkit && window.webkit.messageHandlers) {
+        // 在macOS WebView中，确保消息处理器已准备好
+        try {
+            // 测试WebKit消息处理是否正常工作
+            const testMessage = JSON.stringify({test: true});
+            // 不实际发送，只是测试序列化是否工作
+        } catch (e) {
+            console.log('WebKit message handling not ready');
+            return false;
+        }
+    }
+    
+    // 检查macOS特定的CSS渲染是否完成
+    const body = document.body;
+    const bodyStyles = getComputedStyle(body);
+    
+    // macOS WebKit有时需要额外时间来计算样式
+    if (bodyStyles.fontSize === '16px' || !bodyStyles.fontSize) {
+        // 检查是否应用了我们的自定义样式
         const chatPanel = document.getElementById('chatPanel');
-        const minimizedChatButton = document.querySelector('.minimized-chat-button');
+        if (chatPanel) {
+            const chatStyles = getComputedStyle(chatPanel);
+            if (chatStyles.backgroundColor === 'rgba(0, 0, 0, 0)' || 
+                chatStyles.backgroundColor === 'transparent') {
+                console.log('macOS: Custom styles not fully applied');
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// 全面的资源加载检查（增强macOS支持）
+function checkResourcesReady() {
+    // 检查document状态
+    if (document.readyState !== 'complete') {
+        return false;
+    }
+    
+    // 检查关键DOM元素
+    const elements = {
+        chatPanel: document.getElementById('chatPanel'),
+        chatInput: document.getElementById('chatInput'),
+        chatMessages: document.getElementById('chatMessages'),
+        minimizedButton: document.querySelector('.minimized-chat-button'),
+        container: document.getElementById('container'),
+        fileList: document.getElementById('fileList')
+    };
+    
+    for (const [name, element] of Object.entries(elements)) {
+        if (!element) {
+            console.log(`Missing element: ${name}`);
+            return false;
+        }
+    }
+    
+    // 检查CSS样式是否完全加载
+    const chatPanel = elements.chatPanel;
+    const computedStyles = getComputedStyle(chatPanel);
+    
+    // 检查关键样式属性是否已应用
+    const requiredStyles = {
+        width: computedStyles.width,
+        height: computedStyles.height,
+        position: computedStyles.position,
+        display: computedStyles.display
+    };
+    
+    for (const [prop, value] of Object.entries(requiredStyles)) {
+        if (!value || value === 'auto' || value === '' || value === 'initial') {
+            console.log(`Style not ready: ${prop} = ${value}`);
+            return false;
+        }
+    }
+    
+    // 检查字体是否加载完成
+    if (document.fonts && document.fonts.status !== 'loaded') {
+        console.log('Fonts not ready:', document.fonts.status);
+        return false;
+    }
+    
+    // 检查关键CSS变量是否可用
+    const rootStyles = getComputedStyle(document.documentElement);
+    const chatPanelWidth = rootStyles.getPropertyValue('--chat-panel-width');
+    if (!chatPanelWidth) {
+        console.log('CSS variables not ready');
+        return false;
+    }
+    
+    // macOS特定检查
+    if (!checkMacOSSpecificResources()) {
+        return false;
+    }
+    
+    // macOS额外检查：确保CSS动画和过渡准备就绪
+    if (isMacOS()) {
+        const testElement = document.createElement('div');
+        testElement.style.transition = 'opacity 0.1s';
+        testElement.style.opacity = '0';
+        document.body.appendChild(testElement);
         
-        // 确保聊天面板隐藏
-        chatPanel.style.display = 'flex';  // 保持flex布局，但通过transform隐藏
-        chatPanel.style.transform = 'translateY(100%)';
-        chatPanel.classList.remove('active', 'minimized'); // 移除可能导致部分显示的类
+        // 强制重排
+        testElement.offsetHeight;
+        testElement.style.opacity = '1';
         
-        // 显示浮动按钮
-        minimizedChatButton.style.display = 'block';
+        const hasTransition = getComputedStyle(testElement).transitionProperty !== 'none';
+        document.body.removeChild(testElement);
         
-        // 防止可能的闪烁
-        document.documentElement.style.setProperty('--chat-transition-delay', '0s');
+        if (!hasTransition) {
+            console.log('CSS transitions not ready on macOS');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// 等待特定条件满足
+function waitForCondition(conditionFn, timeout = 5000, interval = 50) {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        
+        function check() {
+            if (conditionFn()) {
+                resolve();
+                return;
+            }
+            
+            if (Date.now() - startTime > timeout) {
+                reject(new Error('Timeout waiting for condition'));
+                return;
+            }
+            
+            setTimeout(check, interval);
+        }
+        
+        check();
+    });
+}
+
+// 强化版聊天管理器初始化
+async function initializeChatManagerRobust() {
+    if (chatInitializationState.initialized) {
+        return window.chatManager;
+    }
+    
+    if (chatInitializationState.initPromise) {
+        return chatInitializationState.initPromise;
+    }
+    
+    chatInitializationState.initPromise = (async () => {
+        chatInitializationState.attempts++;
+        
+        console.log(`Chat manager initialization attempt ${chatInitializationState.attempts}/${chatInitializationState.maxAttempts}`);
+        
+        if (chatInitializationState.attempts > chatInitializationState.maxAttempts) {
+            throw new Error('Maximum initialization attempts exceeded');
+        }
+        
+        try {
+            // macOS需要更长的等待时间
+            const timeout = isMacOS() ? 5000 : 3000;
+            const interval = isMacOS() ? 20 : 25;
+            
+            // 等待所有资源准备就绪
+            await waitForCondition(checkResourcesReady, timeout, interval);
+            
+            // macOS额外的渲染等待时间
+            const extraDelay = isMacOS() ? 50 : 10;
+            await new Promise(resolve => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        setTimeout(resolve, extraDelay);
+                    });
+                });
+            });
+            
+            // macOS特殊处理：强制触发重排以确保样式计算完成
+            if (isMacOS()) {
+                const chatPanel = document.getElementById('chatPanel');
+                if (chatPanel) {
+                    // 强制重排
+                    chatPanel.offsetHeight;
+                    // 短暂等待
+                    await new Promise(resolve => setTimeout(resolve, 20));
+                }
+            }
+            
+            // 最后一次验证
+            if (!checkResourcesReady()) {
+                throw new Error('Resources check failed after waiting');
+            }
+            
+            // 初始化聊天管理器
+            const chatManager = new ChatManager();
+            
+            // 验证初始化成功
+            if (!chatManager || !chatManager.chatPanel || !chatManager.chatInput) {
+                throw new Error('Chat manager initialization incomplete');
+            }
+            
+            // 将 chatManager 暴露到全局
+            window.chatManager = chatManager;
+            
+            // 显示聊天面板
+            const chatPanel = document.getElementById('chatPanel');
+            if (chatPanel) {
+                setTimeout(() => {
+                    chatPanel.style.opacity = '1';
+                }, 20);
+            }
+            
+            chatInitializationState.initialized = true;
+            console.log('Chat manager initialized successfully on attempt', chatInitializationState.attempts);
+            
+            // 触发聊天管理器初始化完成事件
+            window.dispatchEvent(new CustomEvent('chatManagerInitialized', {
+                detail: { chatManager }
+            }));
+            
+            return chatManager;
+            
+        } catch (error) {
+            console.error(`Chat manager initialization failed (attempt ${chatInitializationState.attempts}):`, error);
+            
+            // 清除Promise引用以允许重试
+            chatInitializationState.initPromise = null;
+            
+            if (chatInitializationState.attempts < chatInitializationState.maxAttempts) {
+                // 递增延迟重试
+                const delay = Math.min(100 * chatInitializationState.attempts, 1000);
+                console.log(`Retrying in ${delay}ms...`);
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return initializeChatManagerRobust();
+            } else {
+                // 最后的降级处理
+                console.warn('Initializing chat manager with fallback mode');
+                try {
+                    const chatManager = new ChatManager();
+                    window.chatManager = chatManager;
+                    chatInitializationState.initialized = true;
+                    return chatManager;
+                } catch (fallbackError) {
+                    console.error('Fallback initialization also failed:', fallbackError);
+                    throw error;
+                }
+            }
+        }
+    })();
+    
+    return chatInitializationState.initPromise;
+}
+
+// 开始初始化过程（macOS优化版）
+function startChatInitialization() {
+    const isMac = isMacOS();
+    const isWebView = isAvaloniaWebView();
+    
+    console.log(`Initializing chat manager on ${isMac ? 'macOS' : 'other OS'}${isWebView ? ' (WebView)' : ''}`);
+    
+    // macOS + WebView 需要特殊处理
+    if (isMac && isWebView) {
+        // macOS WebView 有时需要额外等待 WebKit 完全初始化
+        const webViewReadyCheck = () => {
+            return new Promise(resolve => {
+                let attempts = 0;
+                const maxAttempts = 20;
+                
+                const checkWebViewReady = () => {
+                    attempts++;
+                    
+                    // 检查 WebKit API 是否完全可用
+                    if (window.webkit && document.readyState === 'complete') {
+                        resolve();
+                        return;
+                    }
+                    
+                    if (attempts < maxAttempts) {
+                        setTimeout(checkWebViewReady, 50);
+                    } else {
+                        console.log('WebView readiness check timed out, proceeding anyway');
+                        resolve();
+                    }
+                };
+                
+                checkWebViewReady();
+            });
+        };
+        
+        // WebView 特殊初始化流程
+        webViewReadyCheck().then(() => {
+            const delay = document.readyState === 'complete' ? 100 : 200;
+            setTimeout(() => initializeChatManagerRobust().catch(console.error), delay);
+        });
+    }
+    
+    // 通用初始化流程（保持兼容性）
+    if (document.readyState === 'complete') {
+        const delay = isMac ? 50 : 1; // macOS 需要更多时间
+        setTimeout(() => initializeChatManagerRobust().catch(console.error), delay);
+    } else if (document.readyState === 'interactive') {
+        window.addEventListener('load', () => {
+            const delay = isMac ? 100 : 10;
+            setTimeout(() => initializeChatManagerRobust().catch(console.error), delay);
+        });
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            const delay = isMac ? 50 : 10;
+            setTimeout(() => initializeChatManagerRobust().catch(console.error), delay);
+        });
+        window.addEventListener('load', () => {
+            const delay = isMac ? 150 : 50;
+            setTimeout(() => initializeChatManagerRobust().catch(console.error), delay);
+        });
+    }
+    
+    // 额外的保险措施 - macOS 需要更长的备用延迟
+    const backupDelay = isMac ? 2000 : 1000;
+    setTimeout(() => {
+        if (!chatInitializationState.initialized && !chatInitializationState.initPromise) {
+            console.log(`Starting delayed initialization as backup (macOS: ${isMac})`);
+            initializeChatManagerRobust().catch(console.error);
+        }
+    }, backupDelay);
+}
+
+// 启动初始化
+startChatInitialization();
+
+// 添加全局错误处理
+window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && event.error.message.includes('chat')) {
+        console.error('Chat-related error detected:', event.error);
+        
+        // 如果聊天管理器还未初始化且错误与聊天相关，尝试重新初始化
+        if (!chatInitializationState.initialized && chatInitializationState.attempts < chatInitializationState.maxAttempts) {
+            console.log('Attempting to recover from chat error...');
+            setTimeout(() => {
+                initializeChatManagerRobust().catch(console.error);
+            }, 500);
+        }
+    }
+});
+
+// 页面可见性变化时重新验证初始化状态
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !chatInitializationState.initialized) {
+        console.log('Page became visible, checking chat manager state...');
         setTimeout(() => {
-            document.documentElement.style.removeProperty('--chat-transition-delay');
-        }, 1000);
+            if (!window.chatManager && !chatInitializationState.initPromise) {
+                console.log('Chat manager missing, attempting reinitialization...');
+                initializeChatManagerRobust().catch(console.error);
+            }
+        }, 100);
     }
 }); 

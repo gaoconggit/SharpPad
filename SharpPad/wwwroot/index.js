@@ -18,15 +18,36 @@ export function getSystemSettings() {
 
 // 动态加载 Monaco Editor
 function loadMonaco() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        // 如果Monaco已经加载，直接返回
+        if (typeof monaco !== 'undefined') {
+            resolve();
+            return;
+        }
+
         const script = document.createElement('script');
         script.src = './monaco-editor/min/vs/loader.js';
+        
         script.onload = () => {
-            require.config(monacoConfig);
-            require(['vs/editor/editor.main'], () => {
-                resolve();
-            });
+            try {
+                require.config(monacoConfig);
+                require(['vs/editor/editor.main'], () => {
+                    // 确保Monaco完全就绪
+                    if (typeof monaco !== 'undefined') {
+                        resolve();
+                    } else {
+                        reject(new Error('Monaco Editor failed to load properly'));
+                    }
+                });
+            } catch (error) {
+                reject(error);
+            }
         };
+        
+        script.onerror = () => {
+            reject(new Error('Failed to load Monaco Editor loader script'));
+        };
+        
         document.head.appendChild(script);
     });
 }
@@ -409,17 +430,47 @@ async function initializeApp() {
     };
 
     // 等待 Monaco Editor 加载完成
-    await loadMonaco();
+    try {
+        await loadMonaco();
+        console.log('Monaco Editor loaded successfully');
+    } catch (error) {
+        console.error('Failed to load Monaco Editor:', error);
+        showNotification('编辑器加载失败，请刷新页面重试', 'error');
+        return;
+    }
 
     // 注册C#语言支持
-    registerCsharpProvider();
+    try {
+        registerCsharpProvider();
+        console.log('C# language provider registered');
+    } catch (error) {
+        console.error('Failed to register C# provider:', error);
+    }
     
     // 设置语义着色
-    setupSemanticColoring();
+    try {
+        setupSemanticColoring();
+        console.log('Semantic coloring setup completed');
+    } catch (error) {
+        console.error('Failed to setup semantic coloring:', error);
+    }
+
+    // 在Mac上添加额外延迟确保DOM渲染完成
+    if (navigator.userAgent.includes('Mac')) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     // 初始化编辑器
-    const editorInstance = new Editor();
-    const editor = editorInstance.initialize('container');
+    let editorInstance, editor;
+    try {
+        editorInstance = new Editor();
+        editor = editorInstance.initialize('container');
+        console.log('Editor initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize editor:', error);
+        showNotification('编辑器初始化失败', 'error');
+        return;
+    }
 
     // 注册编辑器命令
     const commands = new EditorCommands(editor);
@@ -468,5 +519,28 @@ function loadSystemSettings() {
     }
 }
 
+// 确保在DOM完全加载后再启动应用
+function ensureDOMReady() {
+    return new Promise((resolve) => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+            resolve();
+        }
+    });
+}
+
 // 启动应用
-initializeApp();
+async function startApp() {
+    // 等待DOM完全就绪
+    await ensureDOMReady();
+    
+    // 在Mac WebView中额外等待一小段时间确保渲染就绪
+    if (navigator.userAgent.includes('Mac')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    await initializeApp();
+}
+
+startApp();

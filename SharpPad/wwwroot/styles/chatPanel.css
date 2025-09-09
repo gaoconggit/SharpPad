@@ -1,13 +1,18 @@
 :root {
     --chat-transition-delay: 0.3s;
+    --chat-panel-width: 520px;
+    --chat-min-width: 400px;
+    --chat-max-width: 600px;
 }
 
+/* 基础聊天面板样式 */
 #chatPanel {
     position: fixed;
     right: 0;
     top: 0;
-    width: 520px;
-    height: calc(100vh - 200px);
+    width: var(--chat-panel-width);
+    min-width: var(--chat-min-width);
+    max-width: var(--chat-max-width);
     background: #1e1e1e;
     border-left: 1px solid #444;
     display: flex;
@@ -16,26 +21,103 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, height, width;
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+    /* 动态高度计算 - 为不同屏幕提供合适的底部边距 */
+    height: calc(100vh - max(60px, min(120px, 10vh)));
 }
 
-/* 移动端适配 - 调整断点，避免macOS小屏笔记本误判 */
+/* 超大屏幕 (>= 1920px 宽度) */
+@media screen and (min-width: 1920px) {
+    #chatPanel {
+        height: calc(100vh - 80px);
+        --chat-panel-width: 600px;
+    }
+}
+
+/* 大屏幕 (1600px - 1920px) */
+@media screen and (min-width: 1600px) and (max-width: 1919px) {
+    #chatPanel {
+        height: calc(100vh - 90px);
+        --chat-panel-width: 560px;
+    }
+}
+
+/* Avalonia WebView 窗口专用适配 (1465x830) 
+   专门为SharpPad桌面版的默认窗口尺寸优化 */
+@media screen and (min-width: 1460px) and (max-width: 1470px) and (min-height: 825px) and (max-height: 835px) {
+    #chatPanel {
+        height: calc(100vh - 120px); /* 为830px高度提供更多底部空间，确保输入框完全可见 */
+        --chat-panel-width: 500px; /* 适合1465px宽度，避免过宽影响编辑器 */
+    }
+}
+
+/* 标准桌面 (1200px - 1599px) */
+@media screen and (min-width: 1200px) and (max-width: 1599px) {
+    #chatPanel {
+        height: calc(100vh - 100px);
+        --chat-panel-width: 520px;
+    }
+}
+
+/* 小桌面/大笔记本 (1024px - 1199px) */
+@media screen and (min-width: 1024px) and (max-width: 1199px) {
+    #chatPanel {
+        height: calc(100vh - 110px);
+        --chat-panel-width: 480px;
+    }
+}
+
+/* 笔记本/平板横屏 (769px - 1023px) */
+@media screen and (min-width: 769px) and (max-width: 1023px) {
+    #chatPanel {
+        height: calc(100vh - 120px);
+        --chat-panel-width: 450px;
+        --chat-min-width: 350px;
+    }
+}
+
+/* 高度特殊适配 */
+/* 低分辨率屏幕 (<= 800px 高度) */
+@media screen and (max-height: 800px) and (min-width: 769px) {
+    #chatPanel {
+        height: calc(100vh - 140px);
+    }
+}
+
+/* 中等高度屏幕适配 (800px - 900px 高度) - 包含Avalonia WebView */
+@media screen and (min-height: 800px) and (max-height: 900px) and (min-width: 1200px) {
+    #chatPanel {
+        height: calc(100vh - 120px); /* 为中等高度提供足够底部空间 */
+    }
+}
+
+/* 超低分辨率屏幕 (<= 720px 高度) */
+@media screen and (max-height: 720px) and (min-width: 769px) {
+    #chatPanel {
+        height: calc(100vh - 160px);
+    }
+}
+
+/* 移动端适配 - 精确检测移动设备 */
 @media (max-width: 768px) and (pointer: coarse), 
        (max-width: 480px) {
     #chatPanel {
         width: 100%;
-        height: 100%; /* 使用100%高度而不是固定的vh值，避免键盘弹出时高度变化 */
-        position: fixed; /* 确保固定定位 */
-        top: auto; /* 改为自动，从底部定位 */
-        bottom: 0; /* 从底部开始 */
+        height: 100vh; /* 全屏高度 */
+        max-height: calc(100vh - env(safe-area-inset-top, 0px)); /* iOS安全区域适配 */
+        position: fixed;
+        top: 0;
+        bottom: auto;
         left: 0;
         right: 0;
         border-left: none;
         border-top: none;
-        z-index: 999; /* 增加 z-index 确保高于所有其他元素 */
+        z-index: 10001; /* 确保高于所有其他元素 */
         transform: translateY(100%) !important;
         transition: transform var(--chat-transition-delay) ease;
-        padding-bottom: env(safe-area-inset-bottom); /* 适应iPhone底部安全区域 */
-        max-height: 94vh; /* 设置最大高度，防止过高 */
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); /* iOS底部安全区域 */
+        --chat-panel-width: 100%;
+        --chat-min-width: 100%;
+        --chat-max-width: 100%;
     }
     /* 当聊天面板显示时的样式 */
     #chatPanel.active {
@@ -154,6 +236,25 @@ body.theme-light #chatPanel {
     color: #ffffff;
     font-size: 14px;
     font-weight: 500;
+    flex-shrink: 0; /* 防止头部被压缩 */
+    min-height: 48px; /* 确保最小高度 */
+}
+
+/* 响应式头部适配 */
+@media screen and (max-width: 1023px) {
+    .chat-header {
+        padding: 10px 12px;
+        min-height: 44px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    .chat-header {
+        padding: 8px 12px;
+        min-height: 40px;
+        font-size: 13px;
+    }
 }
 
 body.theme-light .chat-header {
@@ -166,6 +267,28 @@ body.theme-light .chat-header {
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+/* 响应式工具栏适配 */
+@media screen and (max-width: 1199px) {
+    .chat-toolbar {
+        gap: 6px;
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    .chat-toolbar {
+        gap: 4px;
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    .chat-toolbar {
+        gap: 6px;
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
 }
 
 #modelSelect {
@@ -177,6 +300,45 @@ body.theme-light .chat-header {
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
+    max-width: 180px;
+    min-width: 100px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#modelSelect:hover {
+    border-color: #0078d4;
+    background: #404040;
+}
+
+/* 响应式模型选择框适配 */
+@media screen and (max-width: 1199px) {
+    #modelSelect {
+        padding: 5px 8px;
+        font-size: 12px;
+        max-width: 160px;
+        min-width: 90px;
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    #modelSelect {
+        padding: 4px 6px;
+        font-size: 12px;
+        max-width: 140px;
+        min-width: 80px;
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    #modelSelect {
+        padding: 6px 8px;
+        font-size: 13px;
+        max-width: 120px;
+        min-width: 70px;
+        border-radius: 6px;
+    }
 }
 
 body.theme-light #modelSelect {
@@ -250,12 +412,41 @@ body.theme-light #modelSettingsBtn {
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px;
     background: #1e1e1e;
     color: #ffffff;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-height: 0; /* 确保可以缩小 */
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+}
+
+/* 响应式消息区域适配 */
+@media screen and (max-width: 1199px) {
+    .chat-messages {
+        padding: 12px;
+        gap: 12px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .chat-messages {
+        padding: 8px 12px;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    .chat-messages {
+        padding: 8px 12px 12px;
+        gap: 8px;
+        /* 移动端优化滚动 */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: none;
+    }
 }
 
 body.theme-light .chat-messages {
@@ -308,10 +499,52 @@ body.theme-light .assistant-message {
     padding: 16px;
     border-top: 1px solid #444;
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 8px;
     background: #2d2d2d;
     position: relative;
     will-change: border-color;
+    min-height: 80px;
+    flex-shrink: 0; /* 防止输入区域被压缩 */
+    /* 额外保护措施确保输入区域始终可见 */
+    z-index: 100;
+    box-sizing: border-box;
+    /* 强制确保在所有浏览器中正确显示 */
+    contain: layout;
+}
+
+/* 响应式输入区域适配 */
+@media screen and (max-width: 1199px) {
+    .chat-input-area {
+        padding: 14px;
+        min-height: 76px;
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    .chat-input-area {
+        padding: 12px;
+        min-height: 72px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .chat-input-area {
+        padding: 10px 12px;
+        min-height: 68px;
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    .chat-input-area {
+        padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); /* iOS底部安全区域 */
+        min-height: 70px;
+        /* 移动端特殊处理 */
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
 }
 
 body.theme-light .chat-input-area {
@@ -322,7 +555,7 @@ body.theme-light .chat-input-area {
 #chatInput {
     flex: 1;
     resize: none;
-    max-height: 500px;
+    max-height: min(500px, 40vh); /* 响应式最大高度 */
     min-height: 60px;
     padding: 12px;
     border: 1px solid #444;
@@ -333,7 +566,54 @@ body.theme-light .chat-input-area {
     font-size: 14px;
     line-height: 1.5;
     will-change: height;
-    transition: height 0.05s ease-out;
+    transition: height 0.05s ease-out, border-color 0.2s ease;
+    outline: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+#chatInput:focus {
+    border-color: #0078d4;
+}
+
+/* 响应式输入框适配 */
+@media screen and (max-width: 1199px) {
+    #chatInput {
+        min-height: 56px;
+        padding: 10px 12px;
+        max-height: min(400px, 35vh);
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    #chatInput {
+        min-height: 52px;
+        padding: 10px;
+        font-size: 13px;
+        max-height: min(300px, 30vh);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    #chatInput {
+        min-height: 48px;
+        padding: 8px 10px;
+        font-size: 13px;
+        max-height: min(250px, 25vh);
+    }
+}
+
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    #chatInput {
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 16px; /* 防止iOS自动缩放 */
+        max-height: min(200px, 20vh);
+        border-radius: 12px;
+        -webkit-appearance: none;
+        -webkit-user-select: text;
+        user-select: text;
+    }
 }
 
 body.theme-light #chatInput {
@@ -349,11 +629,59 @@ body.theme-light #chatInput {
 
 .minimized-chat-button {
     position: fixed;
-    right: 50px;
+    right: 20px;
     top: 50%;
     transform: translateY(-50%);
     z-index: 1000;
     display: none; /* 默认隐藏，JavaScript 会在桌面模式下适当控制 */
+    transition: all 0.2s ease;
+}
+
+.minimized-chat-button .icon-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 18px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0078d4;
+    border: none;
+    color: white;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.minimized-chat-button .icon-button:hover {
+    background: #0066b8;
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 120, 212, 0.3);
+}
+
+/* 响应式最小化按钮适配 */
+@media screen and (max-width: 1199px) {
+    .minimized-chat-button {
+        right: 16px;
+    }
+    
+    .minimized-chat-button .icon-button {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    .minimized-chat-button {
+        right: 12px;
+    }
+    
+    .minimized-chat-button .icon-button {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
 }
 
 @media (max-width: 768px) and (pointer: coarse), 
@@ -521,6 +849,117 @@ body.theme-light .think {
     cursor: ew-resize;
     background: transparent;
     z-index: 1000;
+    transition: background-color 0.2s ease;
+}
+
+#chatPanel .resize-handle:hover {
+    background: rgba(0, 120, 212, 0.1);
+}
+
+/* 自定义滚动条样式 */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+body.theme-light .chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.theme-light .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* 响应式滚动条 */
+@media (max-width: 768px) and (pointer: coarse), (max-width: 480px) {
+    .chat-messages::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+/* 性能优化 */
+#chatPanel * {
+    box-sizing: border-box;
+}
+
+#chatPanel .chat-message {
+    contain: layout style;
+}
+
+/* 避免重绘优化 */
+#chatPanel {
+    contain: layout style;
+    transform: translateZ(0); /* 启用硬件加速 */
+}
+
+/* macOS WebKit 特殊优化 */
+@supports (-webkit-appearance: none) {
+    /* macOS Safari/WebKit 特有的渲染优化 */
+    #chatPanel {
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        -webkit-perspective: 1000px;
+    }
+    
+    /* 确保在 macOS WebView 中正确计算高度 */
+    @media screen and (min-width: 1460px) and (max-width: 1470px) and (min-height: 825px) and (max-height: 835px) {
+        #chatPanel {
+            /* macOS Avalonia WebView 特殊处理 */
+            height: calc(100vh - 120px) !important;
+            min-height: 400px; /* 确保最小高度 */
+        }
+        
+        .chat-messages {
+            /* 强制重新计算滚动区域 */
+            min-height: 200px;
+            flex-basis: auto;
+        }
+        
+        .chat-input-area {
+            /* 确保输入区域在 macOS 上可见 */
+            min-height: 80px !important;
+            flex-shrink: 0 !important;
+            /* 强制确保输入区域完整显示 */
+            position: relative;
+            bottom: 0;
+            background: #2d2d2d !important;
+            border-top: 1px solid #444 !important;
+        }
+        
+        #chatInput {
+            /* macOS WebView 中确保输入框完整显示 */
+            min-height: 60px !important;
+            height: auto;
+            max-height: 200px;
+            /* 防止被其他元素遮挡 */
+            z-index: 10;
+            position: relative;
+        }
+    }
+}
+
+/* macOS 特定的字体渲染优化 */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+    #chatPanel,
+    .chat-messages,
+    .chat-input-area,
+    #chatInput {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 }
 
 @media (max-width: 768px) and (pointer: coarse), 
@@ -582,5 +1021,78 @@ body.theme-light .think {
     
     .desktop-icon {
         display: none;
+    }
+}
+
+/* 特殊设备适配 */
+/* iPad和其他大屏平板 */
+@media screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    #chatPanel {
+        --chat-panel-width: 400px;
+        height: calc(100vh - 100px);
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+    #chatPanel {
+        --chat-panel-width: 350px;
+        height: calc(100vh - 120px);
+    }
+}
+
+/* 超宽屏适配 */
+@media screen and (min-width: 2560px) {
+    #chatPanel {
+        --chat-panel-width: 650px;
+        height: calc(100vh - 60px);
+    }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    #chatPanel .resize-handle {
+        width: 8px;
+        left: -4px;
+    }
+    
+    .chat-messages::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+/* 减少动画以提高性能 */
+@media (prefers-reduced-motion: reduce) {
+    #chatPanel,
+    #chatPanel *,
+    .minimized-chat-button,
+    .minimized-chat-button * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* 黑暗模式系统偏好 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+    }
+}
+
+/* 高对比度模式适配 */
+@media (prefers-contrast: high) {
+    #chatPanel {
+        border-left: 2px solid #ffffff;
+    }
+    
+    .chat-header {
+        border-bottom: 2px solid #ffffff;
+    }
+    
+    .chat-input-area {
+        border-top: 2px solid #ffffff;
+    }
+    
+    #chatInput {
+        border: 2px solid #ffffff;
     }
 }
