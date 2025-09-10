@@ -48,9 +48,9 @@ export class FileListResizer {
         }
 
         this.rafId = requestAnimationFrame(() => {
-            // 根据设备类型设置最小宽度和最大宽度
+            // 根据设备类型设置最小宽度和最大宽度，最大宽度缩小25%
             const minWidth = isMobileDevice() ? 200 : 290;
-            const maxWidth = window.innerWidth * (isMobileDevice() ? 0.3 : 0.4);
+            const maxWidth = window.innerWidth * (isMobileDevice() ? 0.19 : 0.27);
             
             const width = Math.min(Math.max(this.startWidth + (e.clientX - this.startX), minWidth), maxWidth);
             this.fileList.style.width = `${width}px`;
