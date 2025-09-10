@@ -18,6 +18,7 @@ export class ChatManager {
         this.startY = 0;
         this.startWidth = 0;
         this.startHeight = 0;
+        this.resizeRafId = null;
         this.isInputResizing = false;
         this.isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
         this.isInitialized = false;
@@ -50,21 +51,41 @@ export class ChatManager {
             layoutEditor();
         });
 
-        // 聊天面板拖拽调整大小
-        this.chatPanel.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        // 聊天面板拖拽调整大小（仅限手柄）
+        const panelResizeHandle = this.chatPanel.querySelector('.resize-handle');
+        if (panelResizeHandle) {
+            panelResizeHandle.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        }
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         
         // 添加触摸事件支持
-        this.chatPanel.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+        if (panelResizeHandle) {
+            panelResizeHandle.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+        }
         document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
         document.addEventListener('touchend', this.handleTouchEnd.bind(this));
 
         // 聊天输入框大小调整
         const resizeHandle = document.querySelector('.chat-input-resize-handle');
-        resizeHandle.addEventListener('mousedown', this.handleInputResizeStart.bind(this));
-        document.addEventListener('mousemove', this.handleInputResize.bind(this));
-        document.addEventListener('mouseup', this.handleInputResizeEnd.bind(this));
+        if (resizeHandle) {
+            resizeHandle.addEventListener('mousedown', this.handleInputResizeStart.bind(this));
+            document.addEventListener('mousemove', this.handleInputResize.bind(this));
+            document.addEventListener('mouseup', this.handleInputResizeEnd.bind(this));
+        }
+        
+        // 监听原生resize事件，确保手柄和原生resize协同工作
+        this.chatInput.addEventListener('input', () => {
+            // 当输入内容时，自动调整高度以适应内容
+            this.autoResizeTextarea();
+        });
+        
+        // 监听原生resize操作
+        const resizeObserver = new ResizeObserver(() => {
+            // 当textarea被原生resize时，确保高度在合理范围内
+            this.enforceHeightLimits();
+        });
+        resizeObserver.observe(this.chatInput);
 
         // 聊天输入监听
         this.chatInput.addEventListener('keypress', async (e) => {
@@ -324,10 +345,9 @@ export class ChatManager {
     }
 
     handleMouseDown(e) {
-        // 桌面端水平拖动
-        const leftEdge = this.chatPanel.getBoundingClientRect().left;
-        if (Math.abs(e.clientX - leftEdge) > 10) return;
-        
+        // 仅在手柄上响应
+        if (!e.target.classList.contains('resize-handle')) return;
+
         this.isResizing = true;
         this.startX = e.clientX;
         this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
@@ -338,12 +358,10 @@ export class ChatManager {
 
     handleTouchStart(e) {
         if (e.touches.length !== 1) return;
-        
+        // 仅在手柄上响应
+        if (!e.target.classList.contains('resize-handle')) return;
+
         const touch = e.touches[0];
-        // 桌面端水平拖动
-        const leftEdge = this.chatPanel.getBoundingClientRect().left;
-        if (Math.abs(touch.clientX - leftEdge) > 20) return;
-        
         this.isResizing = true;
         this.startX = touch.clientX;
         this.startWidth = parseInt(document.defaultView.getComputedStyle(this.chatPanel).width, 10);
@@ -354,36 +372,53 @@ export class ChatManager {
     handleMouseMove(e) {
         if (!this.isResizing) return;
 
-        // 桌面端水平调整大小
-        const width = this.startWidth - (e.clientX - this.startX);
-        if (width >= 450 && width <= window.innerWidth * 0.6) {
-            this.chatPanel.style.width = `${width}px`;
-            
+        if (this.resizeRafId) {
+            cancelAnimationFrame(this.resizeRafId);
+        }
+
+        this.resizeRafId = requestAnimationFrame(() => {
+            const computed = getComputedStyle(this.chatPanel);
+            const minWidth = parseInt(computed.minWidth, 10) || 400;
+            const cssMax = parseInt(computed.maxWidth, 10) || Infinity;
+            const ratioMax = window.innerWidth * 0.55; // 扩大5%
+            const maxWidth = Math.min(cssMax, ratioMax);
+
+            const nextWidth = Math.min(Math.max(this.startWidth - (e.clientX - this.startX), minWidth), maxWidth);
+            this.chatPanel.style.width = `${nextWidth}px`;
+
             // 使用响应式宽度设置函数
             const fileList = document.getElementById('fileList');
             const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-            
+
             // 设置container的宽度和边距
-            setContainerWidth(this.container, fileListWidth, width, true);
-        }
+            setContainerWidth(this.container, fileListWidth, nextWidth, true);
+        });
     }
 
     handleTouchMove(e) {
         if (!this.isResizing || e.touches.length !== 1) return;
-        
+
         const touch = e.touches[0];
-        // 桌面端水平调整大小
-        const width = this.startWidth - (touch.clientX - this.startX);
-        if (width >= 450 && width <= window.innerWidth * 0.6) {
-            this.chatPanel.style.width = `${width}px`;
-            
-            // 使用响应式宽度设置函数
+
+        if (this.resizeRafId) {
+            cancelAnimationFrame(this.resizeRafId);
+        }
+
+        this.resizeRafId = requestAnimationFrame(() => {
+            const computed = getComputedStyle(this.chatPanel);
+            const minWidth = parseInt(computed.minWidth, 10) || 400;
+            const cssMax = parseInt(computed.maxWidth, 10) || Infinity;
+            const ratioMax = window.innerWidth * 0.55; // 扩大5%
+            const maxWidth = Math.min(cssMax, ratioMax);
+
+            const nextWidth = Math.min(Math.max(this.startWidth - (touch.clientX - this.startX), minWidth), maxWidth);
+            this.chatPanel.style.width = `${nextWidth}px`;
+
             const fileList = document.getElementById('fileList');
             const fileListWidth = parseInt(getComputedStyle(fileList).width, 10);
-            
-            // 设置container的宽度和边距
-            setContainerWidth(this.container, fileListWidth, width, true);
-        }
+            setContainerWidth(this.container, fileListWidth, nextWidth, true);
+        });
+
         e.preventDefault();
     }
 
@@ -392,6 +427,10 @@ export class ChatManager {
             this.isResizing = false;
             this.chatPanel.classList.remove('resizing');
             document.documentElement.style.cursor = '';
+            if (this.resizeRafId) {
+                cancelAnimationFrame(this.resizeRafId);
+                this.resizeRafId = null;
+            }
         }
     }
 
@@ -399,6 +438,10 @@ export class ChatManager {
         if (this.isResizing) {
             this.isResizing = false;
             this.chatPanel.classList.remove('resizing');
+            if (this.resizeRafId) {
+                cancelAnimationFrame(this.resizeRafId);
+                this.resizeRafId = null;
+            }
         }
     }
 
@@ -923,8 +966,21 @@ export class ChatManager {
 
         this.rafId = requestAnimationFrame(() => {
             const delta = this.startY - e.clientY;
-            const newHeight = Math.min(Math.max(this.startHeight + delta, 60), 500);
+            const minHeight = 60;
+            const maxHeight = Math.min(500, window.innerHeight * 0.4);
+            const newHeight = Math.min(Math.max(this.startHeight + delta, minHeight), maxHeight);
+            
+            // 直接设置height，不依赖CSS的min/max-height
             this.chatInput.style.height = `${newHeight}px`;
+            this.chatInput.style.minHeight = `${minHeight}px`;
+            this.chatInput.style.maxHeight = `${maxHeight}px`;
+            
+            // 确保内容过多时显示滚动条
+            if (this.chatInput.scrollHeight > newHeight) {
+                this.chatInput.style.overflowY = 'auto';
+            } else {
+                this.chatInput.style.overflowY = 'hidden';
+            }
         });
     }
 
@@ -1028,7 +1084,7 @@ export class ChatManager {
             }
             
             // 设置默认宽度
-            const defaultWidth = 520;
+            const defaultWidth = 470;
             this.chatPanel.style.width = `${defaultWidth}px`;
         }
     }
@@ -1121,6 +1177,51 @@ export class ChatManager {
             console.error('Error fixing chat input display:', error);
             // 重试一次
             setTimeout(() => this.fixInputBoxDisplay(), 200);
+        }
+    }
+
+    // 自动调整文本框高度以适应内容
+    autoResizeTextarea() {
+        const textarea = this.chatInput;
+        if (!textarea) return;
+
+        // 保存原始高度
+        const originalHeight = textarea.style.height;
+        
+        // 重置高度以获取准确的scrollHeight
+        textarea.style.height = 'auto';
+        
+        // 计算新高度
+        const minHeight = 60;
+        const maxHeight = Math.min(500, window.innerHeight * 0.4);
+        const scrollHeight = textarea.scrollHeight;
+        const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+        
+        // 应用新高度
+        textarea.style.height = `${newHeight}px`;
+        
+        // 如果内容超出最大高度，显示滚动条
+        if (scrollHeight > maxHeight) {
+            textarea.style.overflowY = 'auto';
+        } else {
+            textarea.style.overflowY = 'hidden';
+        }
+    }
+
+    // 强制执行高度限制
+    enforceHeightLimits() {
+        const textarea = this.chatInput;
+        if (!textarea) return;
+
+        const currentHeight = textarea.offsetHeight;
+        const minHeight = 60;
+        const maxHeight = Math.min(500, window.innerHeight * 0.4);
+        
+        if (currentHeight < minHeight) {
+            textarea.style.height = `${minHeight}px`;
+        } else if (currentHeight > maxHeight) {
+            textarea.style.height = `${maxHeight}px`;
+            textarea.style.overflowY = 'auto';
         }
     }
 }

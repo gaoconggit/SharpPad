@@ -38,11 +38,41 @@
     position: absolute;
     left: 0;
     right: 0;
-    height: 10px;
-    top: -5px;
+    height: 12px;
+    top: -6px;
     cursor: ns-resize;
     background: transparent;
     z-index: 1001;
+    transition: background-color 0.2s ease;
+}
+
+/* 增加手柄的可见性提示 */
+.chat-input-resize-handle:hover {
+    background: rgba(0, 120, 212, 0.1);
+}
+
+/* 添加一个更明显的拖拽指示器 */
+.chat-input-resize-handle::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.chat-input-resize-handle:hover::before {
+    opacity: 1;
+}
+
+/* 暗色主题下的指示器 */
+body.theme-light .chat-input-resize-handle::before {
+    background: rgba(0, 0, 0, 0.3);
 }
 
 /* 调整时的边框高亮 */
