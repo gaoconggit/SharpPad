@@ -511,17 +511,14 @@ body.theme-light .assistant-message {
     box-sizing: border-box;
     /* 强制确保在所有浏览器中正确显示 */
     contain: layout;
+    overflow: hidden;
+    transition: height 0.1s ease;
 }
 
-/* 在桌面端强制确保resize功能可用 */
-@media screen and (min-width: 769px) {
-    #chatInput {
-        resize: vertical !important;
-        overflow: auto !important;
-        height: auto !important;
-        min-height: 60px !important;
-    }
+.chat-input-area.resizing {
+    transition: none;
 }
+
 
 /* 响应式输入区域适配 */
 @media screen and (max-width: 1199px) {
@@ -564,7 +561,6 @@ body.theme-light .chat-input-area {
 
 #chatInput {
     flex: 1;
-    resize: vertical !important; /* 强制启用垂直resize */
     max-height: min(500px, 40vh); /* 响应式最大高度 */
     min-height: 60px;
     padding: 12px;
@@ -579,44 +575,12 @@ body.theme-light .chat-input-area {
     outline: none;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    overflow: auto; /* 确保内容过多时可以滚动，同时允许resize */
-    box-sizing: border-box; /* 确保padding计算正确 */
-    position: relative; /* 为了支持resize指示器的定位 */
-    height: 60px; /* 明确设置初始高度 */
+    overflow: auto;
+    box-sizing: border-box;
+    height: 60px;
+    resize: none;
 }
 
-/* 添加resize指示器 - 模拟原生的resize手柄样式 */
-#chatInput::after {
-    content: '';
-    position: absolute;
-    bottom: 3px;
-    right: 3px;
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(
-        135deg,
-        transparent 0px,
-        transparent 2px,
-        rgba(255, 255, 255, 0.3) 2px,
-        rgba(255, 255, 255, 0.3) 3px,
-        transparent 3px,
-        transparent 5px,
-        rgba(255, 255, 255, 0.3) 5px,
-        rgba(255, 255, 255, 0.3) 6px,
-        transparent 6px,
-        transparent 8px,
-        rgba(255, 255, 255, 0.3) 8px,
-        rgba(255, 255, 255, 0.3) 9px,
-        transparent 9px
-    );
-    pointer-events: none; /* 不影响鼠标交互 */
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-}
-
-#chatInput:hover::after {
-    opacity: 1;
-}
 
 #chatInput:focus {
     border-color: #0078d4;
@@ -628,7 +592,7 @@ body.theme-light .chat-input-area {
         min-height: 56px;
         padding: 10px 12px;
         max-height: min(400px, 35vh);
-        resize: vertical !important; /* 确保resize在中等屏幕上也启用 */
+        
     }
 }
 
@@ -638,7 +602,7 @@ body.theme-light .chat-input-area {
         padding: 10px;
         font-size: 13px;
         max-height: min(300px, 30vh);
-        resize: vertical !important; /* 确保resize在小屏幕上也启用 */
+        
     }
 }
 
@@ -648,7 +612,7 @@ body.theme-light .chat-input-area {
         padding: 8px 10px;
         font-size: 13px;
         max-height: min(250px, 25vh);
-        resize: vertical !important; /* 确保resize在平板上也启用 */
+        
     }
 }
 
@@ -662,7 +626,7 @@ body.theme-light .chat-input-area {
         -webkit-appearance: none;
         -webkit-user-select: text;
         user-select: text;
-        resize: none; /* 移动端禁用原生resize */
+         /* 移动端禁用原生resize */
     }
 }
 
@@ -677,25 +641,6 @@ body.theme-light #chatInput {
         outline: none;
     }
 
-/* 浅色主题下的resize指示器 */
-body.theme-light #chatInput::after {
-    background: linear-gradient(
-        135deg,
-        transparent 0px,
-        transparent 2px,
-        rgba(0, 0, 0, 0.4) 2px,
-        rgba(0, 0, 0, 0.4) 3px,
-        transparent 3px,
-        transparent 5px,
-        rgba(0, 0, 0, 0.4) 5px,
-        rgba(0, 0, 0, 0.4) 6px,
-        transparent 6px,
-        transparent 8px,
-        rgba(0, 0, 0, 0.4) 8px,
-        rgba(0, 0, 0, 0.4) 9px,
-        transparent 9px
-    );
-}
 
 .minimized-chat-button {
     position: fixed;
