@@ -91,8 +91,14 @@ export class Editor {
                         },
                         {
                             "role": "user",
-                            "content": `Complete the following ${body.completionMetadata.language} code at line ${body.completionMetadata.cursorPosition.lineNumber}, column ${body.completionMetadata.cursorPosition.column}:
-${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.textAfterCursor}`
+                            "content": `Complete the ${body.completionMetadata.language} code at the <cursor> position.
+
+CURSOR POSITION: Line ${body.completionMetadata.cursorPosition.lineNumber}, Column ${body.completionMetadata.cursorPosition.column}
+
+CODE CONTEXT:
+${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.textAfterCursor}
+
+Provide only the code to insert at the cursor position.`
                         }
                     ],
                     "max_tokens": 300
