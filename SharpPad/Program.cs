@@ -6,6 +6,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
+using SharpPad.Services;
 
 namespace SharpPad
 {
@@ -13,6 +14,12 @@ namespace SharpPad
     {
         public static void Main(string[] args)
         {
+            // 获取多实例端口配置
+            var (port, isFirstInstance) = InstanceManager.Instance.GetPortForInstance();
+            
+            // 设置环境变量覆盖配置文件中的端口
+            Environment.SetEnvironmentVariable("ASPNETCORE_URLS", $"http://0.0.0.0:{port}");
+            
             var builder = WebApplication.CreateBuilder(args);
             
             // 配置服务
@@ -22,6 +29,9 @@ namespace SharpPad
             
             // 配置管道
             Configure(app);
+            
+            Console.WriteLine($"SharpPad starting on port {port} (Instance: {(isFirstInstance ? "Primary" : "Secondary")})");
+            Console.WriteLine($"Access URL: http://localhost:{port}");
             
             app.Run();
         }

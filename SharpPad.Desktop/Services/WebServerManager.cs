@@ -81,32 +81,19 @@ public sealed class WebServerManager
             }
         }
         
+        // 使用多实例管理器获取端口（在读取配置之前）
+        var (assignedPort, isFirstInstance) = InstanceManager.Instance.GetPortForInstance();
+        Port = assignedPort;
+        Url = $"http://localhost:{Port}";
+        var kestrelUrl = $"http://0.0.0.0:{Port}";
+        
+        Console.WriteLine($"SharpPad.Desktop starting on port {Port} (Instance: {(isFirstInstance ? "Primary" : "Secondary")})");
+        
         // 读取配置
         var configuration = new ConfigurationBuilder()
             .SetBasePath(configBasePath)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
-            
-        var kestrelUrl = configuration["Kestrel:Endpoints:Http:Url"] ?? "http://localhost:5090";
-        Url = kestrelUrl.Replace("0.0.0.0", "localhost"); // WebView使用localhost
-        
-        // 解析端口号
-        if (Uri.TryCreate(kestrelUrl, UriKind.Absolute, out var uri))
-        {
-            Port = uri.Port;
-        }
-        else
-        {
-            Port = 5090; // 默认端口
-        }
-
-        // 检查端口是否可用，如果不可用则使用随机端口
-        if (!IsPortAvailable(Port))
-        {
-            Port = GetAvailablePort();
-            Url = $"http://localhost:{Port}";
-            kestrelUrl = Url;
-        }
 
         try
         {
@@ -143,24 +130,4 @@ public sealed class WebServerManager
         }
     }
 
-    private static int GetAvailablePort()
-    {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-        return ((IPEndPoint)socket.LocalEndPoint!).Port;
-    }
-
-    private static bool IsPortAvailable(int port)
-    {
-        try
-        {
-            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }
