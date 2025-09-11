@@ -13,11 +13,14 @@
       "Bash(git worktree add:*)",
       "Bash(git diff:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "WebSearch",
+      "Bash(git worktree:*)"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "playwright"
   ]
