@@ -1,44 +1,640 @@
-var Oe="\x1B[91m",re="\x1B[93m",W="\x1B[0m",G="\x1B[1m",ne=o=>o instanceof Error?o.message:typeof o=="string"?o:"An unknown error occurred",S=o=>{let e=ne(o),t=`${Oe}${G}[MONACOPILOT ERROR] ${e}${W}`;return console.error(t),{message:e}},v=(o,e)=>{console.warn(`${re}${G}[MONACOPILOT WARN] ${o}${e?`
-${ne(e)}`:""}${W}`);};var ie=(o,e,t)=>console.warn(`${re}${G}[MONACOPILOT DEPRECATED] "${o}" is deprecated${` in ${t}`}. Please use "${e}" instead. It will be removed in a future version.${W}`);var se=(o,e)=>e.getLineContent(o.lineNumber)[o.column-1];var ae=(o,e)=>e.getLineContent(o.lineNumber).slice(0,o.column-1),O=(o,e)=>e.getValueInRange({startLineNumber:1,startColumn:1,endLineNumber:o.lineNumber,endColumn:o.column}),X=(o,e)=>e.getValueInRange({startLineNumber:o.lineNumber,startColumn:o.column,endLineNumber:e.getLineCount(),endColumn:e.getLineMaxColumn(e.getLineCount())});var w=class{constructor(e){this.capacity=e;this.head=0;this.tail=0;this.size=0;this.buffer=new Array(e);}enqueue(e){let t;return this.size===this.capacity&&(t=this.dequeue()),this.buffer[this.tail]=e,this.tail=(this.tail+1)%this.capacity,this.size++,t}dequeue(){if(this.size===0)return;let e=this.buffer[this.head];return this.buffer[this.head]=undefined,this.head=(this.head+1)%this.capacity,this.size--,e}getAll(){return this.buffer.filter(e=>e!==undefined)}clear(){this.buffer=new Array(this.capacity),this.head=0,this.tail=0,this.size=0;}getSize(){return this.size}isEmpty(){return this.size===0}isFull(){return this.size===this.capacity}};var _=class _{constructor(){this.cache=new w(_.MAX_CACHE_SIZE);}get(e,t){return this.cache.getAll().filter(r=>this.isValidCacheItem(r,e,t))}add(e){this.cache.enqueue(e);}clear(){this.cache.clear();}isValidCacheItem(e,t,r){let n=r.getValueInRange(e.range),i=O(t,r);return i.length<e.textBeforeCursor.length||!i.startsWith(e.textBeforeCursor)?false:this.isPositionValid(e,t,n)}isPositionValid(e,t,r){let{range:n,completion:i}=e,{startLineNumber:s,startColumn:l,endLineNumber:p,endColumn:d}=n,{lineNumber:c,column:a}=t;if(!i.startsWith(r))return  false;let u=c===s&&a===l;if(s===p)return u||c===s&&a>=l&&a<=d;let f=c>s&&c<p?true:c===s&&a>=l||c===p&&a<=d;return u||f}};_.MAX_CACHE_SIZE=10;var L=_;var N=class{constructor(e,t,r){this.formattedCompletion="";this.currentColumn=0;this.textBeforeCursorInLine="";this.formattedCompletion=e,this.currentColumn=t,this.textBeforeCursorInLine=r;}setCompletion(e){return this.formattedCompletion=e,this}removeInvalidLineBreaks(){return this.formattedCompletion=this.formattedCompletion.trimEnd(),this}removeMarkdownCodeSyntax(){return this.formattedCompletion=this.removeMarkdownCodeBlocks(this.formattedCompletion),this}indentByColumn(){let e=this.formattedCompletion.split(`
-`);if(e.length<=1||this.textBeforeCursorInLine.trim()!=="")return this;let t=" ".repeat(this.currentColumn-1);return this.formattedCompletion=e[0]+`
-`+e.slice(1).map(r=>t+r).join(`
-`),this}removeMarkdownCodeBlocks(e){let t=/```[\s\S]*?```/g,r=e,n;for(;(n=t.exec(e))!==null;){let i=n[0],s=i.split(`
-`).slice(1,-1).join(`
-`);r=r.replace(i,s);}return r.trim()}removeExcessiveNewlines(){return this.formattedCompletion=this.formattedCompletion.replace(/\n{3,}/g,`
+import {Copilot, logger} from './index.core.mjs';
+var k = n => !n || n.length === 0 ? "" : n.length === 1 ? n[0] : `${n.slice(0, -1).join(", ")} and ${n.slice(-1)}`;
+var S = (n, e, o={}) => {
+    if (e <= 0)
+        return "";
+    let t = n.split(`
+`)
+      , r = t.length;
+    if (e >= r)
+        return n;
+    if (o.truncateDirection === "keepEnd") {
+        let s = t.slice(-e);
+        return s.every(l => l === "") ? `
+`.repeat(e) : s.join(`
+`)
+    }
+    let i = t.slice(0, e);
+    return i.every(s => s === "") ? `
+`.repeat(e) : i.join(`
+`)
+}
+;
+var re = "<|developer_cursor_is_here|>"
+  , B = n => ({
+    instruction: ie(),
+    context: se(n),
+    fileContent: ae(n)
+})
+  , ie = () => "Provide concise and readable code completions that are syntactically and logically accurate, and seamlessly integrate with the existing context. Output only the raw code to be inserted at the cursor location without any additional text, comments, or text before or after the cursor."
+  , se = n => {
+    let {technologies: e=[], filename: o, relatedFiles: t=[], language: r} = n
+      , i = k([r, ...e].filter(a => !!a))
+      , s = t.length === 0 ? "" : t.map( ({path: a, content: p}) => `### ${a}
+${p}`).join(`
 
-`),this}build(){return this.formattedCompletion}};var B=class{constructor(e){this.monaco=e;}computeInsertionRange(e,t,r){if(!t)return new this.monaco.Range(e.lineNumber,e.column,e.lineNumber,e.column);let n=r.getOffsetAt(e),i=r.getValue().substring(0,n),s=r.getValue().substring(n),l=0,p=0,d=0,c=0,a=t.length,u=i.length,f=s.length;if(n>=r.getValue().length)return new this.monaco.Range(e.lineNumber,e.column,e.lineNumber,e.column);if(f===0)return new this.monaco.Range(e.lineNumber,e.column,e.lineNumber,e.column);let T=Math.min(a,u);for(let m=1;m<=T;m++){let b=t.substring(0,m),ve=i.slice(-m);b===ve&&(c=m);}let C=Math.min(a,f);for(let m=0;m<C&&t[m]===s[m];m++)l++;for(let m=1;m<=C;m++)t.slice(-m)===s.slice(0,m)&&(p=m);if(d=Math.max(l,p),d===0){for(let m=1;m<a;m++)if(s.startsWith(t.substring(m))){d=a-m;break}}let x=c>0?r.getPositionAt(n-c):e,y=n+d,h=r.getPositionAt(y);return new this.monaco.Range(x.lineNumber,x.column,h.lineNumber,h.column)}computeCacheRange(e,t){let r=e.lineNumber,n=e.column,i=t.split(`
-`),s=i.length-1,l=r+s,p=s===0?n+i[0].length:i[s].length+1;return new this.monaco.Range(r,n,l,p)}};var le="application/json";var pe=async(o,e,t={})=>{let r=t.timeout??3e4,n=AbortSignal.timeout(r),i=t.signal?AbortSignal.any([n,t.signal]):n,s={"Content-Type":"application/json",...t.headers},l=e==="POST"&&t.body?JSON.stringify(t.body):undefined,p=await fetch(o,{method:e,headers:s,body:l,signal:i});if(!p.ok){let d=await p.json().catch(()=>null),c=d?`
-${JSON.stringify(d,null,2)}`:"",a=t.fallbackError||"Network request failed";throw new Error(`${a} (${p.status})${c}`)}return p.json()},Ie=(o,e)=>pe(o,"GET",e),Ae=(o,e,t)=>pe(o,"POST",{...t,body:e}),q={GET:Ie,POST:Ae};var A=o=>!o||o.length===0?"":o.length===1?o[0]:`${o.slice(0,-1).join(", ")} and ${o.slice(-1)}`,me=o=>o.charAt(0).toUpperCase()+o.slice(1),Y=(o,e,t={})=>{if(e<=0)return "";let r=o.split(`
-`),n=r.length;if(e>=n)return o;if(t.from==="end"){let s=r.slice(-e);return s.every(l=>l==="")?`
-`.repeat(e):s.join(`
-`)}let i=r.slice(0,e);return i.every(s=>s==="")?`
-`.repeat(e):i.join(`
-`)};var ce=async o=>{let{endpoint:e,body:t}=o,{completion:r,error:n}=await q.POST(e,t,{headers:{"Content-Type":le},fallbackError:"Error while fetching completion item"});if(n)throw new Error(n);return {completion:r}},de=({pos:o,mdl:e,options:t})=>{let{filename:r,language:n,technologies:i,relatedFiles:s,maxContextLines:l}=t,p=ke(o,e),c=!!s?.length?3:2,a=l?Math.floor(l/c):undefined,u=(y,h,m)=>{let b=y(o,e);return h?Y(b,h,m):b},f=(y,h)=>!y||!h?y:y.map(({content:m,...b})=>({...b,content:Y(m,h)})),T=u(O,a,{from:"end"}),C=u(X,a),x=f(s,a);return {filename:r,language:n,technologies:i,relatedFiles:x,textBeforeCursor:T,textAfterCursor:C,cursorPosition:o,editorState:{completionMode:p}}},ke=(o,e)=>{let t=se(o,e),r=X(o,e);return t?"insert":r.trim()?"complete":"continue"};var I=o=>({items:o,enableForwardStability:true,suppressSuggestions:true});var F=(o,e=600,t=200)=>{let r=null,n=0,i=null,s=null,l=false,p=(...d)=>{if(l)return Promise.resolve(undefined);i=d;let c=Date.now(),a=c-n;n=c,r&&(clearTimeout(r),r=null);let u=a<t?e:t;return s=new Promise((f,T)=>{r=setTimeout(async()=>{l=true;try{if(i){let C=await o(...i);f(C);}else f(void 0);}catch(C){T(C);}finally{l=false,r=null,i=null;}},u);}),s};return p.cancel=()=>{r&&(clearTimeout(r),r=null),i=null;},p};var Se=o=>({onTyping:F(o,600,200),onIdle:F(o,600,400),onDemand:F(o,0,0)}),$=new L,ue=async({monaco:o,mdl:e,pos:t,token:r,isCompletionAccepted:n,options:i})=>{let{trigger:s="onIdle",endpoint:l,enableCaching:p=true,onError:d,requestHandler:c}=i;if(p){let a=$.get(t,e).map(u=>({insertText:u.completion,range:u.range}));if(a.length>0)return I(a)}if(r.isCancellationRequested||n)return I([]);try{let u=Se(c??ce)[s];r.onCancellationRequested(()=>{u.cancel();});let f=de({pos:t,mdl:e,options:i}),{completion:T}=await u({endpoint:l,body:{completionMetadata:f}});if(T){let C=new N(T,t.column,ae(t,e)).removeMarkdownCodeSyntax().removeExcessiveNewlines().removeInvalidLineBreaks().indentByColumn().build(),x=new B(o),y=x.computeInsertionRange(t,C,e),h=x.computeCacheRange(t,C);return p&&$.add({completion:C,range:h,textBeforeCursor:O(t,e)}),I([{insertText:C,range:y}])}}catch(a){if(we(a))return I([]);d?d(a):v("Cannot provide completion",a);}return I([])},we=o=>typeof o=="string"?o==="Cancelled"||o==="AbortError":o instanceof Error?o.message==="Cancelled"||o.name==="AbortError":false;var J=new WeakMap,k=o=>J.get(o),Ce=(o,e)=>{J.set(o,e);},Z=o=>{J.delete(o);},ge=()=>({isCompletionAccepted:false,isCompletionVisible:false,isExplicitlyTriggered:false,hasRejectedCurrentCompletion:false});var fe=(o,e,t)=>{let r=k(e);return r?o.languages.registerInlineCompletionsProvider(t.language,{provideInlineCompletions:(n,i,s,l)=>{if(!(t.trigger==="onDemand"&&!r.isExplicitlyTriggered))return ue({monaco:o,mdl:n,pos:i,token:l,isCompletionAccepted:r.isCompletionAccepted,options:t})},handleItemDidShow:(n,i,s)=>{r.isExplicitlyTriggered=false,r.hasRejectedCurrentCompletion=false,!r.isCompletionAccepted&&(r.isCompletionVisible=true,t.onCompletionShown?.(s,i.range));},freeInlineCompletions:()=>{}}):null},he=o=>{let e=k(o);if(!e){v("Completion is not registered. Use `registerCompletion` to register completion first.");return}e.isExplicitlyTriggered=true,o.trigger("keyboard","editor.action.inlineSuggest.trigger",{});};var Le={TAB:(o,e)=>e.keyCode===o.KeyCode.Tab,CMD_RIGHT_ARROW:(o,e)=>e.keyCode===o.KeyCode.RightArrow&&e.metaKey},Q=class{constructor(e,t,r){this.monaco=e;this.state=t;this.options=r;}handleKeyEvent(e){let t={monaco:this.monaco,event:e,state:this.state,options:this.options};this.handleCompletionAcceptance(t),this.handleCompletionRejection(t);}handleCompletionAcceptance(e){return e.state.isCompletionVisible&&this.isAcceptanceKey(e.event)?(e.options.onCompletionAccepted?.(),e.state.isCompletionAccepted=true,e.state.isCompletionVisible=false,true):(e.state.isCompletionAccepted=false,false)}handleCompletionRejection(e){return this.shouldRejectCompletion(e)?(e.options.onCompletionRejected?.(),e.state.hasRejectedCurrentCompletion=true,true):false}shouldRejectCompletion(e){return e.state.isCompletionVisible&&!e.state.hasRejectedCurrentCompletion&&!e.state.isCompletionAccepted&&!this.isAcceptanceKey(e.event)}isAcceptanceKey(e){return Object.values(Le).some(t=>t(this.monaco,e))}},Pe=(o,e,t,r)=>{let n=new Q(o,t,r);return e.onKeyDown(i=>n.handleKeyEvent(i))};var D=null,_e=(o,e,t)=>{D&&D.deregister();let r=[];Ce(e,ge()),e.updateOptions({inlineSuggest:{enabled:true,mode:"subwordSmart"}});try{let n=k(e);if(!n)return v("Completion is not registered properly. State not found."),Ne();let i=fe(o,e,t);i&&r.push(i);let s=Pe(o,e,n,t);r.push(s);let l={deregister:()=>{r.forEach(p=>p.dispose()),$.clear(),Z(e),D=null;},trigger:()=>he(e)};return D=l,l}catch(n){return t.onError?t.onError(n):S(n),{deregister:()=>{r.forEach(i=>i.dispose()),Z(e),D=null;},trigger:()=>{}}}},Ne=()=>({deregister:()=>{},trigger:()=>{}});var ee=["groq","openai","anthropic","google","deepseek"],P={"llama-3-70b":"llama3-70b-8192","gpt-4o":"gpt-4o-2024-08-06","gpt-4o-mini":"gpt-4o-mini","claude-3-5-sonnet":"claude-3-5-sonnet-20241022","claude-3-haiku":"claude-3-haiku-20240307","claude-3-5-haiku":"claude-3-5-haiku-20241022","o1-mini":"o1-mini","gemini-1.5-flash-8b":"gemini-1.5-flash-8b","gemini-1.5-flash":"gemini-1.5-flash","gemini-1.5-pro":"gemini-1.5-pro",v3:"deepseek-chat"},te={groq:["llama-3-70b"],openai:["gpt-4o","gpt-4o-mini","o1-mini"],anthropic:["claude-3-5-sonnet","claude-3-haiku","claude-3-5-haiku"],google:["gemini-1.5-flash-8b","gemini-1.5-pro","gemini-1.5-flash"],deepseek:["v3"]},E={groq:"https://api.groq.com/openai/v1/chat/completions",openai:"https://api.openai.com/v1/chat/completions",anthropic:"https://api.anthropic.com/v1/messages",google:"https://generativelanguage.googleapis.com/v1beta/models",deepseek:"https://api.deepseek.com/beta/completions"};var g=class{};var j=class extends g{createEndpoint(){return E.anthropic}createRequestBody(e,t){return {model:P[e],temperature:.1,system:t.system,messages:[{role:"user",content:t.user}],max_tokens:500}}createHeaders(e){return {"Content-Type":"application/json","x-api-key":e,"anthropic-version":"2023-06-01"}}parseCompletion(e){let t=e.content?.[0];return t&&"text"in t?t.text:null}};var H=class extends g{createEndpoint(){return E.deepseek}createRequestBody(e,t,r){return {model:P[e],prompt:r.textBeforeCursor,suffix:r.textAfterCursor,temperature:.1,max_tokens:500}}createHeaders(e){return {"Content-Type":"application/json",Authorization:`Bearer ${e}`}}parseCompletion(e){return typeof e.choices?.[0]?.text=="string"?e.choices[0].text:null}};var K=class extends g{createEndpoint(e,t){return `${E.google}/${P[e]}:generateContent?key=${t}`}createRequestBody(e,t){return {systemInstruction:{role:"system",parts:[{text:t.system}]},generationConfig:{temperature:.1,maxOutputTokens:500},contents:[{role:"user",parts:[{text:t.user}]}]}}createHeaders(){return {"Content-Type":"application/json"}}parseCompletion(e){return e.candidates?.[0]?.content?.parts?.[0]?.text??null}};var V=class extends g{createEndpoint(){return E.groq}createRequestBody(e,t){return {model:P[e],temperature:.1,max_tokens:500,messages:[{role:"system",content:t.system},{role:"user",content:t.user}]}}createHeaders(e){return {"Content-Type":"application/json",Authorization:`Bearer ${e}`}}parseCompletion(e){return e.choices?.[0]?.message.content??null}};var U=class extends g{createEndpoint(){return E.openai}createRequestBody(e,t){let r=e==="o1-mini";return {model:P[e],...!r&&{temperature:.1},max_completion_tokens:500,messages:[{role:"system",content:t.system},{role:"user",content:t.user}]}}createHeaders(e){return {"Content-Type":"application/json",Authorization:`Bearer ${e}`}}parseCompletion(e){return e.choices?.[0]?.message.content??null}};var z={openai:new U,groq:new V,anthropic:new j,google:new K,deepseek:new H},Ee=(o,e,t)=>z[t].createEndpoint(o,e),ye=(o,e,t,r)=>z[e].createRequestBody(o,t,r),Re=(o,e)=>z[e].createHeaders(o),Me=(o,e)=>z[e].parseCompletion(o);var Be=o=>!o||o.length===0?"":o.map(({path:e,content:t})=>`
-<related_file>
-  <filePath>${e}</filePath>
-  <fileContent>
+`)
+      , l = [i ? `Technology stack: ${i}` : "", `File: ${o || "unknown"}`].filter(Boolean).join(`
+`);
+    return `${s ? `${s}
+
+` : ""}${l}`
+}
+  , ae = n => {
+    let {textBeforeCursor: e, textAfterCursor: o} = n;
+    return `**Current code:**
 \`\`\`
-${t}
-\`\`\`
-  </fileContent>
-</related_file>`.trim()).join(`
+${e}${re}${o}
+\`\`\``
+}
+;
+var b = class extends Copilot {
+    async complete(e) {
+        let {body: o, options: t} = e
+          , {customPrompt: r, aiRequestHandler: i} = t ?? {}
+          , {completionMetadata: s} = o
+          , {text: l, raw: a, error: p} = await this.makeAIRequest(s, {
+            customPrompt: r,
+            aiRequestHandler: i
+        });
+        return {
+            completion: l,
+            raw: a,
+            error: p
+        }
+    }
+    getDefaultPrompt(e) {
+        return B(e)
+    }
+}
+;
+var U = 100
+  , j = true
+  , T = "onIdle"
+  , K = true
+  , H = 120
+  , V = 400
+  , $ = 0;
+var f = (n, e) => e.getValueInRange({
+    startLineNumber: 1,
+    startColumn: 1,
+    endLineNumber: n.lineNumber,
+    endColumn: n.column
+})
+  , W = (n, e) => e.getValueInRange({
+    startLineNumber: n.lineNumber,
+    startColumn: n.column,
+    endLineNumber: e.getLineCount(),
+    endColumn: e.getLineMaxColumn(e.getLineCount())
+})
+  , z = n => n.getValue();
+var v = class {
+    constructor(e) {
+        this.capacity = e;
+        this.head = 0;
+        this.tail = 0;
+        this.size = 0;
+        this.buffer = new Array(e);
+    }
+    enqueue(e) {
+        let o;
+        return this.size === this.capacity && (o = this.dequeue()),
+        this.buffer[this.tail] = e,
+        this.tail = (this.tail + 1) % this.capacity,
+        this.size++,
+        o
+    }
+    dequeue() {
+        if (this.size === 0)
+            return;
+        let e = this.buffer[this.head];
+        return this.buffer[this.head] = void 0,
+        this.head = (this.head + 1) % this.capacity,
+        this.size--,
+        e
+    }
+    getAll() {
+        return this.buffer.filter(e => e !== void 0)
+    }
+    clear() {
+        this.buffer = new Array(this.capacity),
+        this.head = 0,
+        this.tail = 0,
+        this.size = 0;
+    }
+    getSize() {
+        return this.size
+    }
+    isEmpty() {
+        return this.size === 0
+    }
+    isFull() {
+        return this.size === this.capacity
+    }
+}
+;
+var O = class O {
+    constructor() {
+        this.cache = new v(O.MAX_CACHE_SIZE);
+    }
+    get(e, o) {
+        return this.cache.getAll().filter(t => this.isValidCacheItem(t, e, o))
+    }
+    add(e) {
+        e.completion.trim() && this.cache.enqueue(e);
+    }
+    clear() {
+        this.cache.clear();
+    }
+    isValidCacheItem(e, o, t) {
+        let r = e.textBeforeCursor.trim()
+          , i = f(o, t)
+          , s = i
+          , l = t.getLineContent(o.lineNumber);
+        if (o.column === l.length + 1 && o.lineNumber < t.getLineCount()) {
+            let p = t.getLineContent(o.lineNumber + 1);
+            s = `${i}
+${p}`;
+        }
+        if (!(s.trim().includes(r) || r.includes(s.trim())))
+            return false;
+        let a = t.getValueInRange(e.range);
+        return this.isPartialMatch(a, e.completion) ? this.isPositionValid(e, o) : false
+    }
+    isPartialMatch(e, o) {
+        let t = e.trim()
+          , r = o.trim();
+        return r.startsWith(t) || t.startsWith(r)
+    }
+    isPositionValid(e, o) {
+        let {range: t} = e
+          , {startLineNumber: r, startColumn: i, endLineNumber: s, endColumn: l} = t
+          , {lineNumber: a, column: p} = o;
+        return a < r || a > s ? false : r === s ? p >= i - 1 && p <= l + 1 : a === r ? p >= i - 1 : a === s ? p <= l + 1 : true
+    }
+}
+;
+O.MAX_CACHE_SIZE = 20;
+var P = O;
+var M = class {
+    constructor(e) {
+        this.formattedCompletion = "";
+        this.formattedCompletion = e;
+    }
+    setCompletion(e) {
+        return this.formattedCompletion = e,
+        this
+    }
+    removeInvalidLineBreaks() {
+        return this.formattedCompletion = this.formattedCompletion.trimEnd(),
+        this
+    }
+    removeMarkdownCodeSyntax() {
+        return this.formattedCompletion = this.removeMarkdownCodeBlocks(this.formattedCompletion),
+        this
+    }
+    removeMarkdownCodeBlocks(e) {
+        let o = e.split(`
+`)
+          , t = []
+          , r = false;
+        for (let i = 0; i < o.length; i++) {
+            let s = o[i]
+              , l = s.trim().startsWith("```");
+            if (l && !r) {
+                r = true;
+                continue
+            }
+            if (l && r) {
+                r = false;
+                continue
+            }
+            t.push(s);
+        }
+        return t.join(`
+`)
+    }
+    removeExcessiveNewlines() {
+        return this.formattedCompletion = this.formattedCompletion.replace(/\n{3,}/g, `
 
-`),Te=o=>{let{technologies:e=[],filename:t,relatedFiles:r,language:n,textBeforeCursor:i="",textAfterCursor:s="",editorState:{completionMode:l}}=o,p=A([n,...e].filter(a=>typeof a=="string"&&!!a)),d=`
-You are an expert code completion assistant.
-
-**Context:**
-File: ${t||"Untitled"}
-Language: ${n||"Undetermined"} 
-Mode: ${l}
-Stack: ${p||"None"}`,c=`
-**Related Files:**
-${Be(r)}
-
-**Source:**
-\`\`\`
-${i}<cursor>${s}
-\`\`\`
-
-${me(l)} the code at <cursor>.
-
-Output only the raw code to be inserted at the cursor location without any additional text or comments.`;return {system:d,user:c}};var xe=(o,e)=>{if(!o)throw new Error("Please provide an API key.");if(!e||typeof e=="object"&&Object.keys(e).length===0)throw new Error("Please provide options.")},be=(o,e)=>{if(typeof o=="object"){if(e!==undefined)throw new Error("Provider should not be specified when using a custom model.");if(!("config"in o)||!("transformResponse"in o))throw new Error("Please ensure both config and transformResponse are provided for custom model.");return}if(!e||!ee.includes(e))throw new Error(`Provider must be specified and supported when using built-in models. Please choose from: ${A(ee)}`);if(typeof o=="string"&&!te[e].includes(o))throw new Error(`Model "${o}" is not supported by the "${e}" provider. Supported models: ${A(te[e])}`)};var oe=class{constructor(e,t){xe(e,t),this.apiKey=e,this.provider=t.provider,this.model=t.model,be(this.model,this.provider);}async complete(e){let{body:t,options:r}=e,{completionMetadata:n}=t,{headers:i={},customPrompt:s}=r??{},l=this.generatePrompt(n,s),{endpoint:p,requestBody:d,headers:c}=this.prepareRequestDetails(l,n);try{let a=await this.sendCompletionRequest(p,d,{...c,...i});return this.processCompletionResponse(a)}catch(a){return this.handleCompletionError(a)}}generatePrompt(e,t){let r=Te(e);return t?{...r,...t(e)}:r}prepareRequestDetails(e,t){if(typeof this.model=="object"&&"config"in this.model){let r=this.model.config(this.apiKey,e),n=r.endpoint,i=r.body??{},s=r.headers??{};return {endpoint:n,requestBody:i,headers:s}}else {if(!this.provider)throw new Error("Provider is required for non-custom models");let r=Ee(this.model,this.apiKey,this.provider),n=Re(this.apiKey,this.provider),i=ye(this.model,this.provider,e,t);return {endpoint:r,requestBody:i,headers:n}}}async sendCompletionRequest(e,t,r){return q.POST(e,t,{headers:r})}processCompletionResponse(e){if(typeof this.model=="object"&&"transformResponse"in this.model){let t=this.model.transformResponse(e);return "completion"in t&&ie("completion","text","Copilot.options.model.transformResponse"),{completion:t.text??t.completion??null,raw:e}}else {if(!this.provider)throw new Error("Provider is required for non-custom models");return {completion:Me(e,this.provider),raw:e}}}handleCompletionError(e){return {error:S(e).message,completion:null}}};export{oe as Copilot,_e as registerCompletion};
+`),
+        this
+    }
+    build() {
+        return this.formattedCompletion
+    }
+}
+;
+var I = class {
+    findOverlaps(e, o, t) {
+        if (!e)
+            return {
+                startOverlapLength: 0,
+                maxOverlapLength: 0
+            };
+        let r = e.length
+          , i = o.length
+          , s = t.length
+          , l = 0
+          , a = 0
+          , p = 0
+          , d = Math.min(r, i);
+        for (let m = 1; m <= d; m++) {
+            let u = e.substring(0, m)
+              , C = o.slice(-m);
+            u === C && (p = m);
+        }
+        let c = Math.min(r, s);
+        for (let m = 0; m < c && e[m] === t[m]; m++)
+            l++;
+        for (let m = 1; m <= c; m++)
+            e.slice(-m) === t.slice(0, m) && (a = m);
+        let g = Math.max(l, a);
+        if (g === 0) {
+            for (let m = 1; m < r; m++)
+                if (t.startsWith(e.substring(m))) {
+                    g = r - m;
+                    break
+                }
+        }
+        return {
+            startOverlapLength: p,
+            maxOverlapLength: g
+        }
+    }
+}
+;
+var L = class {
+    constructor(e) {
+        this.monaco = e;
+        this.textOverlapCalculator = new I;
+    }
+    computeInsertionRange(e, o, t) {
+        if (!o)
+            return this.createEmptyRange(e);
+        let r = t.getOffsetAt(e)
+          , i = t.getValue().substring(0, r)
+          , s = t.getValue().substring(r);
+        if (r >= t.getValue().length)
+            return this.createEmptyRange(e);
+        if (s.length === 0)
+            return this.createEmptyRange(e);
+        let {startOverlapLength: l, maxOverlapLength: a} = this.textOverlapCalculator.findOverlaps(o, i, s)
+          , p = l > 0 ? t.getPositionAt(r - l) : e
+          , d = r + a
+          , c = t.getPositionAt(d);
+        return new this.monaco.Range(p.lineNumber,p.column,c.lineNumber,c.column)
+    }
+    computeCacheRange(e, o) {
+        let t = e.lineNumber
+          , r = e.column
+          , i = o.split(`
+`)
+          , s = i.length - 1
+          , l = t + s
+          , a = s === 0 ? r + i[0].length : i[s].length + 1;
+        return new this.monaco.Range(t,r,l,a)
+    }
+    createEmptyRange(e) {
+        return new this.monaco.Range(e.lineNumber,e.column,e.lineNumber,e.column)
+    }
+}
+;
+var G = async n => {
+    let {endpoint: e, body: o} = n
+      , t = await fetch(e, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(o)
+    });
+    if (!t.ok)
+        throw new Error(`Error while fetching completion item: ${t.statusText}`);
+    let {completion: r, error: i} = await t.json();
+    return {
+        completion: r,
+        error: i
+    }
+}
+  , X = ({pos: n, mdl: e, options: o}) => {
+    let {filename: t, language: r, technologies: i, relatedFiles: s, maxContextLines: l=U} = o
+      , p = s && s.length > 0 ? 3 : 2
+      , d = l ? Math.floor(l / p) : void 0
+      , c = (y, R, F) => {
+        let x = y(n, e);
+        return R ? S(x, R, F) : x
+    }
+      , g = (y, R) => !y || !R ? y : y.map( ({content: F, ...x}) => ({
+        ...x,
+        content: S(F, R)
+    }))
+      , m = c(f, d, {
+        truncateDirection: "keepEnd"
+    })
+      , u = c(W, d, {
+        truncateDirection: "keepStart"
+    })
+      , C = g(s, d);
+    return {
+        filename: t,
+        language: r,
+        technologies: i,
+        relatedFiles: C,
+        textBeforeCursor: m,
+        textAfterCursor: u,
+        cursorPosition: n
+    }
+}
+;
+var Y = (n, e=300) => {
+    let o = null
+      , t = null
+      , r = (...i) => {
+        if (t)
+            return t.args = i,
+            t.promise;
+        let s, l, a = new Promise( (p, d) => {
+            s = p,
+            l = d;
+        }
+        );
+        return t = {
+            args: i,
+            promise: a,
+            resolve: s,
+            reject: l
+        },
+        o && (clearTimeout(o),
+        o = null),
+        o = setTimeout(async () => {
+            let p = t;
+            if (p) {
+                t = null,
+                o = null;
+                try {
+                    let d = await n(...p.args);
+                    p.resolve(d);
+                } catch (d) {
+                    p.reject(d);
+                }
+            }
+        }
+        , e),
+        a
+    }
+    ;
+    return r.cancel = () => {
+        o && (clearTimeout(o),
+        o = null),
+        t && (t.reject(new Error("Cancelled")),
+        t = null);
+    }
+    ,
+    r
+}
+;
+var Z = n => typeof n == "string" ? n === "Cancelled" || n === "AbortError" : n instanceof Error ? n.message === "Cancelled" || n.name === "AbortError" : false;
+var h = n => ({
+    items: n,
+    enableForwardStability: true
+});
+var A = new P
+  , J = async ({monaco: n, mdl: e, pos: o, token: t, isCompletionAccepted: r, options: i}) => {
+    let {trigger: s=T, enableCaching: l=j, allowFollowUpCompletions: a=K, onError: p, requestHandler: d} = i;
+    if (l && !r) {
+        let c = A.get(o, e).map(g => ({
+            insertText: g.completion,
+            range: g.range
+        }));
+        if (c.length > 0)
+            return h(c)
+    }
+    if (t.isCancellationRequested || !a && r)
+        return h([]);
+    try {
+        let c = Y(async u => {
+            i.onCompletionRequested?.(u);
+            let C;
+            if (d)
+                C = await d(u);
+            else if (i.endpoint)
+                C = await G({
+                    endpoint: i.endpoint,
+                    ...u
+                });
+            else
+                throw new Error('No endpoint specified for completion request. Please set the "endpoint" option in registerCompletion, or provide a custom requestHandler.');
+            if (C.error)
+                throw new Error(C.error);
+            return i.onCompletionRequestFinished?.(u, C),
+            C
+        }
+        , {
+            onTyping: H,
+            onIdle: V,
+            onDemand: $
+        }[s]);
+        t.onCancellationRequested( () => {
+            c.cancel();
+        }
+        );
+        let g = X({
+            pos: o,
+            mdl: e,
+            options: i
+        })
+          , {completion: m} = await c({
+            body: {
+                completionMetadata: g
+            }
+        });
+        if (m) {
+            let u = new M(m).removeMarkdownCodeSyntax().removeExcessiveNewlines().removeInvalidLineBreaks().build()
+              , C = new L(n);
+            return l && A.add({
+                completion: u,
+                range: C.computeCacheRange(o, u),
+                textBeforeCursor: f(o, e)
+            }),
+            h([{
+                insertText: u,
+                range: C.computeInsertionRange(o, u, e)
+            }])
+        }
+    } catch (c) {
+        if (Z(c))
+            return h([]);
+        p ? p(c) : logger.warn("Cannot provide completion", c);
+    }
+    return h([])
+}
+;
+var w = new WeakMap
+  , E = n => w.get(n)
+  , Q = (n, e) => {
+    w.set(n, e);
+}
+  , D = n => {
+    w.delete(n);
+}
+  , ee = n => ({
+    isCompletionAccepted: false,
+    isCompletionVisible: false,
+    isExplicitlyTriggered: false,
+    hasRejectedCurrentCompletion: false,
+    options: n
+})
+  , te = (n, e) => {
+    let o = E(n);
+    !o || !o.options || (o.options = {
+        ...o.options,
+        ...e
+    });
+}
+;
+var oe = (n, e, o) => {
+    let t = E(e);
+    return t ? n.languages.registerInlineCompletionsProvider(o.language, {
+        provideInlineCompletions: (r, i, s, l) => {
+            if (r !== e.getModel())
+                return {
+                    items: []
+                };
+            let a = t.options || o;
+            if (!(a.trigger === "onDemand" && !t.isExplicitlyTriggered || a.triggerIf && !a.triggerIf({
+                text: z(e),
+                position: i,
+                triggerType: a.trigger ?? T
+            })))
+                return J({
+                    monaco: n,
+                    mdl: r,
+                    pos: i,
+                    token: l,
+                    isCompletionAccepted: t.isCompletionAccepted,
+                    options: a
+                })
+        }
+        ,
+        handleItemDidShow: (r, i, s) => {
+            if (t.isExplicitlyTriggered = false,
+            t.hasRejectedCurrentCompletion = false,
+            t.isCompletionAccepted)
+                return;
+            t.isCompletionVisible = true,
+            (t.options || o).onCompletionShown?.(s, i.range);
+        }
+        ,
+        freeInlineCompletions: () => {}
+    }) : null
+}
+;
+var me = {
+    TAB: (n, e) => e.keyCode === n.KeyCode.Tab,
+    CMD_RIGHT_ARROW: (n, e) => e.keyCode === n.KeyCode.RightArrow && e.metaKey
+}
+  , N = class {
+    constructor(e, o, t) {
+        this.monaco = e;
+        this.state = o;
+        this.initialOptions = t;
+    }
+    handleKeyEvent(e) {
+        let o = this.state.options || this.initialOptions
+          , t = {
+            monaco: this.monaco,
+            event: e,
+            state: this.state,
+            options: o
+        };
+        this.handleCompletionAcceptance(t),
+        this.handleCompletionRejection(t);
+    }
+    handleCompletionAcceptance(e) {
+        return e.state.isCompletionVisible && this.isAcceptanceKey(e.event) ? (e.options.onCompletionAccepted?.(),
+        e.state.isCompletionAccepted = true,
+        e.state.isCompletionVisible = false,
+        true) : (e.state.isCompletionAccepted = false,
+        false)
+    }
+    handleCompletionRejection(e) {
+        return this.shouldRejectCompletion(e) ? (e.options.onCompletionRejected?.(),
+        e.state.hasRejectedCurrentCompletion = true,
+        true) : false
+    }
+    shouldRejectCompletion(e) {
+        return e.state.isCompletionVisible && !e.state.hasRejectedCurrentCompletion && !e.state.isCompletionAccepted && !this.isAcceptanceKey(e.event)
+    }
+    isAcceptanceKey(e) {
+        return Object.values(me).some(o => o(this.monaco, e))
+    }
+}
+  , ne = (n, e, o, t) => {
+    let r = new N(n,o,t);
+    return e.onKeyDown(i => r.handleKeyEvent(i))
+}
+;
+var ce = (n, e, o) => {
+    let t = [];
+    Q(e, ee(o)),
+    e.updateOptions({
+        inlineSuggest: {
+            enabled: true
+        }
+    });
+    try {
+        let r = E(e);
+        if (!r)
+            return logger.warn("Completion is not registered properly. State not found."),
+            ue();
+        let i = oe(n, e, o);
+        i && t.push(i);
+        let s = ne(n, e, r, o);
+        return t.push(s),
+        {
+            deregister: () => {
+                for (let a of t)
+                    a.dispose();
+                A.clear(),
+                D(e);
+            }
+            ,
+            trigger: () => de(e),
+            updateOptions: a => {
+                te(e, a(r.options || o));
+            }
+        }
+    } catch (r) {
+        return o.onError ? o.onError(r) : logger.report(r),
+        {
+            deregister: () => {
+                for (let i of t)
+                    i.dispose();
+                D(e);
+            }
+            ,
+            trigger: () => {}
+            ,
+            updateOptions: () => {}
+        }
+    }
+}
+  , de = n => {
+    let e = E(n);
+    if (!e) {
+        logger.warn("Completion is not registered. Use `registerCompletion` to register completion first.");
+        return
+    }
+    e.isExplicitlyTriggered = true,
+    n.trigger("keyboard", "editor.action.inlineSuggest.trigger", {});
+}
+  , ue = () => ({
+    deregister: () => {}
+    ,
+    trigger: () => {}
+    ,
+    updateOptions: () => {}
+});
+var ut = b;
+export {b as CompletionCopilot, ut as Copilot, ce as registerCompletion};
