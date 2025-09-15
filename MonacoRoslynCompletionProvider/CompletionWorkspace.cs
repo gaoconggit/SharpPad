@@ -66,7 +66,8 @@ namespace MonacoRoslynCompletionProvider
             Assembly.Load("Microsoft.AspNetCore.Http").Location,
             typeof(ObjectExtengsion).Assembly.Location, // 假设此类型存在
             typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location,
-            typeof(System.Diagnostics.Process).Assembly.Location
+            typeof(System.Diagnostics.Process).Assembly.Location,
+            typeof(ParallelEnumerable).Assembly.Location
         };
 
         // 用于复用 AdhocWorkspace 减少创建开销
