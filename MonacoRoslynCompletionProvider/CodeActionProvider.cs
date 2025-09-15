@@ -128,7 +128,38 @@ namespace MonacoRoslynCompletionProvider
                     ["File"] = new[] { "System.IO" },
                     ["Path"] = new[] { "System.IO" },
                     ["Directory"] = new[] { "System.IO" },
-                    ["Encoding"] = new[] { "System.Text" }
+                    ["Encoding"] = new[] { "System.Text" },
+                    // LINQ扩展方法
+                    ["AsParallel"] = new[] { "System.Linq" },
+                    ["Where"] = new[] { "System.Linq" },
+                    ["Select"] = new[] { "System.Linq" },
+                    ["OrderBy"] = new[] { "System.Linq" },
+                    ["GroupBy"] = new[] { "System.Linq" },
+                    ["Join"] = new[] { "System.Linq" },
+                    ["First"] = new[] { "System.Linq" },
+                    ["FirstOrDefault"] = new[] { "System.Linq" },
+                    ["Last"] = new[] { "System.Linq" },
+                    ["LastOrDefault"] = new[] { "System.Linq" },
+                    ["Single"] = new[] { "System.Linq" },
+                    ["SingleOrDefault"] = new[] { "System.Linq" },
+                    ["Any"] = new[] { "System.Linq" },
+                    ["All"] = new[] { "System.Linq" },
+                    ["Count"] = new[] { "System.Linq" },
+                    ["Sum"] = new[] { "System.Linq" },
+                    ["Average"] = new[] { "System.Linq" },
+                    ["Min"] = new[] { "System.Linq" },
+                    ["Max"] = new[] { "System.Linq" },
+                    ["ToArray"] = new[] { "System.Linq" },
+                    ["ToList"] = new[] { "System.Linq" },
+                    ["ToDictionary"] = new[] { "System.Linq" },
+                    ["Take"] = new[] { "System.Linq" },
+                    ["Skip"] = new[] { "System.Linq" },
+                    ["Distinct"] = new[] { "System.Linq" },
+                    ["Reverse"] = new[] { "System.Linq" },
+                    ["Concat"] = new[] { "System.Linq" },
+                    ["Union"] = new[] { "System.Linq" },
+                    ["Intersect"] = new[] { "System.Linq" },
+                    ["Except"] = new[] { "System.Linq" }
                 };
 
                 if (commonNamespaces.ContainsKey(identifier))
@@ -269,13 +300,59 @@ namespace MonacoRoslynCompletionProvider
             try
             {
                 var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
-                if (syntaxRoot != null)
+                var sourceText = await document.GetTextAsync(cancellationToken);
+                
+                if (syntaxRoot != null && sourceText != null)
                 {
                     // 组织 using 语句
                     var usingDirectives = syntaxRoot.DescendantNodes().OfType<UsingDirectiveSyntax>().ToList();
                     if (usingDirectives.Count > 1)
                     {
                         results.Add(CreateOrganizeUsingsAction());
+                    }
+
+                    // 检查可能缺失的常用using语句
+                    var existingUsings = usingDirectives
+                        .Select(u => u.Name?.ToString())
+                        .Where(n => !string.IsNullOrEmpty(n))
+                        .ToHashSet();
+
+                    // 扫描代码中的标识符，检查是否需要添加using语句
+                    var tokens = syntaxRoot.DescendantTokens()
+                        .Where(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.IdentifierToken))
+                        .Where(t => span.IntersectsWith(t.Span) || span.Length == 0)
+                        .Select(t => t.ValueText)
+                        .Distinct()
+                        .ToArray();
+
+                    // 常见的方法到命名空间映射
+                    var commonUsings = new Dictionary<string, string[]>
+                    {
+                        ["AsParallel"] = new[] { "System.Linq" },
+                        ["Where"] = new[] { "System.Linq" },
+                        ["Select"] = new[] { "System.Linq" },
+                        ["First"] = new[] { "System.Linq" },
+                        ["Any"] = new[] { "System.Linq" },
+                        ["ToList"] = new[] { "System.Linq" },
+                        ["ToArray"] = new[] { "System.Linq" }
+                    };
+
+                    foreach (var token in tokens)
+                    {
+                        if (commonUsings.ContainsKey(token))
+                        {
+                            foreach (var namespaceName in commonUsings[token])
+                            {
+                                if (!existingUsings.Contains(namespaceName))
+                                {
+                                    var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
+                                    if (action != null && !results.Any(r => r.Title == action.Title))
+                                    {
+                                        results.Add(action);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
