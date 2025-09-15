@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MonacoRoslynCompletionProvider;
 using MonacoRoslynCompletionProvider.Api;
+using Newtonsoft.Json;
 using System.Text.Json;
 using System.Threading.Channels;
 
@@ -43,7 +44,7 @@ namespace SharpPad.Controllers
                 );
 
                 // 发送完成消息
-                await channel.Writer.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "completed", result })}\n\n", cts.Token);
+                await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "completed", result })}\n\n", cts.Token);
 
                 // 关闭 Channel，不再接受新消息
                 channel.Writer.Complete();
@@ -57,7 +58,7 @@ namespace SharpPad.Controllers
                 {
                     try
                     {
-                        await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
+                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
                         await Response.Body.FlushAsync(cts.Token);
                     }
                     catch
@@ -75,7 +76,7 @@ namespace SharpPad.Controllers
             try
             {
                 await writer.WriteAsync(
-                    $"data: {JsonSerializer.Serialize(new { type = "output", content = output })}\n\n",
+                    $"data: {JsonConvert.SerializeObject(new { type = "output", content = output })}\n\n",
                     token);
             }
             catch (ChannelClosedException)
@@ -91,7 +92,7 @@ namespace SharpPad.Controllers
             try
             {
                 await writer.WriteAsync(
-                    $"data: {JsonSerializer.Serialize(new { type = "error", content = error })}\n\n",
+                    $"data: {JsonConvert.SerializeObject(new { type = "error", content = error })}\n\n",
                     token);
             }
             catch (ChannelClosedException)
