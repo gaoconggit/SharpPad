@@ -1,38 +1,19 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Root solution: SharpPad.sln with projects:
-  - SharpPad (ASP.NET Core Web app: Controllers/, Services/, Dto/, static assets in wwwroot/).
-  - SharpPad.Desktop (desktop host/integration).
-  - MonacoRoslynCompletionProvider (language/completion services).
-- Entry points: root Program.cs (utility) and SharpPad/Program.cs (web).
-- Assets: SharpPad/wwwroot (js, styles, monaco editor, pages).
-- No dedicated 	ests/ folder currently.
+SharpPad.sln orchestrates three active projects: `SharpPad/` hosts the ASP.NET Core web app (controllers, services, DTOs, and `/wwwroot` assets), `SharpPad.Desktop/` provides the desktop shell, and `MonacoRoslynCompletionProvider/` supplies Roslyn-based language services. The root `Program.cs` ships utility entry points, while `SharpPad/Program.cs` boots the web host. Asset bundles, Monaco artifacts, and static pages live under `SharpPad/wwwroot`. No dedicated `Tests/` folder exists yet; place experimental tooling inside project-specific `Services/` or feature folders.
 
 ## Build, Test, and Development Commands
-- Restore: dotnet restore SharpPad.sln — restore NuGet packages.
-- Build (Debug): dotnet build SharpPad.sln -c Debug — compile all projects.
-- Run Web: dotnet run --project SharpPad/SharpPad.csproj — start API/UI (defaults from launchSettings.json).
-- Run Desktop: dotnet run --project SharpPad.Desktop/SharpPad.Desktop.csproj — start desktop shell.
-- EF tooling: from SharpPad/.config/dotnet-tools.json use dotnet tool restore, then dotnet ef ....
-- Docker (optional): docker-compose up --build — build and run containerized services if used.
+Run `dotnet restore SharpPad.sln` before first builds to fetch NuGet dependencies. Compile everything with `dotnet build SharpPad.sln -c Debug`. Launch the browser experience via `dotnet run --project SharpPad/SharpPad.csproj`, or start the desktop host with `dotnet run --project SharpPad.Desktop/SharpPad.Desktop.csproj`. For EF migrations, call `dotnet tool restore` inside `SharpPad/` and then invoke `dotnet ef ...`. Container workflows rely on `docker-compose up --build` when required.
 
 ## Coding Style & Naming Conventions
-- C#: 4-space indentation, PascalCase for classes/namespaces, camelCase for locals/parameters, _camelCase for private fields.
-- Files/folders in English; keep feature-based folders inside SharpPad (e.g., Services/CodeExecution/).
-- Prefer async APIs; avoid blocking calls on UI/web paths.
-- Keep controllers thin; move logic into Services.
+Use four-space indentation throughout C#. Favor `PascalCase` for namespaces, classes, and public members; `camelCase` for locals and parameters; `_camelCase` for private fields. Keep files and feature folders in English, e.g., `Services/CodeExecution/`. Prefer async APIs in controllers and services, and route complex logic into dedicated service classes instead of controllers.
 
 ## Testing Guidelines
-- No formal test project detected. If adding tests, prefer xUnit with project SharpPad.Tests and files named *Tests.cs.
-- Run tests: dotnet test at solution root.
-- Target meaningful coverage for new/changed code.
+Adopt xUnit when adding coverage. New fixtures should land in a `SharpPad.Tests` project with filenames ending in `*Tests.cs`. Execute the suite from the solution root with `dotnet test`. Request meaningful coverage for each behavioral change and include regression tests for bug fixes where feasible.
 
 ## Commit & Pull Request Guidelines
-- Commit style observed: conventional prefixes (feat, fix, refactor, style, merge/update) and short imperative subject; add scope when useful.
-- Reference issues with #123 where applicable; use English where possible.
-- PRs: include summary, screenshots for UI changes, steps to validate, and link related issues. Keep diffs focused.
+Commits follow a conventional prefix such as `feat`, `fix`, `refactor`, or `style`, coupled with a short imperative subject (e.g., `feat: add compiler diagnostics panel`). Reference issues with `#123` when applicable. Pull requests should summarize intent, describe validation steps, attach UI screenshots for notable visual changes, and link related issues. Keep diffs focused and ensure CI or local builds succeed before requesting review.
 
 ## Security & Configuration Tips
-- Do not commit secrets. Use ppsettings.Development.json locally and environment variables in production.
-- Validate and sanitize inputs in controllers; log errors with context, avoid sensitive data in logs.
+Never commit secrets or production settings. Keep local overrides inside `SharpPad/appsettings.Development.json` and lean on environment variables or secret stores in other environments. Sanitize and validate incoming data in controllers, and avoid logging sensitive payloads while still capturing actionable diagnostics.
