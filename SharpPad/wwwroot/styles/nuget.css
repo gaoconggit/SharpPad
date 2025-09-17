@@ -1,0 +1,370 @@
+.nuget-modal {
+    width: 900px;
+    max-width: 95vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    background: #2d2d2d;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.nuget-body {
+    display: flex;
+    gap: 16px;
+    padding: 0 20px 20px 20px;
+    height: 640px;
+    max-height: calc(85vh - 100px);
+    box-sizing: border-box;
+}
+
+.nuget-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.nuget-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.nuget-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    border-radius: 6px;
+    color: #e2e2e2;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    font-size: 14px;
+    text-align: center;
+}
+
+.nuget-tab.active {
+    background: #1363ba;
+    border-color: #1e74d1;
+}
+
+.nuget-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #333333;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.nuget-search input[type="text"] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+}
+
+.nuget-search button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #1363ba;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+
+.nuget-search button:hover {
+    background: #1e74d1;
+}
+
+.nuget-search-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #cccccc;
+}
+
+.nuget-panels {
+    flex: 1;
+    background: #333333;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+}
+
+.nuget-panel {
+    display: none;
+    flex-direction: column;
+    padding: 12px 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.nuget-panel.active {
+    display: flex;
+}
+
+.nuget-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.nuget-result-item {
+    padding: 14px 16px;
+    background: #3a3a3a;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.nuget-result-item:hover {
+    border-color: #1e74d1;
+    transform: translateY(-1px);
+}
+
+.nuget-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.nuget-package-id {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.nuget-package-version {
+    font-size: 13px;
+    color: #9ad6ff;
+    font-weight: 500;
+}
+
+.nuget-package-desc {
+    font-size: 13px;
+    color: #cccccc;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.nuget-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #a0a0a0;
+}
+
+.nuget-meta span {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.nuget-status-label {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #2e7d32;
+    color: #e2ffe2;
+}
+
+.nuget-status-label.update {
+    background: #f9a825;
+    color: #2b2b2b;
+}
+
+.nuget-details {
+    width: 300px;
+    background: #333333;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.nuget-details-placeholder {
+    color: #9a9a9a;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nuget-details-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nuget-details-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.nuget-details-version {
+    font-size: 13px;
+    color: #9ad6ff;
+}
+
+.nuget-details-desc {
+    font-size: 13px;
+    color: #cccccc;
+    line-height: 1.5;
+}
+
+.nuget-details-field {
+    font-size: 12px;
+    color: #aaaaaa;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nuget-details-field span {
+    color: #e2e2e2;
+}
+
+.nuget-details-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.nuget-primary-btn, .nuget-secondary-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.nuget-primary-btn {
+    background: #1363ba;
+    color: #ffffff;
+    border: none;
+}
+
+.nuget-primary-btn:hover {
+    background: #1e74d1;
+}
+
+.nuget-secondary-btn {
+    background: transparent;
+    color: #ffb74d;
+    border: 1px solid #ffb74d;
+}
+
+.nuget-secondary-btn.danger {
+    color: #ff867c;
+    border-color: #ff867c;
+}
+
+.nuget-empty, .nuget-loading, .nuget-error {
+    margin: auto;
+    text-align: center;
+    color: #a0a0a0;
+    font-size: 14px;
+    padding: 24px 12px;
+}
+
+.nuget-error {
+    color: #ff8a80;
+}
+
+.nuget-version-select {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #eaeaea;
+    font-size: 14px;
+}
+
+.nuget-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.nuget-links a {
+    font-size: 12px;
+    color: #64b5f6;
+    text-decoration: none;
+}
+
+.nuget-links a:hover {
+    text-decoration: underline;
+}
+
+.nuget-result-item.selected {
+    border-color: #1363ba;
+    background: #3f4b5a;
+}
+
+.nuget-installed-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #4caf50;
+    color: #08240b;
+}
+
+.nuget-updates-summary {
+    padding: 12px 16px;
+    background: rgba(33, 150, 243, 0.12);
+    border-bottom: 1px solid rgba(33, 150, 243, 0.2);
+    color: #bbdefb;
+    font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+    .nuget-modal {
+        width: 760px;
+    }
+
+    .nuget-body {
+        flex-direction: column;
+        height: 70vh;
+    }
+
+    .nuget-details {
+        width: 100%;
+        max-height: 260px;
+    }
+}
+
+@media (max-width: 768px) {
+    .nuget-modal {
+        width: 92vw;
+    }
+
+    .nuget-body {
+        height: auto;
+    }
+
+    .nuget-details {
+        max-height: none;
+    }
+}

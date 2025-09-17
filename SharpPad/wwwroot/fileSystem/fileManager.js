@@ -828,14 +828,13 @@ class FileManager {
         const file = findFile(files);
         if (!file) return;
 
-        // 显示对话框
+        if (window.nugetManager) {
+            window.nugetManager.open(file);
+            return;
+        }
+
         const dialog = document.getElementById('nugetConfigDialog');
         dialog.style.display = 'block';
-
-        // 如果存在loadNuGetConfig函数，则调用它
-        if (typeof window.loadNuGetConfig === 'function') {
-            window.loadNuGetConfig(file);
-        }
     }
 
     deleteModel(modelId, showConfirm = true) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="styles/resizeHandles.css">
     <link rel="stylesheet" href="styles/codeHighlight.css">
     <link rel="stylesheet" href="styles/editorControls.css">
+    <link rel="stylesheet" href="styles/nuget.css">
     <link rel="stylesheet" href="markdown/markdown.css">
     <link rel="stylesheet" href="all.min.css">
 </head>
@@ -151,25 +152,54 @@
         <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
     </div>
 
-    <!-- NuGet Configuration Dialog -->
+    <!-- NuGet Package Manager -->
     <div id="nugetConfigDialog" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content nuget-modal">
             <div class="modal-header">
-                <h2>NuGet 包配置</h2>
+                <h2>NuGet 包管理器</h2>
                 <button onclick="closeNuGetConfigDialog()" class="close-button">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="nuget-config-section">
-                    <h3>包引用</h3>
-                    <div class="package-references" id="packageReferences">
-                        <!-- Package references will be listed here -->
+            <div class="modal-body nuget-body">
+                <div class="nuget-left">
+                    <div class="nuget-tabs">
+                        <button class="nuget-tab active" data-tab="browse">浏览</button>
+                        <button class="nuget-tab" data-tab="installed">已安装</button>
+                        <button class="nuget-tab" data-tab="updates">更新</button>
                     </div>
-                    <button onclick="addPackageReference()" class="add-package-button">添加包引用</button>
+                    <div class="nuget-search">
+                        <input type="text" id="nugetSearchInput" placeholder="搜索 nuget.org 上的包 (例如：Newtonsoft.Json)">
+                        <div class="nuget-search-options">
+                            <label>
+                                <input type="checkbox" id="nugetIncludePrerelease">
+                                预发行
+                            </label>
+                        </div>
+                        <button id="nugetSearchButton">搜索</button>
+                    </div>
+                    <div class="nuget-panels">
+                        <div id="nugetBrowsePanel" class="nuget-panel active">
+                            <div class="nuget-results" id="nugetSearchResults">
+                                <div class="nuget-empty">输入关键字开始搜索 NuGet 包</div>
+                            </div>
+                        </div>
+                        <div id="nugetInstalledPanel" class="nuget-panel">
+                            <div class="nuget-results" id="nugetInstalledList">
+                                <div class="nuget-empty">暂无安装的包</div>
+                            </div>
+                        </div>
+                        <div id="nugetUpdatesPanel" class="nuget-panel">
+                            <div class="nuget-results" id="nugetUpdatesList">
+                                <div class="nuget-empty">没有检测到可更新的包</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="nuget-details" id="nugetDetailsPanel">
+                    <div class="nuget-details-placeholder">选择一个包查看详细信息</div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="minimized-output-button">
         <button class="icon-button restore-output" title="恢复输出窗口">
             <span style="transform: rotate(-90deg) translateX(-1px);">▼</span>
