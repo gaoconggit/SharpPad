@@ -16,7 +16,8 @@
       "Bash(dotnet run:*)",
       "WebSearch",
       "Bash(git worktree:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
