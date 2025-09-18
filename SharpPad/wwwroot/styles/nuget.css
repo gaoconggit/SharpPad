@@ -1,109 +1,172 @@
 .nuget-modal {
-    width: 900px;
-    max-width: 95vw;
+    width: 940px;
+    max-width: 96vw;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
-    background: #2d2d2d;
-    border-radius: 10px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    background: linear-gradient(155deg, #1f2432 0%, #121722 60%, #0d111c 100%);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 32px 80px rgba(8, 12, 24, 0.75);
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.nuget-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 22px 24px 16px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(14, 116, 144, 0.18));
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.nuget-modal .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: #f8fbff;
+}
+
+.nuget-modal .modal-header .close-button {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    color: #e2e8f0;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.nuget-modal .modal-header .close-button:hover {
+    background: rgba(59, 130, 246, 0.25);
+    transform: scale(1.05);
 }
 
 .nuget-body {
     display: flex;
-    gap: 16px;
-    padding: 0 20px 20px 20px;
+    gap: 20px;
+    padding: 0 24px 24px 24px;
     height: 640px;
-    max-height: calc(85vh - 100px);
+    max-height: calc(85vh - 110px);
     box-sizing: border-box;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.05));
 }
 
 .nuget-left {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
     min-width: 0;
 }
 
 .nuget-tabs {
     display: flex;
-    gap: 8px;
+    gap: 10px;
+    padding: 6px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 12px;
 }
 
 .nuget-tab {
     flex: 1;
-    padding: 8px 12px;
-    background: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    border-radius: 6px;
-    color: #e2e2e2;
+    padding: 10px 14px;
+    background: rgba(15, 23, 42, 0.2);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #dbeafe;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
     font-size: 14px;
-    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nuget-tab:hover {
+    color: #f8fbff;
+    border-color: rgba(96, 165, 250, 0.5);
 }
 
 .nuget-tab.active {
-    background: #1363ba;
-    border-color: #1e74d1;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.75), rgba(14, 165, 233, 0.65));
+    border-color: rgba(96, 165, 250, 0.8);
+    color: #f8fbff;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
 }
 
 .nuget-search {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: #333333;
-    border: 1px solid #444444;
-    border-radius: 8px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 18px 34px rgba(8, 12, 24, 0.45);
 }
 
 .nuget-search input[type="text"] {
     flex: 1;
     background: transparent;
     border: none;
-    color: #ffffff;
+    color: #f8fbff;
     font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
     outline: none;
 }
 
 .nuget-search button {
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: none;
-    background: #1363ba;
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(96, 165, 250, 0.45);
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
     color: #ffffff;
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.2s ease;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    box-shadow: 0 18px 30px rgba(29, 78, 216, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .nuget-search button:hover {
-    background: #1e74d1;
+    transform: translateY(-1px);
+    box-shadow: 0 20px 36px rgba(29, 78, 216, 0.45);
+    filter: brightness(1.05);
 }
 
 .nuget-search-options {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-size: 13px;
-    color: #cccccc;
+    color: #cbd5f5;
+}
+
+.nuget-search-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .nuget-panels {
     flex: 1;
-    background: #333333;
-    border: 1px solid #444444;
-    border-radius: 8px;
+    background: rgba(11, 16, 25, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px;
     overflow: hidden;
     display: flex;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .nuget-panel {
     display: none;
     flex-direction: column;
-    padding: 12px 0;
+    padding: 18px 0;
     flex: 1;
     overflow: hidden;
 }
@@ -115,188 +178,250 @@
 .nuget-results {
     flex: 1;
     overflow-y: auto;
-    padding: 0 16px;
+    padding: 12px 18px 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
 }
 
 .nuget-result-item {
-    padding: 14px 16px;
-    background: #3a3a3a;
-    border-radius: 8px;
-    border: 1px solid transparent;
+    padding: 16px 18px;
+    background: linear-gradient(160deg, rgba(31, 41, 55, 0.92), rgba(15, 23, 42, 0.92));
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
     cursor: pointer;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 18px 28px rgba(8, 15, 35, 0.35);
 }
 
 .nuget-result-item:hover {
-    border-color: #1e74d1;
-    transform: translateY(-1px);
+    border-color: rgba(96, 165, 250, 0.75);
+    transform: translateY(-2px);
+    box-shadow: 0 24px 40px rgba(8, 15, 35, 0.55);
 }
 
 .nuget-result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     gap: 12px;
 }
 
 .nuget-package-id {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
-    color: #ffffff;
+    letter-spacing: 0.25px;
+    color: #f8fbff;
 }
 
 .nuget-package-version {
     font-size: 13px;
-    color: #9ad6ff;
+    color: #93c5fd;
     font-weight: 500;
 }
 
 .nuget-package-desc {
     font-size: 13px;
-    color: #cccccc;
-    margin-bottom: 10px;
-    line-height: 1.4;
+    color: #cbd5f5;
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 
 .nuget-meta {
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     font-size: 12px;
-    color: #a0a0a0;
+    color: #a5b4d0;
+    align-items: center;
+    padding: 4px 0;
 }
 
 .nuget-meta span {
     display: inline-flex;
-    gap: 4px;
     align-items: center;
+    gap: 6px;
 }
 
+.nuget-meta span:not(.nuget-status-label) {
+    position: relative;
+    padding-left: 14px;
+}
+
+    .nuget-meta span:not(.nuget-status-label,.nuget-installed-badge)::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(96, 165, 250, 0.85);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        transform: translateY(-50%);
+    }
+
 .nuget-status-label {
-    padding: 2px 8px;
+    padding: 6px 14px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    background: #2e7d32;
-    color: #e2ffe2;
+    letter-spacing: 0.3px;
+    background: rgba(129, 140, 248, 0.2);
+    color: #c7d2fe;
+    border: 1px solid rgba(129, 140, 248, 0.4);
+    text-transform: uppercase;
 }
 
 .nuget-status-label.update {
-    background: #f9a825;
-    color: #2b2b2b;
+    background: rgba(250, 204, 21, 0.22);
+    color: #fef3c7;
+    border-color: rgba(250, 204, 21, 0.4);
 }
 
 .nuget-details {
-    width: 300px;
-    background: #333333;
-    border: 1px solid #444444;
-    border-radius: 8px;
-    padding: 16px;
+    width: 320px;
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.88));
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
+    box-shadow: 0 24px 48px rgba(8, 12, 24, 0.6);
     overflow-y: auto;
 }
 
 .nuget-details-placeholder {
-    color: #9a9a9a;
+    color: #9aa6c6;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+    text-align: center;
+    margin: auto;
 }
 
 .nuget-details-header {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .nuget-details-title {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 600;
-    color: #ffffff;
+    color: #f8fbff;
 }
 
 .nuget-details-version {
     font-size: 13px;
-    color: #9ad6ff;
+    color: #93c5fd;
+}
+
+.nuget-details-version span {
+    color: #60a5fa;
+    font-weight: 600;
 }
 
 .nuget-details-desc {
     font-size: 13px;
-    color: #cccccc;
-    line-height: 1.5;
+    color: #cbd5f5;
+    line-height: 1.6;
 }
 
 .nuget-details-field {
     font-size: 12px;
-    color: #aaaaaa;
+    color: #a5b4d0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
 }
 
 .nuget-details-field span {
-    color: #e2e2e2;
+    color: #e2e8f0;
 }
 
 .nuget-details-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 10px;
+    margin-top: 4px;
 }
 
-.nuget-primary-btn, .nuget-secondary-btn {
+.nuget-primary-btn,
+.nuget-secondary-btn {
     flex: 1;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 10px 14px;
+    border-radius: 10px;
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .nuget-primary-btn {
-    background: #1363ba;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #ffffff;
-    border: none;
+    border: 1px solid rgba(96, 165, 250, 0.5);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.45);
 }
 
-.nuget-primary-btn:hover {
-    background: #1e74d1;
+.nuget-primary-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 22px 44px rgba(37, 99, 235, 0.55);
+}
+
+.nuget-primary-btn:disabled {
+    background: rgba(148, 163, 184, 0.2);
+    color: rgba(226, 232, 240, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 .nuget-secondary-btn {
-    background: transparent;
-    color: #ffb74d;
-    border: 1px solid #ffb74d;
+    background: rgba(79, 70, 229, 0.15);
+    color: #c7d2fe;
+    border: 1px solid rgba(129, 140, 248, 0.45);
+    box-shadow: 0 14px 28px rgba(79, 70, 229, 0.35);
+}
+
+.nuget-secondary-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(79, 70, 229, 0.45);
 }
 
 .nuget-secondary-btn.danger {
-    color: #ff867c;
-    border-color: #ff867c;
+    background: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.55);
+    box-shadow: 0 14px 28px rgba(185, 28, 28, 0.35);
 }
 
-.nuget-empty, .nuget-loading, .nuget-error {
+.nuget-empty,
+.nuget-loading,
+.nuget-error {
     margin: auto;
     text-align: center;
-    color: #a0a0a0;
+    color: #99a2c4;
     font-size: 14px;
-    padding: 24px 12px;
+    padding: 26px 14px;
 }
 
 .nuget-error {
-    color: #ff8a80;
+    color: #fca5a5;
 }
 
 .nuget-version-select {
     width: 100%;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    color: #eaeaea;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    color: #e2e8f0;
     font-size: 14px;
 }
 
@@ -304,60 +429,65 @@
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .nuget-links a {
     font-size: 12px;
-    color: #64b5f6;
+    color: #93c5fd;
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .nuget-links a:hover {
-    text-decoration: underline;
+    color: #c7d2fe;
 }
 
 .nuget-result-item.selected {
-    border-color: #1363ba;
-    background: #3f4b5a;
+    border-color: rgba(59, 130, 246, 0.85);
+    background: linear-gradient(160deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.95));
+    box-shadow: 0 26px 48px rgba(37, 99, 235, 0.4);
 }
 
 .nuget-installed-badge {
-    padding: 2px 8px;
+    padding: 6px 14px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    background: #4caf50;
-    color: #08240b;
+    letter-spacing: 0.3px;
+    background: rgba(34, 197, 94, 0.18);
+    color: #bbf7d0;
+    border: 1px solid rgba(34, 197, 94, 0.45);
 }
 
 .nuget-updates-summary {
-    padding: 12px 16px;
-    background: rgba(33, 150, 243, 0.12);
-    border-bottom: 1px solid rgba(33, 150, 243, 0.2);
-    color: #bbdefb;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.12));
+    border-bottom: 1px solid rgba(37, 99, 235, 0.24);
+    color: #c7d2fe;
     font-size: 13px;
 }
 
 @media (max-width: 1024px) {
     .nuget-modal {
-        width: 760px;
+        width: 820px;
     }
 
     .nuget-body {
         flex-direction: column;
-        height: 70vh;
+        height: 72vh;
     }
 
     .nuget-details {
         width: 100%;
-        max-height: 260px;
+        max-height: 320px;
+        flex-shrink: 0;
     }
 }
 
 @media (max-width: 768px) {
     .nuget-modal {
-        width: 92vw;
+        width: 94vw;
     }
 
     .nuget-body {
@@ -367,4 +497,227 @@
     .nuget-details {
         max-height: none;
     }
+}
+
+body.theme-light .nuget-modal {
+    background: linear-gradient(160deg, #f7f9ff 0%, #f1f5ff 60%, #eaf0ff 100%);
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 32px 80px rgba(15, 23, 42, 0.15);
+}
+
+body.theme-light .nuget-modal .modal-header {
+    background: linear-gradient(130deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.08));
+    border-bottom: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+body.theme-light .nuget-modal .modal-header h2 {
+    color: #0f172a;
+}
+
+body.theme-light .nuget-modal .modal-header .close-button {
+    background: rgba(248, 250, 255, 0.8);
+    border-color: rgba(148, 163, 184, 0.28);
+    color: #0f172a;
+}
+
+body.theme-light .nuget-body {
+    background: linear-gradient(180deg, rgba(248, 250, 255, 0.7), rgba(241, 245, 255, 0.85));
+}
+
+body.theme-light .nuget-tabs {
+    background: rgba(226, 232, 255, 0.92);
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+body.theme-light .nuget-tab {
+    background: transparent;
+    color: #334155;
+    border-color: transparent;
+}
+
+body.theme-light .nuget-tab:hover {
+    color: #1d4ed8;
+}
+
+body.theme-light .nuget-tab.active {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: rgba(37, 99, 235, 0.6);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
+}
+
+body.theme-light .nuget-search {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.1);
+}
+
+body.theme-light .nuget-search input[type="text"] {
+    color: #1f2937;
+}
+
+body.theme-light .nuget-search button {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: rgba(37, 99, 235, 0.5);
+    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.32);
+}
+
+body.theme-light .nuget-search-options {
+    color: #64748b;
+}
+
+body.theme-light .nuget-panels {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+body.theme-light .nuget-result-item {
+    background: linear-gradient(160deg, rgba(248, 250, 255, 0.95), #eef2ff);
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+}
+
+body.theme-light .nuget-result-item:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+body.theme-light .nuget-result-item.selected {
+    background: linear-gradient(160deg, rgba(59, 130, 246, 0.12), rgba(226, 232, 255, 0.95));
+    border-color: rgba(37, 99, 235, 0.45);
+}
+
+body.theme-light .nuget-package-id {
+    color: #1f2937;
+}
+
+body.theme-light .nuget-package-version {
+    color: #1d4ed8;
+}
+
+body.theme-light .nuget-package-desc {
+    color: #475569;
+}
+
+body.theme-light .nuget-meta {
+    color: #52607a;
+}
+
+    body.theme-light .nuget-meta span:not(.nuget-status-label,.nuget-installed-badge)::before {
+        background: rgba(37, 99, 235, 0.55);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+
+body.theme-light .nuget-status-label {
+    background: rgba(129, 140, 248, 0.16);
+    color: #3730a3;
+    border-color: rgba(99, 102, 241, 0.32);
+}
+
+body.theme-light .nuget-status-label.update {
+    background: rgba(251, 191, 36, 0.16);
+    color: #92400e;
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+body.theme-light .nuget-installed-badge {
+    background: rgba(34, 197, 94, 0.18);
+    color: #166534;
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+body.theme-light .nuget-details {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(226, 232, 255, 0.9));
+    border-color: rgba(148, 163, 184, 0.28);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+body.theme-light .nuget-details-placeholder {
+    color: #64748b;
+}
+
+body.theme-light .nuget-details-title {
+    color: #1e293b;
+}
+
+body.theme-light .nuget-details-version {
+    color: #1d4ed8;
+}
+
+body.theme-light .nuget-details-version span {
+    color: #2563eb;
+}
+
+body.theme-light .nuget-details-desc {
+    color: #475569;
+}
+
+body.theme-light .nuget-details-field {
+    background: rgba(241, 245, 249, 0.92);
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+body.theme-light .nuget-details-field span:first-child {
+    color: #64748b;
+}
+
+body.theme-light .nuget-details-field span:last-child {
+    color: #1f2937;
+}
+
+body.theme-light .nuget-version-select {
+    background: rgba(248, 250, 255, 0.96);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #1f2937;
+}
+
+body.theme-light .nuget-links a {
+    color: #2563eb;
+}
+
+body.theme-light .nuget-links a:hover {
+    color: #1d4ed8;
+}
+
+body.theme-light .nuget-empty,
+body.theme-light .nuget-loading {
+    color: #64748b;
+}
+
+body.theme-light .nuget-error {
+    color: #b91c1c;
+}
+
+body.theme-light .nuget-updates-summary {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1e3a8a;
+    border-color: rgba(59, 130, 246, 0.18);
+}
+
+body.theme-light .nuget-primary-btn {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: rgba(37, 99, 235, 0.5);
+    box-shadow: 0 20px 40px rgba(37, 99, 235, 0.28);
+}
+
+body.theme-light .nuget-primary-btn:disabled {
+    background: rgba(148, 163, 184, 0.35);
+    color: rgba(15, 23, 42, 0.5);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+body.theme-light .nuget-secondary-btn {
+    background: rgba(129, 140, 248, 0.12);
+    color: #3730a3;
+    border-color: rgba(99, 102, 241, 0.32);
+    box-shadow: 0 16px 32px rgba(99, 102, 241, 0.18);
+}
+
+body.theme-light .nuget-secondary-btn.danger {
+    background: rgba(248, 113, 113, 0.12);
+    color: #b91c1c;
+    border-color: rgba(248, 113, 113, 0.35);
+    box-shadow: 0 16px 32px rgba(248, 113, 113, 0.18);
 }
