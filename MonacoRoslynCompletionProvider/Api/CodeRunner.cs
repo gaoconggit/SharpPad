@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis;
 using System;
@@ -58,12 +58,13 @@ namespace MonacoRoslynCompletionProvider.Api
         {
             var result = new RunResult();
             // 低内存版本：不使用 StringBuilder 缓存输出，只依赖回调传递实时数据
-            var loadContext = new CustomAssemblyLoadContext();
+            CustomAssemblyLoadContext loadContext = null;
             Assembly assembly = null;
             try
             {
                 // 加载 NuGet 包（假设返回的包集合较小）
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+                loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
 
                 // 设置解析选项，尽可能减小额外开销
                 var parseOptions = new CSharpParseOptions(
@@ -87,7 +88,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 // 添加 NuGet 包引用
                 foreach (var pkg in nugetAssemblies)
                 {
-                    references.Add(MetadataReference.CreateFromFile(pkg.Location));
+                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
                 }
 
                 var compilation = CSharpCompilation.Create(
@@ -213,7 +214,7 @@ namespace MonacoRoslynCompletionProvider.Api
             {
                 assembly = null;
                 // 卸载程序集并强制垃圾回收，尽快释放内存
-                loadContext.Unload();
+                loadContext?.Unload();
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
             }
@@ -228,13 +229,24 @@ namespace MonacoRoslynCompletionProvider.Api
         // 自定义可卸载的AssemblyLoadContext
         private class CustomAssemblyLoadContext : AssemblyLoadContext
         {
-            public CustomAssemblyLoadContext() : base(isCollectible: true)
+            private readonly Dictionary<string, PackageAssemblyInfo> _packageAssemblies;
+
+            public CustomAssemblyLoadContext(IEnumerable<PackageAssemblyInfo> packageAssemblies) : base(isCollectible: true)
             {
+                _packageAssemblies = packageAssemblies?
+                    .GroupBy(p => p.AssemblyName.Name ?? Path.GetFileNameWithoutExtension(p.Path), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.AssemblyName.Version ?? new Version(0, 0, 0, 0)).First(), StringComparer.OrdinalIgnoreCase)
+                    ?? new Dictionary<string, PackageAssemblyInfo>(StringComparer.OrdinalIgnoreCase);
             }
 
             protected override Assembly Load(AssemblyName assemblyName)
             {
-                return null; // 我们不需要从AssemblyName加载，仅从流加载
+                if (assemblyName?.Name != null && _packageAssemblies.TryGetValue(assemblyName.Name, out var package))
+                {
+                    return LoadFromAssemblyPath(package.Path);
+                }
+
+                return null;
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using System.Composition.Hosting;
+using System.Composition.Hosting;
 using System.Linq;
 using MonacoRoslynCompletionProvider.Api;
 using System.Reflection;
@@ -32,7 +32,7 @@ namespace MonacoRoslynCompletionProvider
         public static async Task<TabCompletionResult[]> CompletionHandle(TabCompletionRequest tabCompletionRequest, string nuget)
         {
             // 加载 NuGet 包
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(tabCompletionRequest.Code);
             return await document.GetTabCompletion(tabCompletionRequest.Position, CancellationToken.None);
@@ -41,7 +41,7 @@ namespace MonacoRoslynCompletionProvider
         public static async Task<HoverInfoResult> HoverHandle(HoverInfoRequest hoverInfoRequest, string nuget)
         {
             // 加载 NuGet 包
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
 
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(hoverInfoRequest.Code);
@@ -51,7 +51,7 @@ namespace MonacoRoslynCompletionProvider
         public static async Task<CodeCheckResult[]> CodeCheckHandle(CodeCheckRequest codeCheckRequest, string nuget)
         {
             // 加载 NuGet 包
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
 
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(codeCheckRequest.Code);
@@ -60,7 +60,7 @@ namespace MonacoRoslynCompletionProvider
 
         public static async Task<SignatureHelpResult> SignatureHelpHandle(SignatureHelpRequest signatureHelpRequest, string nuget)
         {
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(signatureHelpRequest.Code);
             return await document.GetSignatureHelp(signatureHelpRequest.Position, CancellationToken.None);
@@ -68,7 +68,7 @@ namespace MonacoRoslynCompletionProvider
 
         public static async Task<DefinitionResult> DefinitionHandle(DefinitionRequest definitionRequest, string nuget)
         {
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(definitionRequest.Code);
             return await document.GetDefinition(definitionRequest.Position, CancellationToken.None);
@@ -76,7 +76,7 @@ namespace MonacoRoslynCompletionProvider
 
         public static async Task<SemanticTokensResult> SemanticTokensHandle(SemanticTokensRequest semanticTokensRequest, string nuget)
         {
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(semanticTokensRequest.Code);
             return await document.GetSemanticTokens(CancellationToken.None);
@@ -84,7 +84,7 @@ namespace MonacoRoslynCompletionProvider
 
         public static async Task<CodeActionResult[]> CodeActionsHandle(CodeActionRequest codeActionRequest, string nuget)
         {
-            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Location).ToArray();
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
             var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
             var document = await workspace.CreateDocumentAsync(codeActionRequest.Code);
             return await document.GetCodeActions(

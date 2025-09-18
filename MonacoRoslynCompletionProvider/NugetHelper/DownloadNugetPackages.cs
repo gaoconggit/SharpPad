@@ -1,4 +1,4 @@
-﻿//using NuGet;
+//using NuGet;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,14 +21,15 @@ namespace monacoEditorCSharp.DataHelpers
             Directory.CreateDirectory(installationDirectory);
         }
 
-        public static List<Assembly> LoadPackages(string packages)
+        public static List<PackageAssemblyInfo> LoadPackages(string packages)
         {
-            List<Assembly> assemblies = new List<Assembly>();
-            if (String.IsNullOrWhiteSpace(packages))
+            var assemblies = new List<PackageAssemblyInfo>();
+            if (string.IsNullOrWhiteSpace(packages))
             {
                 return assemblies;
             }
 
+            var assembliesByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
             foreach (var item in npackages)
             {
@@ -53,20 +54,40 @@ namespace monacoEditorCSharp.DataHelpers
                     try
                     {
                         var fileName = Path.GetFileName(file);
-                        if (file.EndsWith(Path.Combine("net8.0", fileName)) ||
-                            file.Contains(Path.Combine("netstandard2.0", fileName)) ||
-                            file.Contains(Path.Combine("netstandard2.1", fileName)))
+                        if (!file.EndsWith(Path.Combine("net8.0", fileName)) &&
+                            !file.Contains(Path.Combine("netstandard2.0", fileName)) &&
+                            !file.Contains(Path.Combine("netstandard2.1", fileName)))
                         {
-                            var assembly = Assembly.LoadFrom(file);
-                            assemblies.Add(assembly);
+                            continue;
+                        }
+
+                        var assemblyName = AssemblyName.GetAssemblyName(file);
+                        var info = new PackageAssemblyInfo(file, assemblyName);
+                        var key = assemblyName.Name ?? Path.GetFileNameWithoutExtension(file);
+
+                        if (assembliesByName.TryGetValue(key, out var index))
+                        {
+                            var existing = assemblies[index];
+                            var existingVersion = existing.AssemblyName.Version;
+                            if (existingVersion == null ||
+                                (assemblyName.Version != null && assemblyName.Version > existingVersion))
+                            {
+                                assemblies[index] = info;
+                            }
+                        }
+                        else
+                        {
+                            assembliesByName[key] = assemblies.Count;
+                            assemblies.Add(info);
                         }
                     }
-                    catch (Exception)
+                    catch
                     {
-                        // Log exception or handle it appropriately
+                        // Ignore individual file failures; continue probing remaining files
                     }
                 }
             }
+
             return assemblies;
         }
 
@@ -285,5 +306,17 @@ namespace monacoEditorCSharp.DataHelpers
                 // Swallow cleanup exceptions
             }
         }
+    }
+
+    public sealed class PackageAssemblyInfo
+    {
+        public PackageAssemblyInfo(string path, AssemblyName assemblyName)
+        {
+            Path = path ?? throw new ArgumentNullException(nameof(path));
+            AssemblyName = assemblyName ?? throw new ArgumentNullException(nameof(assemblyName));
+        }
+
+        public string Path { get; }
+        public AssemblyName AssemblyName { get; }
     }
 }
