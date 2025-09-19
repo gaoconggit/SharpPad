@@ -66,11 +66,11 @@
 - 移动端UI
 - 启动VS断点调试(参考 https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md)
 - windows pc client(mac silicon / windows)
+- nuget 管理页面
 
 ## 期待实现的功能
 
 - 进行中的任务
-  - nuget 管理页面
   - 多文件支持
   
 
@@ -80,6 +80,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
