@@ -42,6 +42,31 @@ class FileManager {
             addFolderBtn.addEventListener('click', () => this.addFolder());
         }
 
+        // 选择所有CS文件按钮监听
+        const selectAllCsBtn = document.getElementById('selectAllCsBtn');
+        if (selectAllCsBtn) {
+            selectAllCsBtn.addEventListener('click', () => {
+                this.selectAllCSharpFiles();
+                this.updateSelectedFileInfo();
+            });
+        }
+
+        // 清除选择按钮监听
+        const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+        if (clearSelectionBtn) {
+            clearSelectionBtn.addEventListener('click', () => {
+                this.clearFileSelection();
+                this.updateSelectedFileInfo();
+            });
+        }
+
+        // 监听文件选择复选框变化
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('file-select-checkbox')) {
+                this.updateSelectedFileInfo();
+            }
+        });
+
         // 初始化右键菜单事件
         this.initializeContextMenus();
     }
@@ -227,6 +252,17 @@ class FileManager {
             // 创建文件链接
             const fileContainer = document.createElement('div');
             fileContainer.className = 'file-container';
+            fileContainer.style.display = 'flex';
+            fileContainer.style.alignItems = 'center';
+            fileContainer.style.gap = '5px';
+
+            // 添加复选框用于多文件选择
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'file-select-checkbox';
+            checkbox.setAttribute('data-file-checkbox', file.id);
+            checkbox.style.cursor = 'pointer';
+            checkbox.title = '选择此文件进行多文件编译';
 
             const a = document.createElement('a');
             a.href = '#';
@@ -252,6 +288,7 @@ class FileManager {
                 this.showContextMenu(e, file);
             });
 
+            fileContainer.appendChild(checkbox);
             fileContainer.appendChild(a);
             li.appendChild(fileContainer);
         }
@@ -1220,6 +1257,64 @@ class FileManager {
         } catch (error) {
             console.error('Error saving to localStorage:', error);
             showNotification('保存失败: ' + error.message, 'error');
+        }
+    }
+
+    // 获取所有选中的文件
+    getSelectedFiles() {
+        const selectedFiles = [];
+        const checkboxes = document.querySelectorAll('.file-select-checkbox:checked');
+        const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+
+        checkboxes.forEach(checkbox => {
+            const fileId = checkbox.getAttribute('data-file-checkbox');
+            const file = this.findFileById(files, fileId);
+            if (file) {
+                // 获取文件内容
+                const content = localStorage.getItem(`file_${fileId}`) || file.content || '';
+                selectedFiles.push({
+                    id: fileId,
+                    name: file.name,
+                    content: content
+                });
+            }
+        });
+
+        return selectedFiles;
+    }
+
+    // 清除所有文件选择
+    clearFileSelection() {
+        const checkboxes = document.querySelectorAll('.file-select-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // 选择所有CS文件
+    selectAllCSharpFiles() {
+        const checkboxes = document.querySelectorAll('.file-select-checkbox');
+        checkboxes.forEach(checkbox => {
+            const fileId = checkbox.getAttribute('data-file-checkbox');
+            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const file = this.findFileById(files, fileId);
+            if (file && file.name.endsWith('.cs')) {
+                checkbox.checked = true;
+            }
+        });
+    }
+
+    // 更新选中文件信息显示
+    updateSelectedFileInfo() {
+        const selectedFiles = this.getSelectedFiles();
+        const infoDiv = document.getElementById('multiFileInfo');
+        const countSpan = document.getElementById('selectedFileCount');
+
+        if (selectedFiles.length > 0) {
+            infoDiv.style.display = 'block';
+            countSpan.textContent = selectedFiles.length;
+        } else {
+            infoDiv.style.display = 'none';
         }
     }
 

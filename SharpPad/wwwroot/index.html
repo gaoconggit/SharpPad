@@ -26,9 +26,14 @@
         <div class="file-list-header">
             <input type="text" id="fileFilter" placeholder="搜索文件...">
             <div style="display: flex; gap: 5px;">
+                <button id="selectAllCsBtn" title="选择所有 .cs 文件" style="font-size: 12px; padding: 4px 8px;">✓CS</button>
+                <button id="clearSelectionBtn" title="清除选择" style="font-size: 12px; padding: 4px 8px;">✗</button>
                 <button id="addFolderBtn" title="新建文件夹">📁</button>
                 <button id="addFileBtn" title="新建文件">+</button>
             </div>
+        </div>
+        <div id="multiFileInfo" style="padding: 5px 10px; background: #f0f0f0; font-size: 12px; display: none;">
+            <span id="selectedFileCount">0</span> 个文件已选中
         </div>
         <ul id="fileListItems">
         </ul>

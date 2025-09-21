@@ -153,6 +153,9 @@ export class CodeRunner {
             fileManager.saveFileToLocalStorage(fileId, code);
         }
 
+        // 获取选中的文件用于多文件编译
+        const selectedFiles = fileManager.getSelectedFiles();
+
         // 获取当前文件的包配置
         const file = getCurrentFile();
         const packages = file?.nugetConfig?.packages || [];
@@ -163,15 +166,58 @@ export class CodeRunner {
         // 生成会话ID
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        const request = {
-            SourceCode: code,
-            Packages: packages.map(p => ({
-                Id: p.id,
-                Version: p.version
-            })),
-            LanguageVersion: parseInt(csharpVersion),
-            SessionId: this.currentSessionId
-        };
+        let request;
+
+        // 如果有选中的文件，使用多文件模式
+        if (selectedFiles.length > 0) {
+            // 保存当前编辑器的内容到对应文件
+            const currentFileInSelection = selectedFiles.find(f => f.id === fileId);
+            if (currentFileInSelection) {
+                currentFileInSelection.content = code;
+            } else if (fileId) {
+                // 如果当前文件不在选中列表中，也添加进去
+                const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+                const currentFile = fileManager.findFileById(files, fileId);
+                if (currentFile && currentFile.name.endsWith('.cs')) {
+                    selectedFiles.push({
+                        id: fileId,
+                        name: currentFile.name,
+                        content: code
+                    });
+                }
+            }
+
+            // 检测入口文件（包含Main方法的文件）
+            const filesWithContent = selectedFiles.map(f => ({
+                FileName: f.name,
+                Content: f.content,
+                IsEntry: f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
+            }));
+
+            request = {
+                Files: filesWithContent,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                SessionId: this.currentSessionId
+            };
+
+            // 显示正在运行的文件列表
+            this.appendOutput(`正在编译 ${selectedFiles.length} 个文件: ${selectedFiles.map(f => f.name).join(', ')}`, 'info');
+        } else {
+            // 单文件模式（向后兼容）
+            request = {
+                SourceCode: code,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                SessionId: this.currentSessionId
+            };
+        }
 
         // 清空输出区域
         this.outputContent.innerHTML = '';

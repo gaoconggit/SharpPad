@@ -48,6 +48,183 @@ namespace MonacoRoslynCompletionProvider.Api
             public string Error { get; set; }
         }
 
+        public static async Task<RunResult> RunMultiFileCodeAsync(
+            List<FileContent> files,
+            string nuget,
+            int languageVersion,
+            Func<string, Task> onOutput,
+            Func<string, Task> onError,
+            string sessionId = null)
+        {
+            var result = new RunResult();
+            CustomAssemblyLoadContext loadContext = null;
+            Assembly assembly = null;
+            try
+            {
+                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+                loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
+
+                var parseOptions = new CSharpParseOptions(
+                    languageVersion: (LanguageVersion)languageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse
+                );
+
+                string assemblyName = "DynamicCode";
+
+                // Parse all files into syntax trees
+                var syntaxTrees = new List<SyntaxTree>();
+                foreach (var file in files)
+                {
+                    var syntaxTree = CSharpSyntaxTree.ParseText(
+                        file.Content,
+                        parseOptions,
+                        path: file.FileName
+                    );
+                    syntaxTrees.Add(syntaxTree);
+                }
+
+                // Collect references
+                var references = new List<MetadataReference>();
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                        references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
+                foreach (var pkg in nugetAssemblies)
+                {
+                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
+                }
+
+                var compilation = CSharpCompilation.Create(
+                    assemblyName,
+                    syntaxTrees,
+                    references,
+                    new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                );
+
+                using (var peStream = new MemoryStream())
+                {
+                    var compileResult = compilation.Emit(peStream);
+                    if (!compileResult.Success)
+                    {
+                        foreach (var diag in compileResult.Diagnostics)
+                        {
+                            if (diag.Severity == DiagnosticSeverity.Error)
+                            {
+                                var location = diag.Location.GetLineSpan();
+                                var fileName = location.Path ?? "unknown";
+                                var line = location.StartLinePosition.Line + 1;
+                                await onError($"[{fileName}:{line}] {diag.GetMessage()}").ConfigureAwait(false);
+                            }
+                        }
+                        result.Error = "Compilation error";
+                        return result;
+                    }
+                    peStream.Seek(0, SeekOrigin.Begin);
+
+                    lock (LoadContextLock)
+                    {
+                        assembly = loadContext.LoadFromStream(peStream);
+                    }
+
+                    var entryPoint = assembly.EntryPoint;
+                    if (entryPoint != null)
+                    {
+                        var parameters = entryPoint.GetParameters();
+
+                        async void WriteAction(string text) => await onOutput(text).ConfigureAwait(false);
+                        await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
+
+                        async void ErrorAction(string text) => await onError(text).ConfigureAwait(false);
+                        await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
+
+                        var interactiveReader = new InteractiveTextReader(async prompt =>
+                        {
+                            await onOutput($"[INPUT REQUIRED] Please provide input: ").ConfigureAwait(false);
+                        });
+
+                        if (!string.IsNullOrEmpty(sessionId))
+                        {
+                            lock (_activeReaders)
+                            {
+                                _activeReaders[sessionId] = interactiveReader;
+                            }
+                        }
+
+                        var executionTask = Task.Run(async () =>
+                        {
+                            TextWriter originalOut = null, originalError = null;
+                            TextReader originalIn = null;
+                            lock (ConsoleLock)
+                            {
+                                originalOut = Console.Out;
+                                originalError = Console.Error;
+                                originalIn = Console.In;
+                                Console.SetOut(outputWriter);
+                                Console.SetError(errorWriter);
+                                Console.SetIn(interactiveReader);
+                            }
+                            try
+                            {
+                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
+                                {
+                                    entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
+                                }
+                                else
+                                {
+                                    entryPoint.Invoke(null, null);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                var errorMessage = "Execution error: " + (ex.InnerException?.Message ?? ex.Message);
+                                await onError(errorMessage).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                lock (ConsoleLock)
+                                {
+                                    Console.SetOut(originalOut);
+                                    Console.SetError(originalError);
+                                    Console.SetIn(originalIn);
+                                }
+
+                                if (!string.IsNullOrEmpty(sessionId))
+                                {
+                                    lock (_activeReaders)
+                                    {
+                                        _activeReaders.Remove(sessionId);
+                                    }
+                                }
+                                interactiveReader?.Dispose();
+                            }
+                        });
+                        await executionTask.ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await onError("No entry point found in the code. Please ensure one file contains a Main method.").ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await onError("Runtime error: " + ex.Message).ConfigureAwait(false);
+            }
+            finally
+            {
+                assembly = null;
+                loadContext?.Unload();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            result.Output = string.Empty;
+            result.Error = string.Empty;
+            return result;
+        }
+
         public static async Task<RunResult> RunProgramCodeAsync(
     string code,
     string nuget,
