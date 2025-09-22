@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -485,6 +486,307 @@ namespace MonacoRoslynCompletionProvider.Api
         public static void DownloadPackage(string nuget)
         {
             DownloadNugetPackages.DownloadAllPackages(nuget);
+        }
+
+        public static async Task<ExeBuildResult> BuildMultiFileExecutableAsync(
+            List<FileContent> files,
+            string nuget,
+            int languageVersion,
+            string outputFileName)
+        {
+            var result = new ExeBuildResult();
+
+            try
+            {
+                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+
+                var parseOptions = new CSharpParseOptions(
+                    languageVersion: (LanguageVersion)languageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse
+                );
+
+                string assemblyName = Path.GetFileNameWithoutExtension(outputFileName);
+
+                // Parse all files into syntax trees
+                var syntaxTrees = new List<SyntaxTree>();
+                foreach (var file in files)
+                {
+                    var syntaxTree = CSharpSyntaxTree.ParseText(
+                        file.Content,
+                        parseOptions,
+                        path: file.FileName
+                    );
+                    syntaxTrees.Add(syntaxTree);
+                }
+
+                // Collect references
+                var references = new List<MetadataReference>();
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                        references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
+                foreach (var pkg in nugetAssemblies)
+                {
+                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
+                }
+
+                var compilation = CSharpCompilation.Create(
+                    assemblyName,
+                    syntaxTrees,
+                    references,
+                    new CSharpCompilationOptions(
+                        OutputKind.ConsoleApplication,
+                        optimizationLevel: OptimizationLevel.Release,
+                        platform: Platform.AnyCpu
+                    )
+                );
+
+                // Create output directory if it doesn't exist
+                var outputDir = Path.Combine(Path.GetTempPath(), "SharpPadBuilds");
+                Directory.CreateDirectory(outputDir);
+
+                var outputPath = Path.Combine(outputDir, outputFileName);
+
+                // Generate exe and dependencies
+                var emitResult = compilation.Emit(outputPath);
+
+                if (emitResult.Success)
+                {
+                    // Copy dependencies to output directory
+                    await CopyDependenciesToOutputAsync(outputPath, nugetAssemblies);
+
+                    // Create zip package
+                    var zipPath = await CreateZipPackageAsync(outputPath, nugetAssemblies);
+
+                    result.Success = true;
+                    result.ExeFilePath = zipPath;
+                    result.FileSizeBytes = new FileInfo(zipPath).Length;
+                    result.CompilationMessages.Add($"Successfully built {outputFileName} and packaged dependencies");
+                }
+                else
+                {
+                    result.Success = false;
+                    foreach (var diagnostic in emitResult.Diagnostics)
+                    {
+                        if (diagnostic.Severity == DiagnosticSeverity.Error)
+                        {
+                            var location = diagnostic.Location.GetLineSpan();
+                            var fileName = location.Path ?? "unknown";
+                            var line = location.StartLinePosition.Line + 1;
+                            result.CompilationMessages.Add($"[{fileName}:{line}] {diagnostic.GetMessage()}");
+                        }
+                    }
+                    result.Error = "Compilation failed with errors";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = $"Build error: {ex.Message}";
+            }
+
+            return result;
+        }
+
+        public static async Task<ExeBuildResult> BuildExecutableAsync(
+            string code,
+            string nuget,
+            int languageVersion,
+            string outputFileName)
+        {
+            var result = new ExeBuildResult();
+
+            try
+            {
+                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+
+                var parseOptions = new CSharpParseOptions(
+                    languageVersion: (LanguageVersion)languageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse
+                );
+
+                string assemblyName = Path.GetFileNameWithoutExtension(outputFileName);
+
+                var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
+
+                var references = new List<MetadataReference>();
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                        references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
+                foreach (var pkg in nugetAssemblies)
+                {
+                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
+                }
+
+                var compilation = CSharpCompilation.Create(
+                    assemblyName,
+                    new[] { syntaxTree },
+                    references,
+                    new CSharpCompilationOptions(
+                        OutputKind.ConsoleApplication,
+                        optimizationLevel: OptimizationLevel.Release,
+                        platform: Platform.AnyCpu
+                    )
+                );
+
+                // Create output directory if it doesn't exist
+                var outputDir = Path.Combine(Path.GetTempPath(), "SharpPadBuilds");
+                Directory.CreateDirectory(outputDir);
+
+                var outputPath = Path.Combine(outputDir, outputFileName);
+
+                // Generate exe and dependencies
+                var emitResult = compilation.Emit(outputPath);
+
+                if (emitResult.Success)
+                {
+                    // Copy dependencies to output directory
+                    await CopyDependenciesToOutputAsync(outputPath, nugetAssemblies);
+
+                    // Create zip package
+                    var zipPath = await CreateZipPackageAsync(outputPath, nugetAssemblies);
+
+                    result.Success = true;
+                    result.ExeFilePath = zipPath;
+                    result.FileSizeBytes = new FileInfo(zipPath).Length;
+                    result.CompilationMessages.Add($"Successfully built {outputFileName} and packaged dependencies");
+                }
+                else
+                {
+                    result.Success = false;
+                    foreach (var diagnostic in emitResult.Diagnostics)
+                    {
+                        if (diagnostic.Severity == DiagnosticSeverity.Error)
+                        {
+                            result.CompilationMessages.Add(diagnostic.ToString());
+                        }
+                    }
+                    result.Error = "Compilation failed with errors";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = $"Build error: {ex.Message}";
+            }
+
+            return result;
+        }
+
+        private static async Task CopyDependenciesToOutputAsync(string exePath, IEnumerable<PackageAssemblyInfo> nugetAssemblies)
+        {
+            var outputDir = Path.GetDirectoryName(exePath);
+
+            // 复制NuGet依赖
+            foreach (var assembly in nugetAssemblies)
+            {
+                var fileName = Path.GetFileName(assembly.Path);
+                var destPath = Path.Combine(outputDir, fileName);
+                try
+                {
+                    File.Copy(assembly.Path, destPath, true);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Could not copy dependency {fileName}: {ex.Message}");
+                }
+            }
+
+            // 创建运行脚本
+            var scriptContent = $@"@echo off
+echo Starting {Path.GetFileName(exePath)}...
+""{Path.GetFileName(exePath)}""
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Program exited with error code %ERRORLEVEL%
+    pause
+)";
+            var scriptPath = Path.Combine(outputDir, "run.bat");
+            await File.WriteAllTextAsync(scriptPath, scriptContent);
+        }
+
+        private static async Task<string> CreateZipPackageAsync(string exePath, IEnumerable<PackageAssemblyInfo> nugetAssemblies)
+        {
+            var outputDir = Path.GetDirectoryName(exePath);
+            var zipFileName = Path.GetFileNameWithoutExtension(exePath) + "_Package.zip";
+            var zipPath = Path.Combine(outputDir, zipFileName);
+
+            // 删除已存在的zip文件
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            using (var zip = new System.IO.Compression.ZipArchive(File.Create(zipPath), System.IO.Compression.ZipArchiveMode.Create))
+            {
+                // 添加主程序
+                if (File.Exists(exePath))
+                {
+                    var entry = zip.CreateEntry(Path.GetFileName(exePath));
+                    using (var entryStream = entry.Open())
+                    using (var fileStream = File.OpenRead(exePath))
+                    {
+                        await fileStream.CopyToAsync(entryStream);
+                    }
+                }
+
+                // 添加依赖文件
+                foreach (var assembly in nugetAssemblies)
+                {
+                    var fileName = Path.GetFileName(assembly.Path);
+                    var destFileName = Path.Combine(outputDir, fileName);
+
+                    if (File.Exists(destFileName))
+                    {
+                        var entry = zip.CreateEntry(fileName);
+                        using (var entryStream = entry.Open())
+                        using (var fileStream = File.OpenRead(destFileName))
+                        {
+                            await fileStream.CopyToAsync(entryStream);
+                        }
+                    }
+                }
+
+                // 添加运行脚本
+                var scriptPath = Path.Combine(outputDir, "run.bat");
+                if (File.Exists(scriptPath))
+                {
+                    var entry = zip.CreateEntry("run.bat");
+                    using (var entryStream = entry.Open())
+                    using (var fileStream = File.OpenRead(scriptPath))
+                    {
+                        await fileStream.CopyToAsync(entryStream);
+                    }
+                }
+
+                // 添加说明文件
+                var readmeEntry = zip.CreateEntry("README.txt");
+                using (var entryStream = readmeEntry.Open())
+                using (var writer = new StreamWriter(entryStream))
+                {
+                    await writer.WriteLineAsync("SharpPad Generated Application Package");
+                    await writer.WriteLineAsync("=====================================");
+                    await writer.WriteLineAsync("");
+                    await writer.WriteLineAsync("This package contains a compiled C# console application and its dependencies.");
+                    await writer.WriteLineAsync("");
+                    await writer.WriteLineAsync("To run the application:");
+                    await writer.WriteLineAsync("1. Extract all files to a folder");
+                    await writer.WriteLineAsync("2. Double-click 'run.bat' to start the application");
+                    await writer.WriteLineAsync($"3. Or directly run '{Path.GetFileName(exePath)}'");
+                    await writer.WriteLineAsync("");
+                    await writer.WriteLineAsync("Requirements:");
+                    await writer.WriteLineAsync("- .NET Runtime (compatible with the target framework)");
+                    await writer.WriteLineAsync("");
+                    await writer.WriteLineAsync("Generated by SharpPad - https://github.com/gaoconggit/SharpPad");
+                }
+            }
+
+            return zipPath;
         }
     }
 }

@@ -10,8 +10,14 @@ export async function sendRequest(type, request) {
         case 'definition': endPoint = '/completion/definition'; break;
         case 'semanticTokens': endPoint = '/completion/semanticTokens'; break;
         case 'run': endPoint = '/api/coderun/run'; break;
+        case 'buildExe': endPoint = '/api/coderun/buildExe'; break;
         case 'addPackages': endPoint = '/completion/addPackages'; break;
         case 'codeActions': endPoint = '/completion/codeActions'; break;
+        // Multi-file endpoints
+        case 'multiFileComplete': endPoint = '/completion/multiFileComplete'; break;
+        case 'multiFileCodeCheck': endPoint = '/completion/multiFileCodeCheck'; break;
+        case 'multiFileSignature': endPoint = '/completion/multiFileSignature'; break;
+        case 'multiFileHover': endPoint = '/completion/multiFileHover'; break;
         default: throw new Error(`Unknown request type: ${type}`);
     }
 
@@ -41,6 +47,46 @@ export async function sendRequest(type, request) {
                 reader: response.body.getReader(),
                 showNotificationTimer
             };
+        } else if (type === 'buildExe') {
+            // 处理exe构建请求，返回文件下载
+            const response = await fetch(endPoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request)
+            });
+
+            clearTimeout(showNotificationTimer);
+            notification.style.display = 'none';
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            // 获取文件名
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let fileName = 'Program.exe';
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename="(.+)"/);
+                if (matches) {
+                    fileName = matches[1];
+                }
+            }
+
+            // 下载文件
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            return { success: true, fileName };
         } else {
             const response = await fetch(endPoint, {
                 method: 'POST',

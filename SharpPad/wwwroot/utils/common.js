@@ -28,6 +28,72 @@ export function getCurrentFile() {
     return findFile(files);
 }
 
+// 获取所有选中的文件
+export function getSelectedFiles() {
+    const selectedFiles = [];
+    const checkboxes = document.querySelectorAll('.file-select-checkbox:checked');
+    const filesData = localStorage.getItem('controllerFiles');
+    const files = filesData ? JSON.parse(filesData) : [];
+
+    checkboxes.forEach(checkbox => {
+        const fileId = checkbox.getAttribute('data-file-checkbox');
+        const file = findFileById(files, fileId);
+        if (file) {
+            // 获取文件内容
+            const content = localStorage.getItem(`file_${fileId}`) || file.content || '';
+            selectedFiles.push({
+                FileName: file.name,
+                Content: content
+            });
+        }
+    });
+
+    return selectedFiles;
+}
+
+// 递归查找文件
+function findFileById(files, id) {
+    for (const file of files) {
+        if (file.id === id) return file;
+        if (file.type === 'folder' && file.files) {
+            const found = findFileById(file.files, id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+// 判断是否应该使用多文件模式
+export function shouldUseMultiFileMode() {
+    const selectedFiles = getSelectedFiles();
+    return selectedFiles.length > 0;
+}
+
+// 创建多文件请求
+export function createMultiFileRequest(targetFileName, position, packages) {
+    const selectedFiles = getSelectedFiles();
+
+    if (selectedFiles.length === 0) {
+        return null;
+    }
+
+    return {
+        Files: selectedFiles,
+        TargetFileId: targetFileName,
+        Position: position,
+        Packages: packages
+    };
+}
+
+// 创建单文件请求（向后兼容）
+export function createSingleFileRequest(code, position, packages) {
+    return {
+        Code: code,
+        Position: position,
+        Packages: packages
+    };
+}
+
 export function layoutEditor() {
     if (window.editor) {
         setTimeout(() => {

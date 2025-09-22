@@ -1,5 +1,5 @@
 #fileList {
-    width: 290px;
+    width: 380px;
     border-right: 1px solid #444;
     box-sizing: border-box;
     background-color: #252526;
@@ -366,6 +366,33 @@ body.theme-light .sort-button {
 }
 
 body.theme-light .sort-button:hover {
+    color: #0066b8;
+}
+
+/* Multi-file selection info panel */
+.multi-file-info {
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    border-left: 3px solid #007acc;
+    background-color: #2d3142;
+    color: #e6e6e6;
+    transition: all 0.2s ease;
+}
+
+body.theme-light .multi-file-info {
+    background-color: #e8f0fe;
+    color: #0066b8;
+    border-left-color: #0066b8;
+}
+
+.multi-file-info span {
+    font-weight: 600;
+    color: #4fc3f7;
+}
+
+body.theme-light .multi-file-info span {
     color: #0066b8;
 }
 

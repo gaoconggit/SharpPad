@@ -1,4 +1,4 @@
-﻿import { getCurrentFile } from './utils/common.js';
+﻿import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest, getSelectedFiles } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 
 export function registerCsharpProvider() {
@@ -12,18 +12,29 @@ export function registerCsharpProvider() {
 
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
+            const packagesData = packages.map(p => ({
+                Id: p.id,
+                Version: p.version
+            }));
 
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Packages: packages.map(p => ({
-                    Id: p.id,
-                    Version: p.version
-                }))
+            const useMultiFile = shouldUseMultiFileMode();
+            let request;
+            let requestType;
+
+            if (useMultiFile) {
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                requestType = "multiFileComplete";
+            } else {
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                requestType = "complete";
+            }
+
+            if (!request) {
+                return { suggestions };
             }
 
             try {
-                const { data } = await sendRequest("complete", request);
+                const { data } = await sendRequest(requestType, request);
                 for (let elem of data) {
                     suggestions.push({
                         label: {
@@ -48,18 +59,29 @@ export function registerCsharpProvider() {
         provideSignatureHelp: async (model, position) => {
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
+            const packagesData = packages.map(p => ({
+                Id: p.id,
+                Version: p.version
+            }));
 
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Packages: packages.map(p => ({
-                    Id: p.id,
-                    Version: p.version
-                }))
+            const useMultiFile = shouldUseMultiFileMode();
+            let request;
+            let requestType;
+
+            if (useMultiFile) {
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                requestType = "multiFileSignature";
+            } else {
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                requestType = "signature";
+            }
+
+            if (!request) {
+                return null;
             }
 
             try {
-                const { data } = await sendRequest("signature", request);
+                const { data } = await sendRequest(requestType, request);
                 if (!data) return;
 
                 let signatures = [];
@@ -100,18 +122,29 @@ export function registerCsharpProvider() {
         provideHover: async function (model, position) {
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
+            const packagesData = packages.map(p => ({
+                Id: p.id,
+                Version: p.version
+            }));
 
-            let request = {
-                Code: model.getValue(),
-                Position: model.getOffsetAt(position),
-                Packages: packages.map(p => ({
-                    Id: p.id,
-                    Version: p.version
-                }))
+            const useMultiFile = shouldUseMultiFileMode();
+            let request;
+            let requestType;
+
+            if (useMultiFile) {
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                requestType = "multiFileHover";
+            } else {
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                requestType = "hover";
+            }
+
+            if (!request) {
+                return null;
             }
 
             try {
-                const { data } = await sendRequest("hover", request);
+                const { data } = await sendRequest(requestType, request);
                 if (!data) return null;
 
                 const posStart = model.getPositionAt(data.offsetFrom);
@@ -134,17 +167,33 @@ export function registerCsharpProvider() {
         async function validate() {
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
+            const packagesData = packages.map(p => ({
+                Id: p.id,
+                Version: p.version
+            }));
 
-            let request = {
-                Code: model.getValue(),
-                Packages: packages.map(p => ({
-                    Id: p.id,
-                    Version: p.version
-                }))
+            const useMultiFile = shouldUseMultiFileMode();
+            let request;
+            let requestType;
+
+            if (useMultiFile) {
+                // For multi-file validation, include target file so backend can map offsets correctly
+                request = {
+                    Files: getSelectedFiles(),
+                    TargetFileId: file?.name,
+                    Packages: packagesData
+                };
+                requestType = "codeCheck";
+            } else {
+                request = {
+                    Code: model.getValue(),
+                    Packages: packagesData
+                };
+                requestType = "codeCheck";
             }
 
             try {
-                const { data } = await sendRequest("codeCheck", request);
+                const { data } = await sendRequest(requestType, request);
                 let markers = [];
 
                 for (let elem of data) {

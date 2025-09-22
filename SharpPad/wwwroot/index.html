@@ -22,7 +22,7 @@
 </head>
 
 <body class="theme-dark">
-    <div id="fileList" style="max-width: 800px; width: 290px;min-width: 290px;">
+    <div id="fileList" style="max-width: 800px; width: 380px; min-width: 340px;">
         <div class="file-list-header">
             <input type="text" id="fileFilter" placeholder="搜索文件...">
             <div style="display: flex; gap: 5px;">
@@ -32,7 +32,7 @@
                 <button id="addFileBtn" title="新建文件">+</button>
             </div>
         </div>
-        <div id="multiFileInfo" style="padding: 5px 10px; background: #f0f0f0; font-size: 12px; display: none;">
+        <div id="multiFileInfo" class="multi-file-info" style="display: none;">
             <span id="selectedFileCount">0</span> 个文件已选中
         </div>
         <ul id="fileListItems">
@@ -70,6 +70,7 @@
             <button id="systemSettingsBtn" title="系统设置">⚙️</button>
             <div style="flex-grow: 1;"></div>
             <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
+            <button id="buildExeButton" title="构建可执行文件">构建EXE</button>
             <div style="flex-grow: 0.1;"></div>
         </div>
     </div>

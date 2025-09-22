@@ -17,7 +17,13 @@
       "WebSearch",
       "Bash(git worktree:*)",
       "Bash(git merge:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh app create:*)",
+      "Bash(gh extension install:*)",
+      "Bash(gh extension search:*)",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(powershell.exe:*)"
     ],
     "deny": [],
     "ask": []
@@ -25,5 +31,18 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "playwright"
-  ]
+  ],
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -Command \"Import-Module BurntToast; New-BurntToastNotification -Text '🐂', '🐂已完事'\""
+          }
+        ]
+      }
+    ]
+  }
 }

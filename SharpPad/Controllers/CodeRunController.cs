@@ -5,6 +5,7 @@ using MonacoRoslynCompletionProvider.Api;
 using Newtonsoft.Json;
 using System.Text.Json;
 using System.Threading.Channels;
+using static MonacoRoslynCompletionProvider.Api.CodeRunner;
 
 namespace SharpPad.Controllers
 {
@@ -161,6 +162,63 @@ namespace SharpPad.Controllers
 
             var success = CodeRunner.ProvideInput(request.SessionId, request.Input);
             return Ok(new { success });
+        }
+
+        [HttpPost("buildExe")]
+        public async Task<IActionResult> BuildExe([FromBody] ExeBuildRequest request)
+        {
+            try
+            {
+                string nugetPackages = string.Join(" ", request?.Packages?.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+
+                ExeBuildResult result;
+
+                if (request?.IsMultiFile == true)
+                {
+                    result = await CodeRunner.BuildMultiFileExecutableAsync(
+                        request.Files,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        request?.OutputFileName ?? "Program.exe"
+                    );
+                }
+                else
+                {
+                    result = await CodeRunner.BuildExecutableAsync(
+                        request?.SourceCode,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        request?.OutputFileName ?? "Program.exe"
+                    );
+                }
+
+                if (result.Success)
+                {
+                    // Return file download response
+                    var fileBytes = System.IO.File.ReadAllBytes(result.ExeFilePath);
+                    var fileName = Path.GetFileName(result.ExeFilePath);
+
+                    // Clean up the temporary file
+                    try
+                    {
+                        System.IO.File.Delete(result.ExeFilePath);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+
+                    return File(fileBytes, "application/octet-stream", fileName);
+                }
+                else
+                {
+                    return BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 
