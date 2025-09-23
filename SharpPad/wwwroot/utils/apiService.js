@@ -18,6 +18,7 @@ export async function sendRequest(type, request) {
         case 'multiFileCodeCheck': endPoint = '/completion/multiFileCodeCheck'; break;
         case 'multiFileSignature': endPoint = '/completion/multiFileSignature'; break;
         case 'multiFileHover': endPoint = '/completion/multiFileHover'; break;
+        case 'multiFileSemanticTokens': endPoint = '/completion/multiFileSemanticTokens'; break;
         default: throw new Error(`Unknown request type: ${type}`);
     }
 
