@@ -50,6 +50,7 @@
 - `Ctrl + S` 保存代码
 - `Alt+L` 光标在聊天框时,清空聊天记录
 - `Ctrl + Shift + Space` 手动触发GPT自动补全
+- `Ctrl + D` 复制上一行到下一行
 
 ## 特性
 
@@ -85,6 +86,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
