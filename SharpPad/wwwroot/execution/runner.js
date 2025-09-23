@@ -1,6 +1,7 @@
 import { getCurrentFile } from '../utils/common.js';
 import { sendRequest } from '../utils/apiService.js';
 import { FileManager } from '../fileSystem/fileManager.js';
+import { buildMultiFileContext } from '../utils/multiFileHelper.js';
 
 const fileManager = new FileManager();
 
@@ -155,45 +156,29 @@ export class CodeRunner {
             fileManager.saveFileToLocalStorage(fileId, code);
         }
 
-        // 获取选中的文件用于多文件编译
-        const selectedFiles = fileManager.getSelectedFiles();
-
-        // 获取当前文件的包配置
         const file = getCurrentFile();
         const packages = file?.nugetConfig?.packages || [];
-
-        // 获取选择的C#版本
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
-
-        // 生成会话ID
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        const { selectedFiles, autoIncludedNames, missingReferences } = this.gatherMultiFileContext(code, fileId, file);
+        const preRunMessages = [];
+
+        if (autoIncludedNames.length > 0) {
+            preRunMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
+        }
+
+        if (missingReferences.length > 0) {
+            preRunMessages.push({ type: 'error', text: `未找到引用文件: ${missingReferences.join(', ')}` });
+        }
 
         let request;
 
-        // 如果有选中的文件，使用多文件模式
         if (selectedFiles.length > 0) {
-            // 保存当前编辑器的内容到对应文件
-            const currentFileInSelection = selectedFiles.find(f => f.id === fileId);
-            if (currentFileInSelection) {
-                currentFileInSelection.content = code;
-            } else if (fileId) {
-                // 如果当前文件不在选中列表中，也添加进去
-                const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
-                const currentFile = fileManager.findFileById(files, fileId);
-                if (currentFile && currentFile.name.endsWith('.cs')) {
-                    selectedFiles.push({
-                        id: fileId,
-                        name: currentFile.name,
-                        content: code
-                    });
-                }
-            }
-
-            // 检测入口文件（包含Main方法的文件）
             const filesWithContent = selectedFiles.map(f => ({
                 FileName: f.name,
                 Content: f.content,
-                IsEntry: f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
+                IsEntry: f.isEntry || f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
             }));
 
             request = {
@@ -206,10 +191,8 @@ export class CodeRunner {
                 SessionId: this.currentSessionId
             };
 
-            // 显示正在运行的文件列表
-            this.appendOutput(`正在编译 ${selectedFiles.length} 个文件: ${selectedFiles.map(f => f.name).join(', ')}`, 'info');
+            preRunMessages.push({ type: 'info', text: `正在编译 ${selectedFiles.length} 个文件: ${selectedFiles.map(f => f.name).join(', ')}` });
         } else {
-            // 单文件模式（向后兼容）
             request = {
                 SourceCode: code,
                 Packages: packages.map(p => ({
@@ -223,6 +206,7 @@ export class CodeRunner {
 
         // 清空输出区域
         this.outputContent.innerHTML = '';
+        preRunMessages.forEach(msg => this.appendOutput(msg.text, msg.type));
 
         try {
             let result = "";
@@ -272,6 +256,28 @@ export class CodeRunner {
             this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
             this.notification.style.display = 'block';
         }
+    }
+
+    gatherMultiFileContext(code, fileId, currentFile = null) {
+        const entryName = currentFile?.name || getCurrentFile()?.name || null;
+        const context = buildMultiFileContext({
+            entryFileId: fileId || currentFile?.id || null,
+            entryFileName: entryName,
+            entryContent: code
+        });
+
+        const selectedFiles = Array.isArray(context.files) ? context.files.map(file => ({
+            id: file.id,
+            name: file.name,
+            content: file.content,
+            isEntry: !!file.isEntry
+        })) : [];
+
+        return {
+            selectedFiles,
+            autoIncludedNames: Array.isArray(context.autoIncludedNames) ? context.autoIncludedNames : [],
+            missingReferences: Array.isArray(context.missingReferences) ? context.missingReferences : []
+        };
     }
 
     // 新增的方法，使用 FileManager 的公共保存方法
@@ -409,46 +415,31 @@ export class CodeRunner {
             fileManager.saveFileToLocalStorage(fileId, code);
         }
 
-        // 获取选中的文件用于多文件编译
-        const selectedFiles = fileManager.getSelectedFiles();
-
-        // 获取当前文件的包配置
         const file = getCurrentFile();
         const packages = file?.nugetConfig?.packages || [];
-
-        // 获取选择的C#版本
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
 
         let request;
         let outputFileName = 'Program.exe';
 
-        // 如果有选中的文件，使用多文件模式
-        if (selectedFiles.length > 0) {
-            // 保存当前编辑器的内容到对应文件
-            const currentFileInSelection = selectedFiles.find(f => f.id === fileId);
-            if (currentFileInSelection) {
-                currentFileInSelection.content = code;
-            } else if (fileId) {
-                // 如果当前文件不在选中列表中，也添加进去
-                const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
-                const currentFile = fileManager.findFileById(files, fileId);
-                if (currentFile && currentFile.name.endsWith('.cs')) {
-                    selectedFiles.push({
-                        id: fileId,
-                        name: currentFile.name,
-                        content: code
-                    });
-                }
-            }
+        const { selectedFiles, autoIncludedNames, missingReferences } = this.gatherMultiFileContext(code, fileId, file);
+        const preBuildMessages = [];
 
-            // 检测入口文件（包含Main方法的文件）
+        if (autoIncludedNames.length > 0) {
+            preBuildMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
+        }
+
+        if (missingReferences.length > 0) {
+            preBuildMessages.push({ type: 'error', text: `未找到引用文件: ${missingReferences.join(', ')}` });
+        }
+
+        if (selectedFiles.length > 0) {
             const filesWithContent = selectedFiles.map(f => ({
                 FileName: f.name,
                 Content: f.content,
-                IsEntry: f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
+                IsEntry: f.isEntry || f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
             }));
 
-            // 从第一个文件名生成exe名称
             const mainFile = filesWithContent.find(f => f.IsEntry) || filesWithContent[0];
             if (mainFile) {
                 outputFileName = mainFile.FileName.replace('.cs', '.exe');
@@ -464,10 +455,8 @@ export class CodeRunner {
                 OutputFileName: outputFileName
             };
 
-            this.appendOutput(`正在构建 ${selectedFiles.length} 个文件为 ${outputFileName}...`, 'info');
+            preBuildMessages.push({ type: 'info', text: `正在构建 ${selectedFiles.length} 个文件为 ${outputFileName}...` });
         } else {
-            // 单文件模式（向后兼容）
-            // 尝试从当前文件名生成exe名称
             if (file && file.name && file.name.endsWith('.cs')) {
                 outputFileName = file.name.replace('.cs', '.exe');
             }
@@ -482,12 +471,13 @@ export class CodeRunner {
                 OutputFileName: outputFileName
             };
 
-            this.appendOutput(`正在构建 ${outputFileName}...`, 'info');
+            preBuildMessages.push({ type: 'info', text: `正在构建 ${outputFileName}...` });
         }
 
         // 禁用构建按钮防止重复点击
         this.buildExeButton.disabled = true;
         this.buildExeButton.textContent = '构建中...';
+        preBuildMessages.forEach(msg => this.appendOutput(msg.text, msg.type));
 
         try {
             const result = await sendRequest('buildExe', request);

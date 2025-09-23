@@ -165,6 +165,38 @@ namespace MonacoRoslynCompletionProvider
             return AdjustCodeCheckResults(results, request.Files, request.TargetFileId, combinedCode);
         }
 
+        public static async Task<SemanticTokensResult> MultiFileSemanticTokensHandle(MultiFileSemanticTokensRequest request, string nuget)
+        {
+            var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+
+            var targetFile = request.Files.FirstOrDefault(f => f.FileName == request.TargetFileId)
+                          ?? request.Files.FirstOrDefault();
+
+            if (targetFile == null)
+            {
+                return new SemanticTokensResult();
+            }
+
+            var combinedCode = CreateCombinedCode(request.Files, targetFile.FileName);
+            var document = await workspace.CreateDocumentAsync(combinedCode);
+
+            var tokensResult = await document.GetSemanticTokens(CancellationToken.None);
+            if (tokensResult?.Data == null || tokensResult.Data.Count == 0)
+            {
+                return tokensResult ?? new SemanticTokensResult();
+            }
+
+            var filteredTokens = MapTokensToTargetFile(tokensResult.Data, request.Files, targetFile.FileName, combinedCode);
+            if (filteredTokens.Count == 0)
+            {
+                return new SemanticTokensResult();
+            }
+
+            var encodedTokens = EncodeSemanticTokens(filteredTokens);
+            return new SemanticTokensResult { Data = encodedTokens };
+        }
+
         public static async Task<HoverInfoResult> MultiFileHoverHandle(MultiFileHoverInfoRequest request, string nuget)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
@@ -270,6 +302,151 @@ namespace MonacoRoslynCompletionProvider
             }
 
             return string.Join("\n", result);
+        }
+
+        private static List<SemanticToken> MapTokensToTargetFile(List<int> encodedTokens, List<FileContent> files, string targetFileName, string combinedCode)
+        {
+            if (encodedTokens == null || encodedTokens.Count == 0 || files == null || files.Count == 0)
+            {
+                return new List<SemanticToken>();
+            }
+
+            var decodedTokens = DecodeSemanticTokens(encodedTokens);
+            if (decodedTokens.Count == 0)
+            {
+                return decodedTokens;
+            }
+
+            var targetFile = files.FirstOrDefault(f => f.FileName == targetFileName) ?? files.First();
+            if (targetFile == null)
+            {
+                return new List<SemanticToken>();
+            }
+
+            var originalLines = targetFile.Content.Split('\n');
+            var cleanLineToOriginal = new List<int>();
+            for (int i = 0; i < originalLines.Length; i++)
+            {
+                var trimmed = originalLines[i].Trim();
+                if (trimmed.StartsWith("using ") && trimmed.EndsWith(";"))
+                {
+                    continue;
+                }
+                cleanLineToOriginal.Add(i);
+            }
+
+            if (cleanLineToOriginal.Count == 0)
+            {
+                return new List<SemanticToken>();
+            }
+
+            var header = $"// File: {targetFile.FileName}";
+            var combinedLines = combinedCode.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var headerLineIndex = -1;
+            for (int i = 0; i < combinedLines.Length; i++)
+            {
+                if (string.Equals(combinedLines[i].TrimEnd('\r'), header, StringComparison.Ordinal))
+                {
+                    headerLineIndex = i;
+                    break;
+                }
+            }
+
+            if (headerLineIndex < 0)
+            {
+                return new List<SemanticToken>();
+            }
+
+            var startLine = headerLineIndex + 1;
+            var endLine = startLine + cleanLineToOriginal.Count;
+            var mappedTokens = new List<SemanticToken>(decodedTokens.Count);
+
+            foreach (var token in decodedTokens)
+            {
+                if (token.Line < startLine || token.Line >= endLine)
+                {
+                    continue;
+                }
+
+                var cleanIndex = token.Line - startLine;
+                if (cleanIndex < 0 || cleanIndex >= cleanLineToOriginal.Count)
+                {
+                    continue;
+                }
+
+                var originalLine = cleanLineToOriginal[cleanIndex];
+
+                mappedTokens.Add(new SemanticToken
+                {
+                    Line = originalLine,
+                    Character = token.Character,
+                    Length = token.Length,
+                    TokenType = token.TokenType,
+                    TokenModifiers = token.TokenModifiers
+                });
+            }
+
+            mappedTokens.Sort((a, b) =>
+            {
+                var lineCompare = a.Line.CompareTo(b.Line);
+                return lineCompare != 0 ? lineCompare : a.Character.CompareTo(b.Character);
+            });
+
+            return mappedTokens;
+        }
+
+        private static List<SemanticToken> DecodeSemanticTokens(List<int> data)
+        {
+            var tokens = new List<SemanticToken>();
+            int currentLine = 0;
+            int currentChar = 0;
+
+            for (int i = 0; i + 4 < data.Count; i += 5)
+            {
+                var deltaLine = data[i];
+                var deltaStart = data[i + 1];
+                var length = data[i + 2];
+                var tokenType = data[i + 3];
+                var modifiers = data[i + 4];
+
+                currentLine += deltaLine;
+                currentChar = deltaLine == 0 ? currentChar + deltaStart : deltaStart;
+
+                tokens.Add(new SemanticToken
+                {
+                    Line = currentLine,
+                    Character = currentChar,
+                    Length = length,
+                    TokenType = tokenType,
+                    TokenModifiers = modifiers
+                });
+            }
+
+            return tokens;
+        }
+
+        private static List<int> EncodeSemanticTokens(List<SemanticToken> tokens)
+        {
+            var data = new List<int>(tokens.Count * 5);
+            int previousLine = 0;
+            int previousCharacter = 0;
+
+            foreach (var token in tokens)
+            {
+                var deltaLine = token.Line - previousLine;
+                var deltaStart = deltaLine == 0 ? token.Character - previousCharacter : token.Character;
+
+                data.Add(deltaLine);
+                data.Add(deltaStart);
+                data.Add(token.Length);
+                data.Add(token.TokenType);
+                data.Add(token.TokenModifiers);
+
+                previousLine = token.Line;
+                previousCharacter = token.Character;
+            }
+
+            return data;
         }
 
         private static string IndentCode(string code)

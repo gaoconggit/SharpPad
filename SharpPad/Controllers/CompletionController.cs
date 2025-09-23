@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MonacoRoslynCompletionProvider;
 using MonacoRoslynCompletionProvider.Api;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace SharpPad.Controllers
@@ -81,6 +82,29 @@ namespace SharpPad.Controllers
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
             var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(request, nugetPackages);
             return Ok(semanticTokensResult);
+        }
+
+        [HttpPost("multiFileSemanticTokens")]
+        public async Task<IActionResult> MultiFileSemanticTokens([FromBody] MultiFileSemanticTokensRequest request)
+        {
+            string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+
+            if (request?.IsMultiFile == true)
+            {
+                var semanticTokensResult = await MonacoRequestHandler.MultiFileSemanticTokensHandle(request, nugetPackages);
+                return Ok(semanticTokensResult);
+            }
+            else
+            {
+                var singleRequest = new SemanticTokensRequest
+                {
+                    Code = request?.Code ?? string.Empty,
+                    Packages = request?.Packages ?? new List<Package>()
+                };
+
+                var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(singleRequest, nugetPackages);
+                return Ok(semanticTokensResult);
+            }
         }
 
         [HttpPost("addPackages")]

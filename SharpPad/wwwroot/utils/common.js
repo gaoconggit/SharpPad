@@ -1,3 +1,5 @@
+import { extractDirectiveReferences, buildMultiFileContext } from './multiFileHelper.js';
+
 // 公共工具函数
 export function getCurrentFile() {
     // 获取当前选中的文件
@@ -28,71 +30,33 @@ export function getCurrentFile() {
     return findFile(files);
 }
 
-// 获取所有选中的文件
-export function getSelectedFiles() {
-    const selectedFiles = [];
-    const checkboxes = document.querySelectorAll('.file-select-checkbox:checked');
-    const filesData = localStorage.getItem('controllerFiles');
-    const files = filesData ? JSON.parse(filesData) : [];
-
-    checkboxes.forEach(checkbox => {
-        const fileId = checkbox.getAttribute('data-file-checkbox');
-        const file = findFileById(files, fileId);
-        if (file) {
-            // 获取文件内容
-            const content = localStorage.getItem(`file_${fileId}`) || file.content || '';
-            selectedFiles.push({
-                FileName: file.name,
-                Content: content
-            });
-        }
-    });
-
-    return selectedFiles;
-}
-
-// 递归查找文件
-function findFileById(files, id) {
-    for (const file of files) {
-        if (file.id === id) return file;
-        if (file.type === 'folder' && file.files) {
-            const found = findFileById(file.files, id);
-            if (found) return found;
-        }
-    }
-    return null;
-}
-
 // 判断是否应该使用多文件模式
-export function shouldUseMultiFileMode() {
-    const selectedFiles = getSelectedFiles();
-    return selectedFiles.length > 0;
+export function shouldUseMultiFileMode(currentContent) {
+    const content = typeof currentContent === 'string' ? currentContent : window.editor?.getValue() || '';
+    const references = extractDirectiveReferences(content);
+    return references.length > 0;
 }
 
 // 创建多文件请求
 export function createMultiFileRequest(targetFileName, position, packages, currentContent) {
-    const selectedFiles = getSelectedFiles();
     const normalizedPackages = Array.isArray(packages) ? packages : [];
+    const context = buildMultiFileContext({
+        entryFileName: targetFileName || null,
+        entryContent: typeof currentContent === 'string' ? currentContent : ''
+    });
 
-    if (targetFileName && typeof currentContent === 'string') {
-        const targetFile = selectedFiles.find(f => f.FileName === targetFileName);
-        if (targetFile) {
-            targetFile.Content = currentContent;
-        } else {
-            selectedFiles.unshift({
-                FileName: targetFileName,
-                Content: currentContent
-            });
-        }
-    }
-
-    if (selectedFiles.length === 0) {
+    if (!context || !Array.isArray(context.files) || context.files.length === 0) {
         return null;
     }
 
+    const files = context.files.map(file => ({
+        FileName: file.name,
+        Content: file.content
+    }));
+
     const request = {
-        Files: selectedFiles,
-        TargetFileId: targetFileName,
+        Files: files,
+        TargetFileId: targetFileName || files[0]?.FileName || null,
         Packages: normalizedPackages
     };
 
@@ -279,3 +243,4 @@ export function getSelectedModel() {
     return modelConfig;
 }
 // End of Selection
+

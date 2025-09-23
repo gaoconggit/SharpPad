@@ -1,4 +1,4 @@
-﻿import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest } from './utils/common.js';
+import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 
 export function registerCsharpProvider() {
@@ -17,7 +17,7 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
-            const useMultiFile = shouldUseMultiFileMode();
+            const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
@@ -64,7 +64,7 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
-            const useMultiFile = shouldUseMultiFileMode();
+            const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
@@ -127,7 +127,7 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
-            const useMultiFile = shouldUseMultiFileMode();
+            const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
@@ -172,7 +172,7 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
-            const useMultiFile = shouldUseMultiFileMode();
+            const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
@@ -283,3 +283,4 @@ export function registerCsharpProvider() {
         }
     });
 }
+

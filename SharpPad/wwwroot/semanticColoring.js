@@ -1,4 +1,4 @@
-import { getCurrentFile } from './utils/common.js';
+import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 
 /**
@@ -142,35 +142,54 @@ async function getSemanticTokens(model) {
     const file = getCurrentFile();
     const packages = file?.nugetConfig?.packages || [];
     const code = model.getValue();
-    
-    // 创建缓存键
-    const cacheKey = hashCode(code + JSON.stringify(packages));
-    
-    // 检查缓存
+    const packagesData = packages.map(p => ({
+        Id: p.id,
+        Version: p.version
+    }));
+
+    const useMultiFile = shouldUseMultiFileMode(code);
+    let cacheKey;
+    let endpoint;
+    let requestPayload;
+
+    if (useMultiFile) {
+        const multiFileRequest = createMultiFileRequest(file?.name, undefined, packagesData, code);
+        if (!multiFileRequest) {
+            return { data: new Uint32Array(0) };
+        }
+
+        const fingerprint = multiFileRequest.Files
+            .map(f => `${f.FileName}:${hashCode(f.Content)}`)
+            .sort()
+            .join('|');
+
+        cacheKey = hashCode(`mf:${multiFileRequest.TargetFileId}|${fingerprint}|${JSON.stringify(packagesData)}`);
+        endpoint = "multiFileSemanticTokens";
+        requestPayload = multiFileRequest;
+    } else {
+        cacheKey = hashCode(`sf:${code}|${JSON.stringify(packagesData)}`);
+        endpoint = "semanticTokens";
+        requestPayload = {
+            Code: code,
+            Packages: packagesData
+        };
+    }
+
     if (tokenCache.has(cacheKey)) {
         return tokenCache.get(cacheKey);
     }
 
-    const request = {
-        Code: code,
-        Packages: packages.map(p => ({
-            Id: p.id,
-            Version: p.version
-        }))
-    };
-
     try {
-        const { data } = await sendRequest("semanticTokens", request);
+        const { data } = await sendRequest(endpoint, requestPayload);
         if (data && data.data) {
             const result = { data: new Uint32Array(data.data) };
-            
-            // 缓存结果（限制缓存大小）
+
             if (tokenCache.size > 50) {
                 const firstKey = tokenCache.keys().next().value;
                 tokenCache.delete(firstKey);
             }
             tokenCache.set(cacheKey, result);
-            
+
             return result;
         }
     } catch (error) {
