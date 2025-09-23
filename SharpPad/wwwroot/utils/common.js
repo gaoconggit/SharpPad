@@ -70,19 +70,37 @@ export function shouldUseMultiFileMode() {
 }
 
 // 创建多文件请求
-export function createMultiFileRequest(targetFileName, position, packages) {
+export function createMultiFileRequest(targetFileName, position, packages, currentContent) {
     const selectedFiles = getSelectedFiles();
+    const normalizedPackages = Array.isArray(packages) ? packages : [];
+
+    if (targetFileName && typeof currentContent === 'string') {
+        const targetFile = selectedFiles.find(f => f.FileName === targetFileName);
+        if (targetFile) {
+            targetFile.Content = currentContent;
+        } else {
+            selectedFiles.unshift({
+                FileName: targetFileName,
+                Content: currentContent
+            });
+        }
+    }
 
     if (selectedFiles.length === 0) {
         return null;
     }
 
-    return {
+    const request = {
         Files: selectedFiles,
         TargetFileId: targetFileName,
-        Position: position,
-        Packages: packages
+        Packages: normalizedPackages
     };
+
+    if (typeof position === 'number') {
+        request.Position = position;
+    }
+
+    return request;
 }
 
 // 创建单文件请求（向后兼容）

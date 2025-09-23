@@ -5,6 +5,7 @@ using MonacoRoslynCompletionProvider.Api;
 using Newtonsoft.Json;
 using System.Text.Json;
 using System.Threading.Channels;
+using System.IO.Compression;
 using static MonacoRoslynCompletionProvider.Api.CodeRunner;
 
 namespace SharpPad.Controllers
@@ -194,21 +195,27 @@ namespace SharpPad.Controllers
 
                 if (result.Success)
                 {
-                    // Return file download response
-                    var fileBytes = System.IO.File.ReadAllBytes(result.ExeFilePath);
-                    var fileName = Path.GetFileName(result.ExeFilePath);
+                    // CodeRunner already produced the final artifact (zip or exe).
+                    var filePath = result.ExeFilePath;
+                    var fileName = Path.GetFileName(filePath);
+                    var contentType = Path.GetExtension(fileName).Equals(".zip", StringComparison.OrdinalIgnoreCase)
+                        ? "application/zip"
+                        : "application/octet-stream";
 
-                    // Clean up the temporary file
+                    var fileBytes = System.IO.File.ReadAllBytes(filePath);
+
+                    // Best-effort cleanup of the working directory
                     try
                     {
-                        System.IO.File.Delete(result.ExeFilePath);
+                        var workdir = Path.GetDirectoryName(filePath);
+                        if (!string.IsNullOrEmpty(workdir) && Directory.Exists(workdir))
+                        {
+                            Directory.Delete(workdir, recursive: true);
+                        }
                     }
-                    catch
-                    {
-                        // Ignore cleanup errors
-                    }
+                    catch { /* ignore cleanup errors */ }
 
-                    return File(fileBytes, "application/octet-stream", fileName);
+                    return File(fileBytes, contentType, fileName);
                 }
                 else
                 {

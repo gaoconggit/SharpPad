@@ -75,6 +75,12 @@ export async function sendRequest(type, request) {
                 }
             }
 
+            // 如果是zip响应但文件名被回退成.exe，纠正为.zip
+            const respContentType = (response.headers.get('Content-Type') || '').toLowerCase();
+            if (respContentType.includes('zip') && fileName.toLowerCase().endsWith('.exe')) {
+                fileName = fileName.replace(/\.exe$/i, '.zip');
+            }
+
             // 下载文件
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);

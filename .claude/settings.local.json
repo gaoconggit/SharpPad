@@ -39,7 +39,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -Command \"Import-Module BurntToast; New-BurntToastNotification -Text '🐂', '🐂已完事'\""
+            "command": "powershell -ExecutionPolicy Bypass -File \".claude/stop-hook.ps1\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send 'Claude Code' 'Awaiting your input'"
           }
         ]
       }

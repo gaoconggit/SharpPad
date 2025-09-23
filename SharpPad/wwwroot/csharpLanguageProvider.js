@@ -1,4 +1,4 @@
-﻿import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest, getSelectedFiles } from './utils/common.js';
+﻿import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 
 export function registerCsharpProvider() {
@@ -22,7 +22,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
                 requestType = "multiFileComplete";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
@@ -69,7 +69,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
                 requestType = "multiFileSignature";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
@@ -132,7 +132,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData);
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
                 requestType = "multiFileHover";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
@@ -177,12 +177,10 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                // For multi-file validation, include target file so backend can map offsets correctly
-                request = {
-                    Files: getSelectedFiles(),
-                    TargetFileId: file?.name,
-                    Packages: packagesData
-                };
+                request = createMultiFileRequest(file?.name, undefined, packagesData, model.getValue());
+                if (!request) {
+                    return;
+                }
                 requestType = "codeCheck";
             } else {
                 request = {
