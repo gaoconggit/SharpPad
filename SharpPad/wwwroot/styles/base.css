@@ -174,8 +174,8 @@ body.theme-light .chat-messages .assistant-message {
 }
 
 #container {
-    width: calc(100% - 290px - 520px);
-    margin-left: 290px;
+    width: calc(100% - 380px - 520px);
+    margin-left: 380px;
     margin-right: 520px;
     position: fixed;
     top: 0;
@@ -275,7 +275,28 @@ body.theme-light #systemSettingsBtn:active {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
+    margin-right: 10px;
+}
+
+#buildExeButton {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: #28a745;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
     margin-right: 2.5rem;
+}
+
+#buildExeButton:hover {
+    background-color: #218838;
+}
+
+#buildExeButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 /* 主题按钮样式在 editorControls.css 中定义 */

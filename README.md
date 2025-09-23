@@ -50,6 +50,7 @@
 - `Ctrl + S` 保存代码
 - `Alt+L` 光标在聊天框时,清空聊天记录
 - `Ctrl + Shift + Space` 手动触发GPT自动补全
+- `Ctrl + D` 复制上一行到下一行
 
 ## 特性
 
@@ -67,11 +68,16 @@
 - 启动VS断点调试(参考 https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md)
 - windows pc client(mac silicon / windows)
 - nuget 管理页面
+- 多文件支持
 
 ## 期待实现的功能
 
 - 进行中的任务
-  - 多文件支持
+  - 优化多文件模块化
+  - AI Edit功能
+  - 原生断点调试
+  - 优化 dump 输出
+  - 支持运行 winform
   
 
 ## 项目致谢
@@ -80,6 +86,9 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
+
+
 
 
 

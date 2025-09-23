@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +13,8 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using monacoEditorCSharp.DataHelpers;
 using System.Runtime.Loader;
 using System.Threading;
+using System.Diagnostics;
+using System.IO.Compression;
 
 namespace MonacoRoslynCompletionProvider.Api
 {
@@ -46,6 +49,183 @@ namespace MonacoRoslynCompletionProvider.Api
         {
             public string Output { get; set; }
             public string Error { get; set; }
+        }
+
+        public static async Task<RunResult> RunMultiFileCodeAsync(
+            List<FileContent> files,
+            string nuget,
+            int languageVersion,
+            Func<string, Task> onOutput,
+            Func<string, Task> onError,
+            string sessionId = null)
+        {
+            var result = new RunResult();
+            CustomAssemblyLoadContext loadContext = null;
+            Assembly assembly = null;
+            try
+            {
+                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+                loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
+
+                var parseOptions = new CSharpParseOptions(
+                    languageVersion: (LanguageVersion)languageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse
+                );
+
+                string assemblyName = "DynamicCode";
+
+                // Parse all files into syntax trees
+                var syntaxTrees = new List<SyntaxTree>();
+                foreach (var file in files)
+                {
+                    var syntaxTree = CSharpSyntaxTree.ParseText(
+                        file.Content,
+                        parseOptions,
+                        path: file.FileName
+                    );
+                    syntaxTrees.Add(syntaxTree);
+                }
+
+                // Collect references
+                var references = new List<MetadataReference>();
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                        references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
+                foreach (var pkg in nugetAssemblies)
+                {
+                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
+                }
+
+                var compilation = CSharpCompilation.Create(
+                    assemblyName,
+                    syntaxTrees,
+                    references,
+                    new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                );
+
+                using (var peStream = new MemoryStream())
+                {
+                    var compileResult = compilation.Emit(peStream);
+                    if (!compileResult.Success)
+                    {
+                        foreach (var diag in compileResult.Diagnostics)
+                        {
+                            if (diag.Severity == DiagnosticSeverity.Error)
+                            {
+                                var location = diag.Location.GetLineSpan();
+                                var fileName = location.Path ?? "unknown";
+                                var line = location.StartLinePosition.Line + 1;
+                                await onError($"[{fileName}:{line}] {diag.GetMessage()}").ConfigureAwait(false);
+                            }
+                        }
+                        result.Error = "Compilation error";
+                        return result;
+                    }
+                    peStream.Seek(0, SeekOrigin.Begin);
+
+                    lock (LoadContextLock)
+                    {
+                        assembly = loadContext.LoadFromStream(peStream);
+                    }
+
+                    var entryPoint = assembly.EntryPoint;
+                    if (entryPoint != null)
+                    {
+                        var parameters = entryPoint.GetParameters();
+
+                        async void WriteAction(string text) => await onOutput(text).ConfigureAwait(false);
+                        await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
+
+                        async void ErrorAction(string text) => await onError(text).ConfigureAwait(false);
+                        await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
+
+                        var interactiveReader = new InteractiveTextReader(async prompt =>
+                        {
+                            await onOutput($"[INPUT REQUIRED] Please provide input: ").ConfigureAwait(false);
+                        });
+
+                        if (!string.IsNullOrEmpty(sessionId))
+                        {
+                            lock (_activeReaders)
+                            {
+                                _activeReaders[sessionId] = interactiveReader;
+                            }
+                        }
+
+                        var executionTask = Task.Run(async () =>
+                        {
+                            TextWriter originalOut = null, originalError = null;
+                            TextReader originalIn = null;
+                            lock (ConsoleLock)
+                            {
+                                originalOut = Console.Out;
+                                originalError = Console.Error;
+                                originalIn = Console.In;
+                                Console.SetOut(outputWriter);
+                                Console.SetError(errorWriter);
+                                Console.SetIn(interactiveReader);
+                            }
+                            try
+                            {
+                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
+                                {
+                                    entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
+                                }
+                                else
+                                {
+                                    entryPoint.Invoke(null, null);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                var errorMessage = "Execution error: " + (ex.InnerException?.Message ?? ex.Message);
+                                await onError(errorMessage).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                lock (ConsoleLock)
+                                {
+                                    Console.SetOut(originalOut);
+                                    Console.SetError(originalError);
+                                    Console.SetIn(originalIn);
+                                }
+
+                                if (!string.IsNullOrEmpty(sessionId))
+                                {
+                                    lock (_activeReaders)
+                                    {
+                                        _activeReaders.Remove(sessionId);
+                                    }
+                                }
+                                interactiveReader?.Dispose();
+                            }
+                        });
+                        await executionTask.ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await onError("No entry point found in the code. Please ensure one file contains a Main method.").ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await onError("Runtime error: " + ex.Message).ConfigureAwait(false);
+            }
+            finally
+            {
+                assembly = null;
+                loadContext?.Unload();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            result.Output = string.Empty;
+            result.Error = string.Empty;
+            return result;
         }
 
         public static async Task<RunResult> RunProgramCodeAsync(
@@ -309,5 +489,201 @@ namespace MonacoRoslynCompletionProvider.Api
         {
             DownloadNugetPackages.DownloadAllPackages(nuget);
         }
+
+        public static async Task<ExeBuildResult> BuildMultiFileExecutableAsync(
+            List<FileContent> files,
+            string nuget,
+            int languageVersion,
+            string outputFileName)
+        {
+            // Use SDK publish so all runtime dependencies are present
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName);
+        }
+
+        public static async Task<ExeBuildResult> BuildExecutableAsync(
+            string code,
+            string nuget,
+            int languageVersion,
+            string outputFileName)
+        {
+            var files = new List<FileContent> { new FileContent { FileName = "Program.cs", Content = code } };
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName);
+        }
+
+        private static async Task<ExeBuildResult> BuildWithDotnetPublishAsync(
+            List<FileContent> files,
+            string nuget,
+            int languageVersion,
+            string outputFileName)
+        {
+            var result = new ExeBuildResult();
+
+            try
+            {
+                var workingRoot = Path.Combine(Path.GetTempPath(), "SharpPadBuilds", Guid.NewGuid().ToString("N"));
+                var srcDir = Path.Combine(workingRoot, "src");
+                var publishDir = Path.Combine(workingRoot, "publish");
+                Directory.CreateDirectory(srcDir);
+                Directory.CreateDirectory(publishDir);
+
+                var outName = string.IsNullOrWhiteSpace(outputFileName) ? "Program.exe" : outputFileName;
+                var asmName = Path.GetFileNameWithoutExtension(outName);
+                var artifactFileName = Path.ChangeExtension(outName, ".zip");
+
+                var tfm = "net9.0";
+                var csprojPath = Path.Combine(srcDir, $"{asmName}.csproj");
+
+                var pkgRefs = new StringBuilder();
+                if (!string.IsNullOrWhiteSpace(nuget))
+                {
+                    foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        var id = items.Length > 0 ? items[0].Trim() : null;
+                        var ver = items.Length > 1 ? items[1].Trim() : null;
+                        if (!string.IsNullOrWhiteSpace(id))
+                        {
+                            if (!string.IsNullOrWhiteSpace(ver))
+                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" Version=\"{ver}\" />");
+                            else
+                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" />");
+                        }
+                    }
+                }
+
+                var langVer = "latest";
+                try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
+
+                var csproj = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>{tfm}</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>{asmName}</AssemblyName>
+    <RootNamespace>{asmName}</RootNamespace>
+    <LangVersion>{langVer}</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+{pkgRefs}
+  </ItemGroup>
+</Project>";
+                await File.WriteAllTextAsync(csprojPath, csproj, Encoding.UTF8);
+
+                foreach (var f in files)
+                {
+                    var safeName = string.IsNullOrWhiteSpace(f?.FileName) ? "Program.cs" : f.FileName;
+                    foreach (var c in Path.GetInvalidFileNameChars()) safeName = safeName.Replace(c, '_');
+                    var dest = Path.Combine(srcDir, safeName);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    await File.WriteAllTextAsync(dest, f?.Content ?? string.Empty, Encoding.UTF8);
+                }
+
+                static async Task<(int code, string stdout, string stderr)> RunAsync(string fileName, string args, string workingDir)
+                {
+                    var psi = new ProcessStartInfo(fileName, args)
+                    {
+                        WorkingDirectory = workingDir,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    var p = new Process { StartInfo = psi };
+                    var sbOut = new StringBuilder();
+                    var sbErr = new StringBuilder();
+                    p.OutputDataReceived += (_, e) => { if (e.Data != null) sbOut.AppendLine(e.Data); };
+                    p.ErrorDataReceived += (_, e) => { if (e.Data != null) sbErr.AppendLine(e.Data); };
+                    p.Start();
+                    p.BeginOutputReadLine();
+                    p.BeginErrorReadLine();
+                    await p.WaitForExitAsync();
+                    return (p.ExitCode, sbOut.ToString(), sbErr.ToString());
+                }
+
+                var (rc1, o1, e1) = await RunAsync("dotnet", "restore", srcDir);
+                if (rc1 != 0)
+                {
+                    var msg = $"dotnet restore failed.\n{o1}\n{e1}";
+                    result.Success = false;
+                    result.Error = msg;
+                    return result;
+                }
+
+                var rid = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+                var publishArgs = $"publish -c Release -r {rid} --self-contained true -o \"{publishDir}\"";
+                var (rc2, o2, e2) = await RunAsync("dotnet", publishArgs, srcDir);
+                if (rc2 != 0)
+                {
+                    var msg = $"dotnet publish failed.\n{o2}\n{e2}";
+                    result.Success = false;
+                    result.Error = msg;
+                    return result;
+                }
+
+                // Find the actual executable file
+                string exePath;
+                if (OperatingSystem.IsWindows())
+                {
+                    var defaultExe = Path.Combine(publishDir, asmName + ".exe");
+                    var requestedExe = Path.Combine(publishDir, outName);
+                    if (File.Exists(defaultExe) && !defaultExe.Equals(requestedExe, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (File.Exists(requestedExe)) File.Delete(requestedExe);
+                        File.Move(defaultExe, requestedExe);
+                        exePath = requestedExe;
+                    }
+                    else
+                    {
+                        exePath = File.Exists(requestedExe) ? requestedExe : defaultExe;
+                    }
+                }
+                else
+                {
+                    // On Linux/macOS, executable doesn't have .exe extension
+                    exePath = Path.Combine(publishDir, asmName);
+                    if (!File.Exists(exePath))
+                    {
+                        // Look for any executable file in the publish directory
+                        var executableFiles = Directory.GetFiles(publishDir).Where(f =>
+                        {
+                            var info = new FileInfo(f);
+                            return info.Name == asmName || info.Name.StartsWith(asmName);
+                        });
+                        exePath = executableFiles.FirstOrDefault() ?? exePath;
+                    }
+                }
+
+                if (!File.Exists(exePath))
+                {
+                    result.Success = false;
+                    result.Error = $"Executable file not found at: {exePath}";
+                    return result;
+                }
+
+                var artifactPath = Path.Combine(workingRoot, artifactFileName);
+                if (File.Exists(artifactPath))
+                {
+                    File.Delete(artifactPath);
+                }
+
+                ZipFile.CreateFromDirectory(publishDir, artifactPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+
+                result.Success = true;
+                result.ExeFilePath = artifactPath;
+                result.FileSizeBytes = new FileInfo(artifactPath).Length;
+                result.CompilationMessages.Add($"Built package: {Path.GetFileName(artifactPath)}");
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = $"Build error: {ex.Message}";
+            }
+
+            return result;
+        }
+
     }
 }
+
+
