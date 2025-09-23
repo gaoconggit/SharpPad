@@ -76,6 +76,7 @@
   - AI Edit功能
   - 原生断点调试
   - 优化 dump 输出
+  - 支持运行 winform
   
 
 ## 项目致谢
@@ -84,6 +85,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
