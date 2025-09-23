@@ -5,6 +5,8 @@ using MonacoRoslynCompletionProvider.Api;
 using Newtonsoft.Json;
 using System.Text.Json;
 using System.Threading.Channels;
+using System.IO.Compression;
+using static MonacoRoslynCompletionProvider.Api.CodeRunner;
 
 namespace SharpPad.Controllers
 {
@@ -13,7 +15,7 @@ namespace SharpPad.Controllers
     public class CodeRunController : ControllerBase
     {
         [HttpPost("run")]
-        public async Task Run([FromBody] CodeRunRequest request)
+        public async Task Run([FromBody] MultiFileCodeRunRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
 
@@ -33,15 +35,33 @@ namespace SharpPad.Controllers
                 // 创建处理 Channel 的任务
                 var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
 
-                // 执行代码运行器
-                var result = await CodeRunner.RunProgramCodeAsync(
-                    request?.SourceCode,
-                    nugetPackages,
-                    request?.LanguageVersion ?? 2147483647,
-                    message => OnOutputAsync(message, channel.Writer, cts.Token),
-                    error => OnErrorAsync(error, channel.Writer, cts.Token),
-                    request?.SessionId
-                );
+                RunResult result;
+
+                // Check if it's a multi-file request
+                if (request?.IsMultiFile == true)
+                {
+                    // Execute multi-file code runner
+                    result = await CodeRunner.RunMultiFileCodeAsync(
+                        request.Files,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        message => OnOutputAsync(message, channel.Writer, cts.Token),
+                        error => OnErrorAsync(error, channel.Writer, cts.Token),
+                        request?.SessionId
+                    );
+                }
+                else
+                {
+                    // Backward compatibility: single file execution
+                    result = await CodeRunner.RunProgramCodeAsync(
+                        request?.SourceCode,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        message => OnOutputAsync(message, channel.Writer, cts.Token),
+                        error => OnErrorAsync(error, channel.Writer, cts.Token),
+                        request?.SessionId
+                    );
+                }
 
                 // 发送完成消息
                 await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "completed", result })}\n\n", cts.Token);
@@ -143,6 +163,69 @@ namespace SharpPad.Controllers
 
             var success = CodeRunner.ProvideInput(request.SessionId, request.Input);
             return Ok(new { success });
+        }
+
+        [HttpPost("buildExe")]
+        public async Task<IActionResult> BuildExe([FromBody] ExeBuildRequest request)
+        {
+            try
+            {
+                string nugetPackages = string.Join(" ", request?.Packages?.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+
+                ExeBuildResult result;
+
+                if (request?.IsMultiFile == true)
+                {
+                    result = await CodeRunner.BuildMultiFileExecutableAsync(
+                        request.Files,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        request?.OutputFileName ?? "Program.exe"
+                    );
+                }
+                else
+                {
+                    result = await CodeRunner.BuildExecutableAsync(
+                        request?.SourceCode,
+                        nugetPackages,
+                        request?.LanguageVersion ?? 2147483647,
+                        request?.OutputFileName ?? "Program.exe"
+                    );
+                }
+
+                if (result.Success)
+                {
+                    // CodeRunner already produced the final artifact (zip or exe).
+                    var filePath = result.ExeFilePath;
+                    var fileName = Path.GetFileName(filePath);
+                    var contentType = Path.GetExtension(fileName).Equals(".zip", StringComparison.OrdinalIgnoreCase)
+                        ? "application/zip"
+                        : "application/octet-stream";
+
+                    var fileBytes = System.IO.File.ReadAllBytes(filePath);
+
+                    // Best-effort cleanup of the working directory
+                    try
+                    {
+                        var workdir = Path.GetDirectoryName(filePath);
+                        if (!string.IsNullOrEmpty(workdir) && Directory.Exists(workdir))
+                        {
+                            Directory.Delete(workdir, recursive: true);
+                        }
+                    }
+                    catch { /* ignore cleanup errors */ }
+
+                    return File(fileBytes, contentType, fileName);
+                }
+                else
+                {
+                    return BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 

@@ -7,6 +7,7 @@ const fileManager = new FileManager();
 export class CodeRunner {
     constructor() {
         this.runButton = document.getElementById('runButton');
+        this.buildExeButton = document.getElementById('buildExeButton');
         this.outputContent = document.getElementById('outputContent');
         this.notification = document.getElementById('notification');
         this.currentSessionId = null;
@@ -15,6 +16,7 @@ export class CodeRunner {
 
     initializeEventListeners() {
         this.runButton.addEventListener('click', () => this.runCode(window.editor.getValue()));
+        this.buildExeButton.addEventListener('click', () => this.buildExe(window.editor.getValue()));
     }
 
     appendOutput(message, type = 'info') {
@@ -153,6 +155,9 @@ export class CodeRunner {
             fileManager.saveFileToLocalStorage(fileId, code);
         }
 
+        // 获取选中的文件用于多文件编译
+        const selectedFiles = fileManager.getSelectedFiles();
+
         // 获取当前文件的包配置
         const file = getCurrentFile();
         const packages = file?.nugetConfig?.packages || [];
@@ -163,15 +168,58 @@ export class CodeRunner {
         // 生成会话ID
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        const request = {
-            SourceCode: code,
-            Packages: packages.map(p => ({
-                Id: p.id,
-                Version: p.version
-            })),
-            LanguageVersion: parseInt(csharpVersion),
-            SessionId: this.currentSessionId
-        };
+        let request;
+
+        // 如果有选中的文件，使用多文件模式
+        if (selectedFiles.length > 0) {
+            // 保存当前编辑器的内容到对应文件
+            const currentFileInSelection = selectedFiles.find(f => f.id === fileId);
+            if (currentFileInSelection) {
+                currentFileInSelection.content = code;
+            } else if (fileId) {
+                // 如果当前文件不在选中列表中，也添加进去
+                const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+                const currentFile = fileManager.findFileById(files, fileId);
+                if (currentFile && currentFile.name.endsWith('.cs')) {
+                    selectedFiles.push({
+                        id: fileId,
+                        name: currentFile.name,
+                        content: code
+                    });
+                }
+            }
+
+            // 检测入口文件（包含Main方法的文件）
+            const filesWithContent = selectedFiles.map(f => ({
+                FileName: f.name,
+                Content: f.content,
+                IsEntry: f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
+            }));
+
+            request = {
+                Files: filesWithContent,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                SessionId: this.currentSessionId
+            };
+
+            // 显示正在运行的文件列表
+            this.appendOutput(`正在编译 ${selectedFiles.length} 个文件: ${selectedFiles.map(f => f.name).join(', ')}`, 'info');
+        } else {
+            // 单文件模式（向后兼容）
+            request = {
+                SourceCode: code,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                SessionId: this.currentSessionId
+            };
+        }
 
         // 清空输出区域
         this.outputContent.innerHTML = '';
@@ -346,6 +394,126 @@ export class CodeRunner {
             // 用户输入已经在 sendInput 函数中显示了，这里不需要重复显示
         } catch (error) {
             this.appendOutput('发送输入时出错: ' + error.message, 'error');
+        }
+    }
+
+    async buildExe(code) {
+        if (!code) {
+            this.appendOutput('没有代码可以构建', 'error');
+            return;
+        }
+
+        // 保存当前文件
+        const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
+        if (fileId) {
+            fileManager.saveFileToLocalStorage(fileId, code);
+        }
+
+        // 获取选中的文件用于多文件编译
+        const selectedFiles = fileManager.getSelectedFiles();
+
+        // 获取当前文件的包配置
+        const file = getCurrentFile();
+        const packages = file?.nugetConfig?.packages || [];
+
+        // 获取选择的C#版本
+        const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
+
+        let request;
+        let outputFileName = 'Program.exe';
+
+        // 如果有选中的文件，使用多文件模式
+        if (selectedFiles.length > 0) {
+            // 保存当前编辑器的内容到对应文件
+            const currentFileInSelection = selectedFiles.find(f => f.id === fileId);
+            if (currentFileInSelection) {
+                currentFileInSelection.content = code;
+            } else if (fileId) {
+                // 如果当前文件不在选中列表中，也添加进去
+                const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+                const currentFile = fileManager.findFileById(files, fileId);
+                if (currentFile && currentFile.name.endsWith('.cs')) {
+                    selectedFiles.push({
+                        id: fileId,
+                        name: currentFile.name,
+                        content: code
+                    });
+                }
+            }
+
+            // 检测入口文件（包含Main方法的文件）
+            const filesWithContent = selectedFiles.map(f => ({
+                FileName: f.name,
+                Content: f.content,
+                IsEntry: f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
+            }));
+
+            // 从第一个文件名生成exe名称
+            const mainFile = filesWithContent.find(f => f.IsEntry) || filesWithContent[0];
+            if (mainFile) {
+                outputFileName = mainFile.FileName.replace('.cs', '.exe');
+            }
+
+            request = {
+                Files: filesWithContent,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                OutputFileName: outputFileName
+            };
+
+            this.appendOutput(`正在构建 ${selectedFiles.length} 个文件为 ${outputFileName}...`, 'info');
+        } else {
+            // 单文件模式（向后兼容）
+            // 尝试从当前文件名生成exe名称
+            if (file && file.name && file.name.endsWith('.cs')) {
+                outputFileName = file.name.replace('.cs', '.exe');
+            }
+
+            request = {
+                SourceCode: code,
+                Packages: packages.map(p => ({
+                    Id: p.id,
+                    Version: p.version
+                })),
+                LanguageVersion: parseInt(csharpVersion),
+                OutputFileName: outputFileName
+            };
+
+            this.appendOutput(`正在构建 ${outputFileName}...`, 'info');
+        }
+
+        // 禁用构建按钮防止重复点击
+        this.buildExeButton.disabled = true;
+        this.buildExeButton.textContent = '构建中...';
+
+        try {
+            const result = await sendRequest('buildExe', request);
+
+            if (result.success) {
+                this.appendOutput(`✅ 成功构建 ${result.fileName}，文件已开始下载`, 'success');
+                this.notification.textContent = `构建成功：${result.fileName}`;
+                this.notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
+                this.notification.style.display = 'block';
+
+                // 3秒后隐藏通知
+                setTimeout(() => {
+                    this.notification.style.display = 'none';
+                }, 3000);
+            } else {
+                this.appendOutput('构建失败', 'error');
+            }
+        } catch (error) {
+            this.appendOutput('构建失败: ' + error.message, 'error');
+            this.notification.textContent = '构建失败';
+            this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+            this.notification.style.display = 'block';
+        } finally {
+            // 重新启用构建按钮
+            this.buildExeButton.disabled = false;
+            this.buildExeButton.textContent = '构建EXE';
         }
     }
 }

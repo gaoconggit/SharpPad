@@ -64,6 +64,7 @@ namespace MonacoRoslynCompletionProvider
             Assembly.Load("Microsoft.Net.Http.Headers, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60").Location,
             Assembly.Load("System.Security.Cryptography, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
             Assembly.Load("Microsoft.AspNetCore.Http").Location,
+            Assembly.Load("System.Net.Mail, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51").Location,
             typeof(ObjectExtengsion).Assembly.Location, // 假设此类型存在
             typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location,
             typeof(System.Diagnostics.Process).Assembly.Location,

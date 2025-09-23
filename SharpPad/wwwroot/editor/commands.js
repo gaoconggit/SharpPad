@@ -16,6 +16,17 @@ export class EditorCommands {
             }
         );
 
+        // 复制当前行到下一行 (Ctrl+D)
+        this.editor.addCommand(
+            monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+            () => {
+                const copyAction = this.editor.getAction('editor.action.copyLinesDownAction');
+                if (copyAction) {
+                    copyAction.run();
+                }
+            }
+        );
+
         // 保存代码 (Ctrl+S)
         this.editor.addCommand(
             monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
