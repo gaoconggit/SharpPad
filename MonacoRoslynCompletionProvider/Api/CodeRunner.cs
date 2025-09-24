@@ -587,7 +587,9 @@ namespace MonacoRoslynCompletionProvider.Api
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = Encoding.UTF8,
+                        StandardErrorEncoding = Encoding.UTF8
                     };
                     var p = new Process { StartInfo = psi };
                     var sbOut = new StringBuilder();

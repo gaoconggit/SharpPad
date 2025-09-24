@@ -5,6 +5,56 @@ import { buildMultiFileContext } from '../utils/multiFileHelper.js';
 
 const fileManager = new FileManager();
 
+function sanitizePackageList(packages) {
+    if (!Array.isArray(packages)) {
+        return [];
+    }
+
+    return packages
+        .filter(pkg => pkg && typeof pkg === 'object')
+        .map(pkg => {
+            const id = typeof pkg.id === 'string'
+                ? pkg.id.trim()
+                : typeof pkg.Id === 'string'
+                    ? pkg.Id.trim()
+                    : '';
+
+            if (!id) {
+                return null;
+            }
+
+            const version = typeof pkg.version === 'string'
+                ? pkg.version.trim()
+                : typeof pkg.Version === 'string'
+                    ? pkg.Version.trim()
+                    : '';
+
+            return { id, version };
+        })
+        .filter(Boolean);
+}
+
+function mergePackageLists(...groups) {
+    const map = new Map();
+
+    for (const group of groups) {
+        for (const pkg of sanitizePackageList(group)) {
+            const key = pkg.id.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, { id: pkg.id, version: pkg.version || '' });
+                continue;
+            }
+
+            const existing = map.get(key);
+            if (!existing.version && pkg.version) {
+                map.set(key, { id: pkg.id, version: pkg.version });
+            }
+        }
+    }
+
+    return Array.from(map.values());
+}
+
 export class CodeRunner {
     constructor() {
         this.runButton = document.getElementById('runButton');
@@ -157,11 +207,12 @@ export class CodeRunner {
         }
 
         const file = getCurrentFile();
-        const packages = file?.nugetConfig?.packages || [];
+        const basePackages = file?.nugetConfig?.packages || [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        const { selectedFiles, autoIncludedNames, missingReferences } = this.gatherMultiFileContext(code, fileId, file);
+        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
+        const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preRunMessages = [];
 
         if (autoIncludedNames.length > 0) {
@@ -183,7 +234,7 @@ export class CodeRunner {
 
             request = {
                 Files: filesWithContent,
-                Packages: packages.map(p => ({
+                Packages: combinedPackages.map(p => ({
                     Id: p.id,
                     Version: p.version
                 })),
@@ -195,7 +246,7 @@ export class CodeRunner {
         } else {
             request = {
                 SourceCode: code,
-                Packages: packages.map(p => ({
+                Packages: combinedPackages.map(p => ({
                     Id: p.id,
                     Version: p.version
                 })),
@@ -263,20 +314,23 @@ export class CodeRunner {
         const context = buildMultiFileContext({
             entryFileId: fileId || currentFile?.id || null,
             entryFileName: entryName,
-            entryContent: code
+            entryContent: code,
+            entryPackages: currentFile?.nugetConfig?.packages || []
         });
 
         const selectedFiles = Array.isArray(context.files) ? context.files.map(file => ({
             id: file.id,
             name: file.name,
             content: file.content,
-            isEntry: !!file.isEntry
+            isEntry: !!file.isEntry,
+            packages: Array.isArray(file.packages) ? file.packages : []
         })) : [];
 
         return {
             selectedFiles,
             autoIncludedNames: Array.isArray(context.autoIncludedNames) ? context.autoIncludedNames : [],
-            missingReferences: Array.isArray(context.missingReferences) ? context.missingReferences : []
+            missingReferences: Array.isArray(context.missingReferences) ? context.missingReferences : [],
+            packages: Array.isArray(context.packages) ? context.packages : []
         };
     }
 
@@ -416,13 +470,14 @@ export class CodeRunner {
         }
 
         const file = getCurrentFile();
-        const packages = file?.nugetConfig?.packages || [];
+        const basePackages = file?.nugetConfig?.packages || [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
 
         let request;
         let outputFileName = 'Program.exe';
 
-        const { selectedFiles, autoIncludedNames, missingReferences } = this.gatherMultiFileContext(code, fileId, file);
+        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
+        const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preBuildMessages = [];
 
         if (autoIncludedNames.length > 0) {
@@ -447,7 +502,7 @@ export class CodeRunner {
 
             request = {
                 Files: filesWithContent,
-                Packages: packages.map(p => ({
+                Packages: combinedPackages.map(p => ({
                     Id: p.id,
                     Version: p.version
                 })),
@@ -463,7 +518,7 @@ export class CodeRunner {
 
             request = {
                 SourceCode: code,
-                Packages: packages.map(p => ({
+                Packages: combinedPackages.map(p => ({
                     Id: p.id,
                     Version: p.version
                 })),
@@ -507,3 +562,4 @@ export class CodeRunner {
         }
     }
 }
+

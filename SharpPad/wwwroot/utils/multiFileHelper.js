@@ -30,13 +30,70 @@ export function extractDirectiveReferences(code) {
     return Array.from(references);
 }
 
-export function buildMultiFileContext({ entryFileId = null, entryFileName = null, entryContent = '' } = {}) {
+export function buildMultiFileContext({ entryFileId = null, entryFileName = null, entryContent = '', entryPackages = [] } = {}) {
     const filesCacheRaw = localStorage.getItem('controllerFiles');
     const filesCache = filesCacheRaw ? JSON.parse(filesCacheRaw) : [];
 
     const filesById = new Map();
     const filesByName = new Map();
     const filesByPath = new Map();
+    const packageMap = new Map();
+
+    function sanitizePackages(source) {
+        if (!Array.isArray(source)) {
+            return [];
+        }
+
+        const cleaned = [];
+        for (const pkg of source) {
+            if (!pkg || typeof pkg !== 'object') {
+                continue;
+            }
+
+            const id = typeof pkg.id === 'string'
+                ? pkg.id.trim()
+                : typeof pkg.Id === 'string'
+                    ? pkg.Id.trim()
+                    : '';
+
+            if (!id) {
+                continue;
+            }
+
+            const version = typeof pkg.version === 'string'
+                ? pkg.version.trim()
+                : typeof pkg.Version === 'string'
+                    ? pkg.Version.trim()
+                    : '';
+
+            cleaned.push({ id, version });
+        }
+
+        return cleaned;
+    }
+
+    function mergePackages(targetMap, packages) {
+        if (!Array.isArray(packages)) {
+            return;
+        }
+
+        for (const pkg of packages) {
+            if (!pkg || typeof pkg.id !== 'string') {
+                continue;
+            }
+
+            const key = pkg.id.toLowerCase();
+            if (!targetMap.has(key)) {
+                targetMap.set(key, { id: pkg.id, version: pkg.version || '' });
+                continue;
+            }
+
+            const existing = targetMap.get(key);
+            if (!existing.version && pkg.version) {
+                targetMap.set(key, { id: pkg.id, version: pkg.version });
+            }
+        }
+    }
 
     function indexFiles(items, parentSegments = []) {
         if (!Array.isArray(items)) {
@@ -59,7 +116,8 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
                 id: item.id,
                 name: item.name,
                 path,
-                content: localStorage.getItem(`file_${item.id}`) ?? item.content ?? ''
+                content: localStorage.getItem(`file_${item.id}`) ?? item.content ?? '',
+                packages: sanitizePackages(item?.nugetConfig?.packages)
             };
 
             filesById.set(item.id, record);
@@ -147,7 +205,8 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
                 id: entryFileId,
                 name: entryFileName,
                 path: entryFileName,
-                content: entryContent || ''
+                content: entryContent || '',
+                packages: sanitizePackages(entryPackages)
             };
         }
 
@@ -159,8 +218,27 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
         return {
             files: [],
             autoIncludedNames: [],
-            missingReferences: []
+            missingReferences: [],
+            packages: []
         };
+    }
+
+    if (Array.isArray(entryPackages) && entryPackages.length > 0) {
+        const sanitizedEntry = sanitizePackages(entryPackages);
+        if (sanitizedEntry.length > 0) {
+            const existing = Array.isArray(entryRecord.packages) ? entryRecord.packages : [];
+            const existingMap = new Map(existing.map(pkg => [pkg.id.toLowerCase(), pkg]));
+            sanitizedEntry.forEach(pkg => {
+                const key = pkg.id.toLowerCase();
+                if (!existingMap.has(key)) {
+                    existing.push(pkg);
+                    existingMap.set(key, pkg);
+                } else if (!existingMap.get(key).version && pkg.version) {
+                    existingMap.set(key, { id: pkg.id, version: pkg.version });
+                }
+            });
+            entryRecord.packages = Array.from(existingMap.values());
+        }
     }
 
     const normalizedEntryContent = typeof entryContent === 'string' ? entryContent : entryRecord.content || '';
@@ -182,11 +260,13 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
         }
 
         visitedKeys.add(key);
+        const filePackages = Array.isArray(record.packages) ? record.packages : [];
         files.push({
             id: record.id || null,
             name: record.name || record.path || 'Program.cs',
             content: typeof content === 'string' ? content : '',
-            isEntry
+            isEntry,
+            packages: filePackages
         });
 
         queue.push({ record, content });
@@ -194,6 +274,7 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
             autoIncludedNames.add(record.name || record.path || '未知文件');
         }
 
+        mergePackages(packageMap, filePackages);
         return true;
     }
 
@@ -217,6 +298,7 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
     return {
         files,
         autoIncludedNames: Array.from(autoIncludedNames),
-        missingReferences: Array.from(missingReferences)
+        missingReferences: Array.from(missingReferences),
+        packages: Array.from(packageMap.values())
     };
 }

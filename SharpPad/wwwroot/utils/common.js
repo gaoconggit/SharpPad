@@ -1,5 +1,55 @@
 import { extractDirectiveReferences, buildMultiFileContext } from './multiFileHelper.js';
 
+function sanitizePackageList(packages) {
+    if (!Array.isArray(packages)) {
+        return [];
+    }
+
+    return packages
+        .filter(pkg => pkg && typeof pkg === 'object')
+        .map(pkg => {
+            const id = typeof pkg.id === 'string'
+                ? pkg.id.trim()
+                : typeof pkg.Id === 'string'
+                    ? pkg.Id.trim()
+                    : '';
+
+            if (!id) {
+                return null;
+            }
+
+            const version = typeof pkg.version === 'string'
+                ? pkg.version.trim()
+                : typeof pkg.Version === 'string'
+                    ? pkg.Version.trim()
+                    : '';
+
+            return { id, version };
+        })
+        .filter(Boolean);
+}
+
+function mergePackageLists(...groups) {
+    const map = new Map();
+
+    for (const group of groups) {
+        for (const pkg of sanitizePackageList(group)) {
+            const key = pkg.id.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, { id: pkg.id, version: pkg.version || '' });
+                continue;
+            }
+
+            const existing = map.get(key);
+            if (!existing.version && pkg.version) {
+                map.set(key, { id: pkg.id, version: pkg.version });
+            }
+        }
+    }
+
+    return Array.from(map.values());
+}
+
 // 公共工具函数
 export function getCurrentFile() {
     // 获取当前选中的文件
@@ -39,10 +89,11 @@ export function shouldUseMultiFileMode(currentContent) {
 
 // 创建多文件请求
 export function createMultiFileRequest(targetFileName, position, packages, currentContent) {
-    const normalizedPackages = Array.isArray(packages) ? packages : [];
+    const sanitizedPackages = sanitizePackageList(packages);
     const context = buildMultiFileContext({
         entryFileName: targetFileName || null,
-        entryContent: typeof currentContent === 'string' ? currentContent : ''
+        entryContent: typeof currentContent === 'string' ? currentContent : '',
+        entryPackages: sanitizedPackages
     });
 
     if (!context || !Array.isArray(context.files) || context.files.length === 0) {
@@ -54,10 +105,15 @@ export function createMultiFileRequest(targetFileName, position, packages, curre
         Content: file.content
     }));
 
+    const aggregatedPackages = mergePackageLists(sanitizedPackages, context.packages);
+
     const request = {
         Files: files,
         TargetFileId: targetFileName || files[0]?.FileName || null,
-        Packages: normalizedPackages
+        Packages: aggregatedPackages.map(pkg => ({
+            Id: pkg.id,
+            Version: pkg.version
+        }))
     };
 
     if (typeof position === 'number') {
