@@ -29,6 +29,78 @@ namespace MonacoRoslynCompletionProvider.Api
         // 存储正在运行的代码的交互式读取器
         private static readonly Dictionary<string, InteractiveTextReader> _activeReaders = new();
 
+        private static string NormalizeProjectType(string type)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                return "console";
+            }
+
+            var filtered = new string(type.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+            if (string.IsNullOrEmpty(filtered))
+            {
+                return "console";
+            }
+
+            if (filtered.Contains("winform") || filtered.Contains("form") || filtered.Contains("windows"))
+            {
+                return "winforms";
+            }
+
+            if (filtered.Contains("aspnet") || filtered.Contains("webapi") || filtered == "web")
+            {
+                return "webapi";
+            }
+
+            return "console";
+        }
+
+        private static (OutputKind OutputKind, bool RequiresStaThread) GetRunBehavior(string projectType)
+        {
+            return NormalizeProjectType(projectType) switch
+            {
+                "winforms" => (OutputKind.WindowsApplication, true),
+                _ => (OutputKind.ConsoleApplication, false)
+            };
+        }
+
+        private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
+        {
+            if (!requiresStaThread)
+            {
+                return Task.Run(executeAsync);
+            }
+
+            var tcs = new TaskCompletionSource<object?>();
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    executeAsync().GetAwaiter().GetResult();
+                    tcs.TrySetResult(null);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            })
+            {
+                IsBackground = true
+            };
+
+            try
+            {
+                thread.SetApartmentState(ApartmentState.STA);
+            }
+            catch (PlatformNotSupportedException)
+            {
+                return Task.Run(executeAsync);
+            }
+
+            thread.Start();
+            return tcs.Task;
+        }
+
         public static bool ProvideInput(string sessionId, string input)
         {
             if (string.IsNullOrEmpty(sessionId))
@@ -57,7 +129,8 @@ namespace MonacoRoslynCompletionProvider.Api
             int languageVersion,
             Func<string, Task> onOutput,
             Func<string, Task> onError,
-            string sessionId = null)
+            string sessionId = null,
+            string projectType = null)
         {
             var result = new RunResult();
             CustomAssemblyLoadContext loadContext = null;
@@ -66,6 +139,13 @@ namespace MonacoRoslynCompletionProvider.Api
             {
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
                 loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
+
+                var runBehavior = GetRunBehavior(projectType);
+                if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
+                {
+                    // 自动检测到 WinForms 代码时启用所需的运行时设置
+                    runBehavior = (OutputKind.WindowsApplication, true);
+                }
 
                 var parseOptions = new CSharpParseOptions(
                     languageVersion: (LanguageVersion)languageVersion,
@@ -94,6 +174,15 @@ namespace MonacoRoslynCompletionProvider.Api
                     if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
                         references.Add(MetadataReference.CreateFromFile(asm.Location));
                 }
+
+                // 确保加载 Windows Forms 引用（如果是 Windows Forms 项目）
+                if (runBehavior.OutputKind == OutputKind.WindowsApplication)
+                {
+                    EnsureWinFormsAssembliesLoaded();
+                    // 尝试添加 Windows Forms 相关的程序集引用
+                    TryAddWinFormsReferences(references);
+                }
+
                 foreach (var pkg in nugetAssemblies)
                 {
                     references.Add(MetadataReference.CreateFromFile(pkg.Path));
@@ -103,7 +192,7 @@ namespace MonacoRoslynCompletionProvider.Api
                     assemblyName,
                     syntaxTrees,
                     references,
-                    new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                    new CSharpCompilationOptions(runBehavior.OutputKind)
                 );
 
                 using (var peStream = new MemoryStream())
@@ -155,7 +244,7 @@ namespace MonacoRoslynCompletionProvider.Api
                             }
                         }
 
-                        var executionTask = Task.Run(async () =>
+                        Func<Task> executeAsync = async () =>
                         {
                             TextWriter originalOut = null, originalError = null;
                             TextReader originalIn = null;
@@ -202,8 +291,9 @@ namespace MonacoRoslynCompletionProvider.Api
                                 }
                                 interactiveReader?.Dispose();
                             }
-                        });
-                        await executionTask.ConfigureAwait(false);
+                        };
+
+                        await RunEntryPointAsync(executeAsync, runBehavior.RequiresStaThread).ConfigureAwait(false);
                     }
                     else
                     {
@@ -234,7 +324,8 @@ namespace MonacoRoslynCompletionProvider.Api
     int languageVersion,
     Func<string, Task> onOutput,
     Func<string, Task> onError,
-    string sessionId = null)
+    string sessionId = null,
+    string projectType = null)
         {
             var result = new RunResult();
             // 低内存版本：不使用 StringBuilder 缓存输出，只依赖回调传递实时数据
@@ -245,6 +336,13 @@ namespace MonacoRoslynCompletionProvider.Api
                 // 加载 NuGet 包（假设返回的包集合较小）
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
                 loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
+
+                var runBehavior = GetRunBehavior(projectType);
+                if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(code))
+                {
+                    // 自动检测到 WinForms 代码时启用所需的运行时设置
+                    runBehavior = (OutputKind.WindowsApplication, true);
+                }
 
                 // 设置解析选项，尽可能减小额外开销
                 var parseOptions = new CSharpParseOptions(
@@ -265,6 +363,15 @@ namespace MonacoRoslynCompletionProvider.Api
                     if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
                         references.Add(MetadataReference.CreateFromFile(asm.Location));
                 }
+
+                // 确保加载 Windows Forms 引用（如果是 Windows Forms 项目）
+                if (runBehavior.OutputKind == OutputKind.WindowsApplication)
+                {
+                    EnsureWinFormsAssembliesLoaded();
+                    // 尝试添加 Windows Forms 相关的程序集引用
+                    TryAddWinFormsReferences(references);
+                }
+
                 // 添加 NuGet 包引用
                 foreach (var pkg in nugetAssemblies)
                 {
@@ -275,7 +382,7 @@ namespace MonacoRoslynCompletionProvider.Api
                     assemblyName,
                     new[] { syntaxTree },
                     references,
-                    new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                    new CSharpCompilationOptions(runBehavior.OutputKind)
                 );
 
                 // 编译到内存流，使用完后尽快释放内存
@@ -328,7 +435,7 @@ namespace MonacoRoslynCompletionProvider.Api
                         }
 
                         // 异步执行入口点代码
-                        var executionTask = Task.Run(async () =>
+                        Func<Task> executeAsync = async () =>
                         {
                             TextWriter originalOut = null, originalError = null;
                             TextReader originalIn = null;
@@ -377,8 +484,9 @@ namespace MonacoRoslynCompletionProvider.Api
                                 }
                                 interactiveReader?.Dispose();
                             }
-                        });
-                        await executionTask.ConfigureAwait(false);
+                        };
+
+                        await RunEntryPointAsync(executeAsync, runBehavior.RequiresStaThread).ConfigureAwait(false);
                     }
                     else
                     {
@@ -483,7 +591,282 @@ namespace MonacoRoslynCompletionProvider.Api
             }
         }
 
+        private static bool DetectWinFormsUsage(IEnumerable<string> sources)
+        {
+            if (sources == null)
+            {
+                return false;
+            }
 
+            foreach (var source in sources)
+            {
+                if (DetectWinFormsUsage(source))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool DetectWinFormsUsage(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return false;
+            }
+
+            return source.IndexOf("System.Windows.Forms", StringComparison.OrdinalIgnoreCase) >= 0
+                || source.IndexOf("Application.Run", StringComparison.OrdinalIgnoreCase) >= 0
+                || source.IndexOf(": Form", StringComparison.OrdinalIgnoreCase) >= 0
+                || source.IndexOf(" new Form", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+
+
+        private static void EnsureWinFormsAssembliesLoaded()
+        {
+            TryLoadAssembly("System.Windows.Forms");
+            TryLoadAssembly("System.Drawing");
+            TryLoadAssembly("System.Drawing.Common");
+
+            static void TryLoadAssembly(string assemblyName)
+            {
+                try
+                {
+                    Assembly.Load(assemblyName);
+                }
+                catch
+                {
+                    // ignore when the assembly can't be loaded in the current environment
+                }
+            }
+        }
+
+        private static void TryAddWinFormsReferences(List<MetadataReference> references)
+        {
+            // Windows Forms 相关的程序集名称
+            var winFormsAssemblies = new[]
+            {
+                "System.Windows.Forms",
+                "System.Drawing",
+                "System.Drawing.Common",
+                "System.Drawing.Primitives"
+            };
+
+            foreach (var assemblyName in winFormsAssemblies)
+            {
+                try
+                {
+                    var assembly = Assembly.Load(assemblyName);
+                    if (!string.IsNullOrEmpty(assembly.Location))
+                    {
+                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                    }
+                }
+                catch
+                {
+                    // 如果无法加载某个程序集，忽略并继续
+                    try
+                    {
+                        // 尝试从当前域中查找已加载的程序集
+                        var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                            .FirstOrDefault(asm => asm.GetName().Name?.Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
+
+                        if (loadedAssembly != null && !loadedAssembly.IsDynamic && !string.IsNullOrEmpty(loadedAssembly.Location))
+                        {
+                            references.Add(MetadataReference.CreateFromFile(loadedAssembly.Location));
+                        }
+                    }
+                    catch
+                    {
+                        // 最终失败也忽略
+                    }
+                }
+            }
+        }
+
+        private static List<string> BuildPackageReferenceLines(string nuget)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrWhiteSpace(nuget))
+            {
+                return lines;
+            }
+
+            foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var id = items.Length > 0 ? items[0].Trim() : null;
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                var version = items.Length > 1 ? items[1].Trim() : null;
+                if (string.IsNullOrWhiteSpace(version))
+                {
+                    lines.Add("    <PackageReference Include=\"" + id + "\" />");
+                }
+                else
+                {
+                    lines.Add("    <PackageReference Include=\"" + id + "\" Version=\"" + version + "\" />");
+                }
+            }
+
+            return lines;
+        }
+
+        private static string BuildProjectFileContent(string assemblyName, string nuget, int languageVersion, string projectType)
+        {
+            var sdk = "Microsoft.NET.Sdk";
+            var targetFramework = "net9.0";
+            var outputTypeValue = "Exe";
+            var propertyExtraLines = new List<string>();
+
+            switch (projectType)
+            {
+                case "winforms":
+                    targetFramework = "net9.0-windows";
+                    outputTypeValue = "WinExe";
+                    propertyExtraLines.Add("    <UseWindowsForms>true</UseWindowsForms>");
+                    propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
+                    break;
+                case "webapi":
+                    sdk = "Microsoft.NET.Sdk.Web";
+                    break;
+            }
+
+            var langVer = "latest";
+            try
+            {
+                langVer = ((LanguageVersion)languageVersion).ToString();
+            }
+            catch
+            {
+                // keep default when conversion fails
+            }
+
+            var builder = new StringBuilder();
+            builder.AppendLine($"<Project Sdk=\"{sdk}\">");
+            builder.AppendLine("  <PropertyGroup>");
+            builder.AppendLine($"    <OutputType>{outputTypeValue}</OutputType>");
+            builder.AppendLine($"    <TargetFramework>{targetFramework}</TargetFramework>");
+            builder.AppendLine("    <ImplicitUsings>enable</ImplicitUsings>");
+            builder.AppendLine("    <Nullable>enable</Nullable>");
+            builder.AppendLine($"    <AssemblyName>{assemblyName}</AssemblyName>");
+            builder.AppendLine($"    <RootNamespace>{assemblyName}</RootNamespace>");
+            builder.AppendLine($"    <LangVersion>{langVer}</LangVersion>");
+            foreach (var line in propertyExtraLines)
+            {
+                builder.AppendLine(line);
+            }
+            builder.AppendLine("  </PropertyGroup>");
+
+            var packages = BuildPackageReferenceLines(nuget);
+            if (packages.Count > 0)
+            {
+                builder.AppendLine("  <ItemGroup>");
+                foreach (var line in packages)
+                {
+                    builder.AppendLine(line);
+                }
+                builder.AppendLine("  </ItemGroup>");
+            }
+
+            builder.AppendLine("</Project>");
+            return builder.ToString();
+        }
+
+        private static string DeriveAssemblyNameForRun(List<FileContent> files)
+        {
+            var candidate = files?.FirstOrDefault(f => f?.IsEntry == true)?.FileName
+                ?? files?.FirstOrDefault()?.FileName
+                ?? "Program.cs";
+
+            var baseName = Path.GetFileNameWithoutExtension(candidate);
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "SharpPadProgram";
+            }
+
+            var sanitized = new string(baseName.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray());
+            return string.IsNullOrWhiteSpace(sanitized) ? "SharpPadProgram" : sanitized;
+        }
+
+        private static async Task WriteSourceFilesAsync(List<FileContent> files, string destinationDir)
+        {
+            if (files == null)
+            {
+                return;
+            }
+
+            foreach (var file in files)
+            {
+                var relative = string.IsNullOrWhiteSpace(file?.FileName) ? "Program.cs" : file.FileName;
+                relative = relative.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+                var segments = relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length == 0)
+                {
+                    segments = new[] { "Program.cs" };
+                }
+
+                for (var i = 0; i < segments.Length; i++)
+                {
+                    var segment = segments[i];
+                    foreach (var invalid in Path.GetInvalidFileNameChars())
+                    {
+                        segment = segment.Replace(invalid, '_');
+                    }
+                    segments[i] = segment;
+                }
+
+                var safeRelativePath = Path.Combine(segments);
+                var destinationPath = Path.Combine(destinationDir, safeRelativePath);
+                var directory = Path.GetDirectoryName(destinationPath);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                await File.WriteAllTextAsync(destinationPath, file?.Content ?? string.Empty, Encoding.UTF8).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<(int ExitCode, string StdOut, string StdErr)> RunProcessCaptureAsync(string fileName, string arguments, string workingDirectory, IDictionary<string, string> environment = null)
+        {
+            var psi = new ProcessStartInfo(fileName, arguments)
+            {
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+
+            if (environment != null)
+            {
+                foreach (var kv in environment)
+                {
+                    psi.Environment[kv.Key] = kv.Value;
+                }
+            }
+
+            using var process = new Process { StartInfo = psi };
+            var stdOut = new StringBuilder();
+            var stdErr = new StringBuilder();
+            process.OutputDataReceived += (_, e) => { if (e.Data != null) stdOut.AppendLine(e.Data); };
+            process.ErrorDataReceived += (_, e) => { if (e.Data != null) stdErr.AppendLine(e.Data); };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync().ConfigureAwait(false);
+
+            return (process.ExitCode, stdOut.ToString(), stdErr.ToString());
+        }
 
         public static void DownloadPackage(string nuget)
         {
@@ -494,27 +877,29 @@ namespace MonacoRoslynCompletionProvider.Api
             List<FileContent> files,
             string nuget,
             int languageVersion,
-            string outputFileName)
+            string outputFileName,
+            string projectType)
         {
-            // Use SDK publish so all runtime dependencies are present
-            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName);
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType);
         }
 
         public static async Task<ExeBuildResult> BuildExecutableAsync(
             string code,
             string nuget,
             int languageVersion,
-            string outputFileName)
+            string outputFileName,
+            string projectType)
         {
             var files = new List<FileContent> { new FileContent { FileName = "Program.cs", Content = code } };
-            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName);
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType);
         }
 
         private static async Task<ExeBuildResult> BuildWithDotnetPublishAsync(
             List<FileContent> files,
             string nuget,
             int languageVersion,
-            string outputFileName)
+            string outputFileName,
+            string projectType)
         {
             var result = new ExeBuildResult();
 
@@ -530,7 +915,33 @@ namespace MonacoRoslynCompletionProvider.Api
                 var asmName = Path.GetFileNameWithoutExtension(outName);
                 var artifactFileName = Path.ChangeExtension(outName, ".zip");
 
-                var tfm = "net9.0";
+                var normalizedProjectType = NormalizeProjectType(projectType);
+                var sdk = "Microsoft.NET.Sdk";
+                var targetFramework = "net9.0";
+                var outputTypeValue = "Exe";
+                var propertyExtraLines = new List<string>();
+                var frameworkRefLines = new List<string>();
+
+                switch (normalizedProjectType)
+                {
+                    case "winform":
+                    case "winforms":
+                    case "windowsforms":
+                        targetFramework = "net9.0-windows";
+                        outputTypeValue = "WinExe";
+                        propertyExtraLines.Add("    <UseWindowsForms>true</UseWindowsForms>");
+                        propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
+                        break;
+                    case "aspnetcore":
+                    case "aspnetcorewebapi":
+                    case "webapi":
+                    case "web":
+                        sdk = "Microsoft.NET.Sdk.Web";
+                        break;
+                    default:
+                        break;
+                }
+
                 var csprojPath = Path.Combine(srcDir, $"{asmName}.csproj");
 
                 var pkgRefs = new StringBuilder();
@@ -554,20 +965,42 @@ namespace MonacoRoslynCompletionProvider.Api
                 var langVer = "latest";
                 try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
 
-                var csproj = $@"<Project Sdk=""Microsoft.NET.Sdk"">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>{tfm}</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <AssemblyName>{asmName}</AssemblyName>
-    <RootNamespace>{asmName}</RootNamespace>
-    <LangVersion>{langVer}</LangVersion>
-  </PropertyGroup>
-  <ItemGroup>
-{pkgRefs}
-  </ItemGroup>
-</Project>";
+                var projectBuilder = new StringBuilder();
+                projectBuilder.AppendLine($"<Project Sdk=\"{sdk}\">");
+                projectBuilder.AppendLine("  <PropertyGroup>");
+                projectBuilder.AppendLine($"    <OutputType>{outputTypeValue}</OutputType>");
+                projectBuilder.AppendLine($"    <TargetFramework>{targetFramework}</TargetFramework>");
+                projectBuilder.AppendLine("    <ImplicitUsings>enable</ImplicitUsings>");
+                projectBuilder.AppendLine("    <Nullable>enable</Nullable>");
+                projectBuilder.AppendLine($"    <AssemblyName>{asmName}</AssemblyName>");
+                projectBuilder.AppendLine($"    <RootNamespace>{asmName}</RootNamespace>");
+                projectBuilder.AppendLine($"    <LangVersion>{langVer}</LangVersion>");
+                foreach (var line in propertyExtraLines)
+                {
+                    projectBuilder.AppendLine(line);
+                }
+                projectBuilder.AppendLine("  </PropertyGroup>");
+
+                var pkgRefText = pkgRefs.ToString().TrimEnd();
+                if (!string.IsNullOrEmpty(pkgRefText))
+                {
+                    projectBuilder.AppendLine("  <ItemGroup>");
+                    projectBuilder.AppendLine(pkgRefText);
+                    projectBuilder.AppendLine("  </ItemGroup>");
+                }
+
+                if (frameworkRefLines.Count > 0)
+                {
+                    projectBuilder.AppendLine("  <ItemGroup>");
+                    foreach (var line in frameworkRefLines)
+                    {
+                        projectBuilder.AppendLine(line);
+                    }
+                    projectBuilder.AppendLine("  </ItemGroup>");
+                }
+
+                projectBuilder.AppendLine("</Project>");
+                var csproj = projectBuilder.ToString();
                 await File.WriteAllTextAsync(csprojPath, csproj, Encoding.UTF8);
 
                 foreach (var f in files)

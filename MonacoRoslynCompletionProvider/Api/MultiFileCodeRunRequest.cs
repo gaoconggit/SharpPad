@@ -12,6 +12,7 @@ namespace MonacoRoslynCompletionProvider.Api
         public List<Package> Packages { get; set; }
         public int LanguageVersion { get; set; }
         public string SessionId { get; set; }
+        public string ProjectType { get; set; } = "console";
 
         // For backward compatibility
         public string SourceCode { get; set; }

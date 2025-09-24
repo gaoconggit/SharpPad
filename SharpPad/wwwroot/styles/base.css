@@ -135,6 +135,23 @@ body.theme-light .version-select option {
     background-color: #2d2d2d;
     color: #e0e0e0;
 }
+
+.project-type-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 10px;
+    color: #cccccc;
+    font-size: 13px;
+}
+
+body.theme-light .project-type-group {
+    color: #333333;
+}
+
+.project-type-select {
+    min-width: 170px;
+}
 body.theme-light label {
     color: #333333;
 }

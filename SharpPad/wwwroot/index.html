@@ -64,6 +64,14 @@
             <!--系统设置按钮-->
             <button id="systemSettingsBtn" title="系统设置">⚙️</button>
             <div style="flex-grow: 1;"></div>
+            <div class="project-type-group">
+                <label for="projectTypeSelect">项目类型</label>
+                <select id="projectTypeSelect" class="version-select project-type-select" title="选择项目类型">
+                    <option value="console">Console 应用</option>
+                    <option value="winforms">WinForms 桌面</option>
+                    <option value="webapi">ASP.NET Core Web API</option>
+                </select>
+            </div>
             <button id="runButton" title="运行 (Ctrl+Enter)">运行</button>
             <button id="buildExeButton" title="构建可执行文件">构建EXE</button>
             <div style="flex-grow: 0.1;"></div>

@@ -61,7 +61,10 @@ export class CodeRunner {
         this.buildExeButton = document.getElementById('buildExeButton');
         this.outputContent = document.getElementById('outputContent');
         this.notification = document.getElementById('notification');
+        this.projectTypeSelect = document.getElementById('projectTypeSelect');
+        this.projectTypeStorageKey = 'sharpPad.projectType';
         this.currentSessionId = null;
+        this.initializeProjectTypeSelector();
         this.initializeEventListeners();
     }
 
@@ -70,6 +73,30 @@ export class CodeRunner {
         this.buildExeButton.addEventListener('click', () => this.buildExe(window.editor.getValue()));
     }
 
+
+    initializeProjectTypeSelector() {
+        if (!this.projectTypeSelect) {
+            return;
+        }
+
+        try {
+            const saved = window.localStorage.getItem(this.projectTypeStorageKey);
+            const normalized = saved ? saved.toLowerCase() : null;
+            if (normalized && Array.from(this.projectTypeSelect.options).some(opt => opt.value === normalized)) {
+                this.projectTypeSelect.value = normalized;
+            }
+        } catch (error) {
+            console.warn('无法读取项目类型偏好:', error);
+        }
+
+        this.projectTypeSelect.addEventListener('change', () => {
+            try {
+                window.localStorage.setItem(this.projectTypeStorageKey, this.projectTypeSelect.value);
+            } catch (error) {
+                console.warn('无法保存项目类型偏好:', error);
+            }
+        });
+    }
     appendOutput(message, type = 'info') {
         const outputLine = document.createElement('div');
         outputLine.className = `output-${type}`;
@@ -146,6 +173,18 @@ export class CodeRunner {
     }
 
     // 检查文本是否包含 markdown 格式
+
+    getProjectTypeLabel(projectType) {
+        switch ((projectType || '').toLowerCase()) {
+            case 'winforms':
+                return 'WinForms 桌面';
+            case 'webapi':
+                return 'ASP.NET Core Web API';
+            default:
+                return 'Console 应用';
+        }
+    }
+
     containsMarkdown(text) {
         // 检查常见的 markdown 模式
         const markdownPatterns = [
@@ -209,11 +248,13 @@ export class CodeRunner {
         const file = getCurrentFile();
         const basePackages = file?.nugetConfig?.packages || [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
+        const projectType = (this.projectTypeSelect?.value || 'console').toLowerCase();
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preRunMessages = [];
+        preRunMessages.push({ type: 'info', text: `项目类型：${this.getProjectTypeLabel(projectType)}` });
 
         if (autoIncludedNames.length > 0) {
             preRunMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
@@ -239,6 +280,7 @@ export class CodeRunner {
                     Version: p.version
                 })),
                 LanguageVersion: parseInt(csharpVersion),
+                ProjectType: projectType,
                 SessionId: this.currentSessionId
             };
 
@@ -251,6 +293,7 @@ export class CodeRunner {
                     Version: p.version
                 })),
                 LanguageVersion: parseInt(csharpVersion),
+                ProjectType: projectType,
                 SessionId: this.currentSessionId
             };
         }
@@ -476,9 +519,12 @@ export class CodeRunner {
         let request;
         let outputFileName = 'Program.exe';
 
+        const projectType = (this.projectTypeSelect?.value || 'console').toLowerCase();
+
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preBuildMessages = [];
+        preBuildMessages.push({ type: 'info', text: `项目类型：${this.getProjectTypeLabel(projectType)}` });
 
         if (autoIncludedNames.length > 0) {
             preBuildMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
@@ -507,7 +553,8 @@ export class CodeRunner {
                     Version: p.version
                 })),
                 LanguageVersion: parseInt(csharpVersion),
-                OutputFileName: outputFileName
+                OutputFileName: outputFileName,
+                ProjectType: projectType
             };
 
             preBuildMessages.push({ type: 'info', text: `正在构建 ${selectedFiles.length} 个文件为 ${outputFileName}...` });
@@ -523,7 +570,8 @@ export class CodeRunner {
                     Version: p.version
                 })),
                 LanguageVersion: parseInt(csharpVersion),
-                OutputFileName: outputFileName
+                OutputFileName: outputFileName,
+                ProjectType: projectType
             };
 
             preBuildMessages.push({ type: 'info', text: `正在构建 ${outputFileName}...` });

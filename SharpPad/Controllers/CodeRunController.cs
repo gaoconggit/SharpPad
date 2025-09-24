@@ -47,7 +47,8 @@ namespace SharpPad.Controllers
                         request?.LanguageVersion ?? 2147483647,
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
-                        request?.SessionId
+                        sessionId: request?.SessionId,
+                        projectType: request?.ProjectType
                     );
                 }
                 else
@@ -59,7 +60,8 @@ namespace SharpPad.Controllers
                         request?.LanguageVersion ?? 2147483647,
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
-                        request?.SessionId
+                        sessionId: request?.SessionId,
+                        projectType: request?.ProjectType
                     );
                 }
 
@@ -180,7 +182,8 @@ namespace SharpPad.Controllers
                         request.Files,
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
-                        request?.OutputFileName ?? "Program.exe"
+                        request?.OutputFileName ?? "Program.exe",
+                        request?.ProjectType
                     );
                 }
                 else
@@ -189,7 +192,8 @@ namespace SharpPad.Controllers
                         request?.SourceCode,
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
-                        request?.OutputFileName ?? "Program.exe"
+                        request?.OutputFileName ?? "Program.exe",
+                        request?.ProjectType
                     );
                 }
 
