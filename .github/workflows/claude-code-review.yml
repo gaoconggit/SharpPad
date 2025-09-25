@@ -38,19 +38,19 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            请审查这个SharpPad项目的Pull Request，这是一个基于ASP.NET Core 9.0的C#在线代码编辑器。
-            重点关注：
-            1. Roslyn集成和代码分析功能的质量
-            2. Monaco Editor集成实现
-            3. NuGet包管理系统的安全性和性能
-            4. API设计和RESTful最佳实践
-            5. 桌面版Avalonia集成的稳定性
-            6. 代码质量、潜在bug和安全漏洞
-            7. 性能优化机会
-            8. 测试覆盖率和代码一致性
+            ��������SharpPad��Ŀ��Pull Request������һ������ASP.NET Core 9.0��C#���ߴ���༭����
+            �ص��ע��
+            1. Roslyn���ɺʹ���������ܵ�����
+            2. Monaco Editor����ʵ��
+            3. NuGet������ϵͳ�İ�ȫ�Ժ�����
+            4. API��ƺ�RESTful���ʵ��
+            5. �����Avalonia���ɵ��ȶ���
+            6. ����������Ǳ��bug�Ͱ�ȫ©��
+            7. �����Ż�����
+            8. ���Ը����ʺʹ���һ����
 
-            参考项目根目录的CLAUDE.md了解代码规范。请提供建设性的反馈建议。
-            使用`gh pr comment`命令将评审结果发布到PR评论中。
+            �ο���Ŀ��Ŀ¼��CLAUDE.md�˽����淶�����ṩ�����Եķ������顣
+            ʹ��`gh pr comment`���������������PR�����С�
           
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
