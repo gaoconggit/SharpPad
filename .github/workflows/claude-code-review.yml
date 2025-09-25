@@ -20,9 +20,10 @@ jobs:
     
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
       id-token: write
     
     steps:
@@ -37,18 +38,25 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            请审查这个SharpPad项目的Pull Request，这是一个基于ASP.NET Core 9.0的C#在线代码编辑器。
+            重点关注：
+            1. Roslyn集成和代码分析功能的质量
+            2. Monaco Editor集成实现
+            3. NuGet包管理系统的安全性和性能
+            4. API设计和RESTful最佳实践
+            5. 桌面版Avalonia集成的稳定性
+            6. 代码质量、潜在bug和安全漏洞
+            7. 性能优化机会
+            8. 测试覆盖率和代码一致性
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            参考项目根目录的CLAUDE.md了解代码规范。请提供建设性的反馈建议。
+            使用`gh pr comment`命令将评审结果发布到PR评论中。
           
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: |
+            --model claude-opus-4-1-20250805
+            --max-turns 50
+            --dangerously-skip-permissions
+            --allowed-tools *
 

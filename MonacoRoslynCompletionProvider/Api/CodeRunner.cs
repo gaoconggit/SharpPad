@@ -29,6 +29,8 @@ namespace MonacoRoslynCompletionProvider.Api
         // 存储正在运行的代码的交互式读取器
         private static readonly Dictionary<string, InteractiveTextReader> _activeReaders = new();
 
+        private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
+
         private static string NormalizeProjectType(string type)
         {
             if (string.IsNullOrWhiteSpace(type))
@@ -66,12 +68,19 @@ namespace MonacoRoslynCompletionProvider.Api
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
         {
+            if (executeAsync == null) throw new ArgumentNullException(nameof(executeAsync));
+
             if (!requiresStaThread)
             {
-                return Task.Run(executeAsync);
+                return executeAsync();
             }
 
-            var tcs = new TaskCompletionSource<object?>();
+            if (!OperatingSystem.IsWindows())
+            {
+                return executeAsync();
+            }
+
+            var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
             var thread = new Thread(() =>
             {
                 try
@@ -85,7 +94,8 @@ namespace MonacoRoslynCompletionProvider.Api
                 }
             })
             {
-                IsBackground = true
+                IsBackground = true,
+                Name = "CodeRunner-STA"
             };
 
             try
@@ -94,7 +104,7 @@ namespace MonacoRoslynCompletionProvider.Api
             }
             catch (PlatformNotSupportedException)
             {
-                return Task.Run(executeAsync);
+                return executeAsync();
             }
 
             thread.Start();
@@ -145,6 +155,13 @@ namespace MonacoRoslynCompletionProvider.Api
                 {
                     // 自动检测到 WinForms 代码时启用所需的运行时设置
                     runBehavior = (OutputKind.WindowsApplication, true);
+                }
+
+                if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
+                {
+                    await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
+                    result.Error = WindowsFormsHostRequirementMessage;
+                    return result;
                 }
 
                 var parseOptions = new CSharpParseOptions(
@@ -225,10 +242,10 @@ namespace MonacoRoslynCompletionProvider.Api
                     {
                         var parameters = entryPoint.GetParameters();
 
-                        async void WriteAction(string text) => await onOutput(text).ConfigureAwait(false);
+                        async Task WriteAction(string text) => await onOutput(text ?? string.Empty).ConfigureAwait(false);
                         await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
 
-                        async void ErrorAction(string text) => await onError(text).ConfigureAwait(false);
+                        async Task ErrorAction(string text) => await onError(text ?? string.Empty).ConfigureAwait(false);
                         await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
 
                         var interactiveReader = new InteractiveTextReader(async prompt =>
@@ -344,6 +361,13 @@ namespace MonacoRoslynCompletionProvider.Api
                     runBehavior = (OutputKind.WindowsApplication, true);
                 }
 
+                if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
+                {
+                    await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
+                    result.Error = WindowsFormsHostRequirementMessage;
+                    return result;
+                }
+
                 // 设置解析选项，尽可能减小额外开销
                 var parseOptions = new CSharpParseOptions(
                     languageVersion: (LanguageVersion)languageVersion,
@@ -413,10 +437,10 @@ namespace MonacoRoslynCompletionProvider.Api
                         var parameters = entryPoint.GetParameters();
 
                         // 定义直接回调写入器，不做缓存
-                        async void WriteAction(string text) => await onOutput(text).ConfigureAwait(false);
+                        async Task WriteAction(string text) => await onOutput(text ?? string.Empty).ConfigureAwait(false);
                         await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
 
-                        async void ErrorAction(string text) => await onError(text).ConfigureAwait(false);
+                        async Task ErrorAction(string text) => await onError(text ?? string.Empty).ConfigureAwait(false);
                         await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
 
                         // 创建交互式输入读取器
@@ -538,57 +562,24 @@ namespace MonacoRoslynCompletionProvider.Api
             }
         }
 
-        private class ImmediateCallbackTextWriter : TextWriter
+        private sealed class ImmediateCallbackTextWriter : TextWriter
         {
-            private readonly Action<string> _writeAction;
+            private readonly Func<string, Task> _onWrite;
 
-            public ImmediateCallbackTextWriter(Action<string> writeAction)
+            public ImmediateCallbackTextWriter(Func<string, Task> onWrite)
             {
-                _writeAction = writeAction ?? throw new ArgumentNullException(nameof(writeAction));
+                _onWrite = onWrite ?? throw new ArgumentNullException(nameof(onWrite));
             }
 
             public override Encoding Encoding => Encoding.UTF8;
 
-            public override void Write(char value)
-            {
-                _writeAction(value.ToString());
-            }
+            public override void Write(char value) => _onWrite(value.ToString()).GetAwaiter().GetResult();
 
-            public override void Write(char[] buffer, int index, int count)
-            {
-                if (buffer == null)
-                    throw new ArgumentNullException(nameof(buffer));
-                _writeAction(new string(buffer, index, count));
-            }
+            public override void Write(string value) => _onWrite(value ?? string.Empty).GetAwaiter().GetResult();
 
-            public override void Write(string value)
-            {
-                if (value != null)
-                    _writeAction(value);
-            }
+            public override void WriteLine(string value) => _onWrite((value ?? string.Empty) + Environment.NewLine).GetAwaiter().GetResult();
 
-            public override void WriteLine(string value)
-            {
-                _writeAction((value ?? string.Empty) + Environment.NewLine);
-            }
-
-            public override Task WriteAsync(char value)
-            {
-                _writeAction(value.ToString());
-                return Task.CompletedTask;
-            }
-
-            public override Task WriteAsync(string value)
-            {
-                Write(value);
-                return Task.CompletedTask;
-            }
-
-            public override Task WriteLineAsync(string value)
-            {
-                WriteLine(value);
-                return Task.CompletedTask;
-            }
+            public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
         }
 
         private static bool DetectWinFormsUsage(IEnumerable<string> sources)
@@ -626,63 +617,97 @@ namespace MonacoRoslynCompletionProvider.Api
 
         private static void EnsureWinFormsAssembliesLoaded()
         {
-            TryLoadAssembly("System.Windows.Forms");
-            TryLoadAssembly("System.Drawing");
-            TryLoadAssembly("System.Drawing.Common");
+            if (!OperatingSystem.IsWindows())
+            {
+                return;
+            }
 
-            static void TryLoadAssembly(string assemblyName)
+            TryLoadType("System.Windows.Forms.Form, System.Windows.Forms");
+            TryLoadType("System.Drawing.Point, System.Drawing");
+
+            static void TryLoadType(string typeName)
             {
                 try
                 {
-                    Assembly.Load(assemblyName);
+                    _ = Type.GetType(typeName, throwOnError: false);
                 }
                 catch
                 {
-                    // ignore when the assembly can't be loaded in the current environment
+                    // ignore failures; the compilation step will surface missing assemblies
                 }
             }
         }
-
         private static void TryAddWinFormsReferences(List<MetadataReference> references)
         {
-            // Windows Forms 相关的程序集名称
-            var winFormsAssemblies = new[]
+            if (references == null) throw new ArgumentNullException(nameof(references));
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+            var requiredAssemblies = new[]
             {
                 "System.Windows.Forms",
                 "System.Drawing",
                 "System.Drawing.Common",
-                "System.Drawing.Primitives"
+                "Microsoft.Win32.SystemEvents"
             };
 
-            foreach (var assemblyName in winFormsAssemblies)
+            var missing = new List<string>();
+
+            foreach (var assemblyName in requiredAssemblies)
+            {
+                if (!TryAddFromLoadedContext(assemblyName))
+                {
+                    missing.Add(assemblyName);
+                }
+            }
+
+            if (missing.Count > 0)
+            {
+                foreach (var pathRef in GetWindowsDesktopReferencePaths(missing))
+                {
+                    AddReferenceFromFile(pathRef);
+                }
+            }
+
+            bool TryAddFromLoadedContext(string assemblyName)
             {
                 try
                 {
-                    var assembly = Assembly.Load(assemblyName);
-                    if (!string.IsNullOrEmpty(assembly.Location))
+                    var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                        .FirstOrDefault(asm => string.Equals(asm.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase))
+                        ?? Assembly.Load(assemblyName);
+
+                    if (assembly != null && !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
                     {
-                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                        AddReferenceFromFile(assembly.Location);
+                        return true;
                     }
                 }
                 catch
                 {
-                    // 如果无法加载某个程序集，忽略并继续
-                    try
-                    {
-                        // 尝试从当前域中查找已加载的程序集
-                        var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                            .FirstOrDefault(asm => asm.GetName().Name?.Equals(assemblyName, StringComparison.OrdinalIgnoreCase) == true);
-
-                        if (loadedAssembly != null && !loadedAssembly.IsDynamic && !string.IsNullOrEmpty(loadedAssembly.Location))
-                        {
-                            references.Add(MetadataReference.CreateFromFile(loadedAssembly.Location));
-                        }
-                    }
-                    catch
-                    {
-                        // 最终失败也忽略
-                    }
+                    // ignore load failures; we will try reference assemblies as a fallback
                 }
+
+                return false;
+            }
+
+            void AddReferenceFromFile(string pathRef)
+            {
+                if (string.IsNullOrWhiteSpace(pathRef) || !File.Exists(pathRef))
+                {
+                    return;
+                }
+
+                if (references.OfType<PortableExecutableReference>()
+                    .Any(r => string.Equals(r.FilePath, pathRef, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return;
+                }
+
+                references.Add(MetadataReference.CreateFromFile(pathRef));
             }
         }
 
@@ -716,21 +741,243 @@ namespace MonacoRoslynCompletionProvider.Api
 
             return lines;
         }
+        private static string GetHostTargetFramework(bool requireWindows)
+        {
+            var version = Environment.Version;
+            var major = version.Major >= 5 ? version.Major : 6;
+            var minor = version.Major >= 5 ? Math.Max(0, version.Minor) : 0;
+            var moniker = $"net{major}.{minor}";
+            if (requireWindows)
+            {
+                moniker += "-windows";
+            }
+            return moniker;
+        }
+
+        private static IEnumerable<string> GetWindowsDesktopReferencePaths(IEnumerable<string> assemblyNames)
+        {
+            if (assemblyNames == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var names = assemblyNames
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (names.Length == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            foreach (var packDir in EnumerateWindowsDesktopPackDirectories())
+            {
+                var refRoot = Path.Combine(packDir, "ref");
+                if (!Directory.Exists(refRoot))
+                {
+                    continue;
+                }
+
+                foreach (var tfmDir in EnumerateTfmDirectories(refRoot))
+                {
+                    var resolved = new List<string>();
+                    foreach (var name in names)
+                    {
+                        var candidate = Path.Combine(tfmDir, name + ".dll");
+                        if (File.Exists(candidate))
+                        {
+                            resolved.Add(candidate);
+                        }
+                    }
+
+                    if (resolved.Count > 0)
+                    {
+                        return resolved;
+                    }
+                }
+            }
+
+            return Array.Empty<string>();
+        }
+
+        private static IEnumerable<string> EnumerateWindowsDesktopPackDirectories()
+        {
+            foreach (var root in EnumerateDotnetRootCandidates())
+            {
+                var packBase = Path.Combine(root, "packs", "Microsoft.WindowsDesktop.App.Ref");
+                if (!Directory.Exists(packBase))
+                {
+                    continue;
+                }
+
+                var versionDirs = Directory.GetDirectories(packBase)
+                    .Select(dir => new { dir, version = TryParseVersionFromDirectory(Path.GetFileName(dir)) })
+                    .OrderByDescending(item => item.version)
+                    .ThenByDescending(item => item.dir, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var item in versionDirs)
+                {
+                    yield return item.dir;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateDotnetRootCandidates()
+        {
+            var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void AddIfExists(string pathCandidate)
+            {
+                if (string.IsNullOrWhiteSpace(pathCandidate))
+                {
+                    return;
+                }
+
+                try
+                {
+                    var fullPath = Path.GetFullPath(pathCandidate.Trim());
+                    if (Directory.Exists(fullPath))
+                    {
+                        roots.Add(fullPath);
+                    }
+                }
+                catch
+                {
+                    // ignore invalid paths
+                }
+            }
+
+            AddIfExists(Environment.GetEnvironmentVariable("DOTNET_ROOT"));
+            AddIfExists(Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"));
+
+            try
+            {
+                var processPath = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(processPath))
+                {
+                    var dir = Path.GetDirectoryName(processPath);
+                    AddIfExists(dir);
+                }
+            }
+            catch
+            {
+                // ignore access errors
+            }
+
+            try
+            {
+                var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                if (!string.IsNullOrEmpty(programFiles))
+                {
+                    AddIfExists(Path.Combine(programFiles, "dotnet"));
+                }
+            }
+            catch
+            {
+                // ignore folder resolution errors
+            }
+
+            try
+            {
+                var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                if (!string.IsNullOrEmpty(programFilesX86))
+                {
+                    AddIfExists(Path.Combine(programFilesX86, "dotnet"));
+                }
+            }
+            catch
+            {
+                // ignore folder resolution errors
+            }
+
+            return roots;
+        }
+
+        private static IEnumerable<string> EnumerateTfmDirectories(string refRoot)
+        {
+            if (!Directory.Exists(refRoot))
+            {
+                yield break;
+            }
+
+            var runtimeVersion = Environment.Version;
+
+            var candidates = Directory.GetDirectories(refRoot)
+                .Select(dir =>
+                {
+                    var name = Path.GetFileName(dir);
+                    var version = ParseTfmVersion(name);
+                    var isWindows = name.IndexOf("windows", StringComparison.OrdinalIgnoreCase) >= 0;
+                    var scoreMajor = version.Major == runtimeVersion.Major ? 1 : 0;
+                    var scoreMinor = version.Minor == runtimeVersion.Minor ? 1 : 0;
+                    return new
+                    {
+                        Dir = dir,
+                        Name = name,
+                        Version = version,
+                        IsWindows = isWindows,
+                        ScoreMajor = scoreMajor,
+                        ScoreMinor = scoreMinor
+                    };
+                })
+                .OrderByDescending(c => c.IsWindows)
+                .ThenByDescending(c => c.ScoreMajor)
+                .ThenByDescending(c => c.ScoreMinor)
+                .ThenByDescending(c => c.Version)
+                .ThenByDescending(c => c.Name, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var candidate in candidates)
+            {
+                yield return candidate.Dir;
+            }
+        }
+
+        private static Version ParseTfmVersion(string tfm)
+        {
+            if (string.IsNullOrWhiteSpace(tfm) || !tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+            {
+                return new Version(0, 0);
+            }
+
+            var span = tfm.AsSpan(3);
+            var dashIndex = span.IndexOf('-');
+            if (dashIndex >= 0)
+            {
+                span = span[..dashIndex];
+            }
+
+            return Version.TryParse(span.ToString(), out var version) ? version : new Version(0, 0);
+        }
+
+        private static Version TryParseVersionFromDirectory(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new Version(0, 0);
+            }
+
+            return Version.TryParse(name, out var version) ? version : new Version(0, 0);
+        }
 
         private static string BuildProjectFileContent(string assemblyName, string nuget, int languageVersion, string projectType)
         {
+            var normalizedType = NormalizeProjectType(projectType);
             var sdk = "Microsoft.NET.Sdk";
-            var targetFramework = "net9.0";
+            var targetFramework = GetHostTargetFramework(requireWindows: false);
             var outputTypeValue = "Exe";
             var propertyExtraLines = new List<string>();
+            var frameworkReferences = new List<string>();
 
-            switch (projectType)
+            switch (normalizedType)
             {
                 case "winforms":
-                    targetFramework = "net9.0-windows";
+                    targetFramework = GetHostTargetFramework(requireWindows: true);
                     outputTypeValue = "WinExe";
                     propertyExtraLines.Add("    <UseWindowsForms>true</UseWindowsForms>");
                     propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
+                    frameworkReferences.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                     break;
                 case "webapi":
                     sdk = "Microsoft.NET.Sdk.Web";
@@ -768,6 +1015,16 @@ namespace MonacoRoslynCompletionProvider.Api
             {
                 builder.AppendLine("  <ItemGroup>");
                 foreach (var line in packages)
+                {
+                    builder.AppendLine(line);
+                }
+                builder.AppendLine("  </ItemGroup>");
+            }
+
+            if (frameworkReferences.Count > 0)
+            {
+                builder.AppendLine("  <ItemGroup>");
+                foreach (var line in frameworkReferences)
                 {
                     builder.AppendLine(line);
                 }
@@ -917,20 +1174,20 @@ namespace MonacoRoslynCompletionProvider.Api
 
                 var normalizedProjectType = NormalizeProjectType(projectType);
                 var sdk = "Microsoft.NET.Sdk";
-                var targetFramework = "net9.0";
+                var targetFramework = GetHostTargetFramework(requireWindows: false);
                 var outputTypeValue = "Exe";
                 var propertyExtraLines = new List<string>();
                 var frameworkRefLines = new List<string>();
-
                 switch (normalizedProjectType)
                 {
                     case "winform":
                     case "winforms":
                     case "windowsforms":
-                        targetFramework = "net9.0-windows";
+                        targetFramework = GetHostTargetFramework(requireWindows: true);
                         outputTypeValue = "WinExe";
                         propertyExtraLines.Add("    <UseWindowsForms>true</UseWindowsForms>");
                         propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
+                        frameworkRefLines.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                         break;
                     case "aspnetcore":
                     case "aspnetcorewebapi":
@@ -1120,5 +1377,15 @@ namespace MonacoRoslynCompletionProvider.Api
 
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
