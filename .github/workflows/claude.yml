@@ -47,7 +47,7 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
           claude_args: |
-            --model claude-4-0-sonnet-20250805
+            --model sonnet
             --max-turns 50
             --dangerously-skip-permissions
             --allowed-tools *
