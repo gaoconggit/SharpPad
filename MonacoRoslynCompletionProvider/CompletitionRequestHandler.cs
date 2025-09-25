@@ -19,78 +19,154 @@ namespace MonacoRoslynCompletionProvider
 {
     public static class MonacoRequestHandler
     {
-        private static readonly string[] SAssemblies = [
-            .. AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-                .Select(a => a.Location).ToArray(),
-            Path.Combine("Dll", "System.Text.Json.dll"),
-            Path.Combine("Dll", "FreeSql.dll"),
-            Path.Combine("Dll", "CSRedisCore.dll"),
-            Path.Combine("Dll", "RestSharp.dll"),
-        ];
+        private static string[] GetAssembliesForProjectType(string projectType = null)
+        {
+            var baseAssemblies = new List<string>();
 
-        public static async Task<TabCompletionResult[]> CompletionHandle(TabCompletionRequest tabCompletionRequest, string nuget)
+            // 添加应用程序域中已加载的程序集
+            baseAssemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .Select(a => a.Location));
+
+            // 添加预定义的程序集
+            baseAssemblies.AddRange(new[]
+            {
+                Path.Combine("Dll", "System.Text.Json.dll"),
+                Path.Combine("Dll", "FreeSql.dll"),
+                Path.Combine("Dll", "CSRedisCore.dll"),
+                Path.Combine("Dll", "RestSharp.dll"),
+            });
+
+            // 只有在项目类型为 winforms 时才加载 Windows Forms 程序集
+            if (IsWindowsFormsProject(projectType))
+            {
+                baseAssemblies.AddRange(GetWindowsFormsAssemblies());
+            }
+
+            return baseAssemblies.ToArray();
+        }
+
+        private static bool IsWindowsFormsProject(string projectType)
+        {
+            if (string.IsNullOrWhiteSpace(projectType))
+            {
+                return false;
+            }
+
+            var normalized = projectType.ToLowerInvariant()
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("_", "");
+
+            return normalized.Contains("winform") ||
+                   normalized.Contains("form") ||
+                   normalized.Contains("windows");
+        }
+
+        private static string[] GetWindowsFormsAssemblies()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                return Array.Empty<string>();
+            }
+
+            var assemblies = new List<string>();
+            var requiredAssemblies = new[]
+            {
+                "System.Windows.Forms",
+                "System.Drawing",
+                "System.Drawing.Common",
+                "Microsoft.Win32.SystemEvents"
+            };
+
+            foreach (var assemblyName in requiredAssemblies)
+            {
+                try
+                {
+                    var assembly = Assembly.Load(assemblyName);
+                    if (!string.IsNullOrEmpty(assembly.Location))
+                    {
+                        assemblies.Add(assembly.Location);
+                    }
+                }
+                catch
+                {
+                    // 忽略加载失败的程序集
+                }
+            }
+
+            return assemblies.ToArray();
+        }
+
+        public static async Task<TabCompletionResult[]> CompletionHandle(TabCompletionRequest tabCompletionRequest, string nuget, string projectType = null)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(tabCompletionRequest.Code);
             return await document.GetTabCompletion(tabCompletionRequest.Position, CancellationToken.None);
         }
 
-        public static async Task<HoverInfoResult> HoverHandle(HoverInfoRequest hoverInfoRequest, string nuget)
+        public static async Task<HoverInfoResult> HoverHandle(HoverInfoRequest hoverInfoRequest, string nuget, string projectType = null)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
+            var assemblies = GetAssembliesForProjectType(projectType);
 
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(hoverInfoRequest.Code);
             return await document.GetHoverInformation(hoverInfoRequest.Position, CancellationToken.None);
         }
 
-        public static async Task<CodeCheckResult[]> CodeCheckHandle(CodeCheckRequest codeCheckRequest, string nuget)
+        public static async Task<CodeCheckResult[]> CodeCheckHandle(CodeCheckRequest codeCheckRequest, string nuget, string projectType = null)
         {
             // 加载 NuGet 包
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
+            var assemblies = GetAssembliesForProjectType(projectType);
 
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(codeCheckRequest.Code);
             return await document.GetCodeCheckResults(CancellationToken.None);
         }
 
-        public static async Task<SignatureHelpResult> SignatureHelpHandle(SignatureHelpRequest signatureHelpRequest, string nuget)
+        public static async Task<SignatureHelpResult> SignatureHelpHandle(SignatureHelpRequest signatureHelpRequest, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(signatureHelpRequest.Code);
             return await document.GetSignatureHelp(signatureHelpRequest.Position, CancellationToken.None);
         }
 
-        public static async Task<DefinitionResult> DefinitionHandle(DefinitionRequest definitionRequest, string nuget)
+        public static async Task<DefinitionResult> DefinitionHandle(DefinitionRequest definitionRequest, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(definitionRequest.Code);
             return await document.GetDefinition(definitionRequest.Position, CancellationToken.None);
         }
 
-        public static async Task<SemanticTokensResult> SemanticTokensHandle(SemanticTokensRequest semanticTokensRequest, string nuget)
+        public static async Task<SemanticTokensResult> SemanticTokensHandle(SemanticTokensRequest semanticTokensRequest, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(semanticTokensRequest.Code);
             return await document.GetSemanticTokens(CancellationToken.None);
         }
 
-        public static async Task<CodeActionResult[]> CodeActionsHandle(CodeActionRequest codeActionRequest, string nuget)
+        public static async Task<CodeActionResult[]> CodeActionsHandle(CodeActionRequest codeActionRequest, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
             var document = await workspace.CreateDocumentAsync(codeActionRequest.Code);
             return await document.GetCodeActions(
-                codeActionRequest.Position, 
-                codeActionRequest.SelectionStart, 
-                codeActionRequest.SelectionEnd, 
+                codeActionRequest.Position,
+                codeActionRequest.SelectionStart,
+                codeActionRequest.SelectionEnd,
                 CancellationToken.None);
         }
 
@@ -125,10 +201,11 @@ namespace MonacoRoslynCompletionProvider
         }
 
         // Multi-file completion methods
-        public static async Task<TabCompletionResult[]> MultiFileCompletionHandle(MultiFileTabCompletionRequest request, string nuget)
+        public static async Task<TabCompletionResult[]> MultiFileCompletionHandle(MultiFileTabCompletionRequest request, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
 
             // Find the target file from the files list
             var targetFile = request.Files.FirstOrDefault(f => f.FileName == request.TargetFileId)
@@ -149,10 +226,11 @@ namespace MonacoRoslynCompletionProvider
             return await document.GetTabCompletion(adjustedPosition, CancellationToken.None);
         }
 
-        public static async Task<CodeCheckResult[]> MultiFileCodeCheckHandle(MultiFileCodeCheckRequest request, string nuget)
+        public static async Task<CodeCheckResult[]> MultiFileCodeCheckHandle(MultiFileCodeCheckRequest request, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
 
             // Create a combined document with all files; ensure target file (if provided)
             // is included as-is so offsets map cleanly back to the original editor content.
@@ -165,10 +243,11 @@ namespace MonacoRoslynCompletionProvider
             return AdjustCodeCheckResults(results, request.Files, request.TargetFileId, combinedCode);
         }
 
-        public static async Task<SemanticTokensResult> MultiFileSemanticTokensHandle(MultiFileSemanticTokensRequest request, string nuget)
+        public static async Task<SemanticTokensResult> MultiFileSemanticTokensHandle(MultiFileSemanticTokensRequest request, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
 
             var targetFile = request.Files.FirstOrDefault(f => f.FileName == request.TargetFileId)
                           ?? request.Files.FirstOrDefault();
@@ -197,10 +276,11 @@ namespace MonacoRoslynCompletionProvider
             return new SemanticTokensResult { Data = encodedTokens };
         }
 
-        public static async Task<HoverInfoResult> MultiFileHoverHandle(MultiFileHoverInfoRequest request, string nuget)
+        public static async Task<HoverInfoResult> MultiFileHoverHandle(MultiFileHoverInfoRequest request, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
 
             var targetFile = request.Files.FirstOrDefault(f => f.FileName == request.TargetFileId)
                           ?? request.Files.FirstOrDefault();
@@ -218,10 +298,11 @@ namespace MonacoRoslynCompletionProvider
             return await document.GetHoverInformation(adjustedPosition, CancellationToken.None);
         }
 
-        public static async Task<SignatureHelpResult> MultiFileSignatureHelpHandle(MultiFileSignatureHelpRequest request, string nuget)
+        public static async Task<SignatureHelpResult> MultiFileSignatureHelpHandle(MultiFileSignatureHelpRequest request, string nuget, string projectType = null)
         {
             var nugetAssembliesArray = DownloadNugetPackages.LoadPackages(nuget).Select(a => a.Path).ToArray();
-            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. SAssemblies]);
+            var assemblies = GetAssembliesForProjectType(projectType);
+            var workspace = await CompletionWorkspace.CreateAsync([.. nugetAssembliesArray, .. assemblies]);
 
             var targetFile = request.Files.FirstOrDefault(f => f.FileName == request.TargetFileId)
                           ?? request.Files.FirstOrDefault();

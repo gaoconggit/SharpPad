@@ -9,5 +9,6 @@ namespace MonacoRoslynCompletionProvider.Api
         public int SelectionStart { get; set; }
         public int SelectionEnd { get; set; }
         public List<NugetPackage> Packages { get; set; } = new();
+        public string ProjectType { get; set; }
     }
 }

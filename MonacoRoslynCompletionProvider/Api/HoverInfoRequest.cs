@@ -13,5 +13,7 @@ namespace MonacoRoslynCompletionProvider.Api
         public virtual int Position { get; set; }
 
         public List<Package> Packages { get; set; }
+
+        public string ProjectType { get; set; }
     }
 }

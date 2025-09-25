@@ -14,7 +14,7 @@ namespace SharpPad.Controllers
         public async Task<IActionResult> Complete([FromBody] TabCompletionRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var tabCompletionResults = await MonacoRequestHandler.CompletionHandle(request, nugetPackages);
+            var tabCompletionResults = await MonacoRequestHandler.CompletionHandle(request, nugetPackages, request?.ProjectType);
             return Ok(tabCompletionResults);
         }
 
@@ -22,7 +22,7 @@ namespace SharpPad.Controllers
         public async Task<IActionResult> Signature([FromBody] SignatureHelpRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var signatureHelpResult = await MonacoRequestHandler.SignatureHelpHandle(request, nugetPackages);
+            var signatureHelpResult = await MonacoRequestHandler.SignatureHelpHandle(request, nugetPackages, request?.ProjectType);
             return Ok(signatureHelpResult);
         }
 
@@ -30,7 +30,7 @@ namespace SharpPad.Controllers
         public async Task<IActionResult> Hover([FromBody] HoverInfoRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var hoverInfoResult = await MonacoRequestHandler.HoverHandle(request, nugetPackages);
+            var hoverInfoResult = await MonacoRequestHandler.HoverHandle(request, nugetPackages, request?.ProjectType);
             return Ok(hoverInfoResult);
         }
 
@@ -41,7 +41,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var codeCheckResults = await MonacoRequestHandler.MultiFileCodeCheckHandle(request, nugetPackages);
+                var codeCheckResults = await MonacoRequestHandler.MultiFileCodeCheckHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(codeCheckResults);
             }
             else
@@ -50,9 +50,10 @@ namespace SharpPad.Controllers
                 var singleRequest = new CodeCheckRequest
                 {
                     Code = request?.Code,
-                    Packages = request?.Packages
+                    Packages = request?.Packages,
+                    ProjectType = request?.ProjectType,
                 };
-                var codeCheckResults = await MonacoRequestHandler.CodeCheckHandle(singleRequest, nugetPackages);
+                var codeCheckResults = await MonacoRequestHandler.CodeCheckHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(codeCheckResults);
             }
         }
@@ -72,7 +73,7 @@ namespace SharpPad.Controllers
         public async Task<IActionResult> Definition([FromBody] DefinitionRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var definitionResult = await MonacoRequestHandler.DefinitionHandle(request, nugetPackages);
+            var definitionResult = await MonacoRequestHandler.DefinitionHandle(request, nugetPackages, request?.ProjectType);
             return Ok(definitionResult);
         }
 
@@ -80,7 +81,7 @@ namespace SharpPad.Controllers
         public async Task<IActionResult> SemanticTokens([FromBody] SemanticTokensRequest request)
         {
             string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-            var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(request, nugetPackages);
+            var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(request, nugetPackages, request?.ProjectType);
             return Ok(semanticTokensResult);
         }
 
@@ -91,7 +92,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var semanticTokensResult = await MonacoRequestHandler.MultiFileSemanticTokensHandle(request, nugetPackages);
+                var semanticTokensResult = await MonacoRequestHandler.MultiFileSemanticTokensHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(semanticTokensResult);
             }
             else
@@ -99,10 +100,11 @@ namespace SharpPad.Controllers
                 var singleRequest = new SemanticTokensRequest
                 {
                     Code = request?.Code ?? string.Empty,
-                    Packages = request?.Packages ?? new List<Package>()
+                    Packages = request?.Packages ?? new List<Package>(),
+                    ProjectType = request?.ProjectType
                 };
 
-                var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(singleRequest, nugetPackages);
+                var semanticTokensResult = await MonacoRequestHandler.SemanticTokensHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(semanticTokensResult);
             }
         }
@@ -137,7 +139,7 @@ namespace SharpPad.Controllers
             try
             {
                 string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-                var codeActionResults = await MonacoRequestHandler.CodeActionsHandle(request, nugetPackages);
+                var codeActionResults = await MonacoRequestHandler.CodeActionsHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(codeActionResults);
             }
             catch (Exception ex)
@@ -175,7 +177,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var tabCompletionResults = await MonacoRequestHandler.MultiFileCompletionHandle(request, nugetPackages);
+                var tabCompletionResults = await MonacoRequestHandler.MultiFileCompletionHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(tabCompletionResults);
             }
             else
@@ -185,9 +187,10 @@ namespace SharpPad.Controllers
                 {
                     Code = request?.Code,
                     Position = request?.Position ?? 0,
-                    Packages = request?.Packages
+                    Packages = request?.Packages,
+                    ProjectType = request?.ProjectType,
                 };
-                var tabCompletionResults = await MonacoRequestHandler.CompletionHandle(singleRequest, nugetPackages);
+                var tabCompletionResults = await MonacoRequestHandler.CompletionHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(tabCompletionResults);
             }
         }
@@ -199,7 +202,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var codeCheckResults = await MonacoRequestHandler.MultiFileCodeCheckHandle(request, nugetPackages);
+                var codeCheckResults = await MonacoRequestHandler.MultiFileCodeCheckHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(codeCheckResults);
             }
             else
@@ -208,9 +211,10 @@ namespace SharpPad.Controllers
                 var singleRequest = new CodeCheckRequest
                 {
                     Code = request?.Code,
-                    Packages = request?.Packages
+                    Packages = request?.Packages,
+                    ProjectType = request?.ProjectType
                 };
-                var codeCheckResults = await MonacoRequestHandler.CodeCheckHandle(singleRequest, nugetPackages);
+                var codeCheckResults = await MonacoRequestHandler.CodeCheckHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(codeCheckResults);
             }
         }
@@ -222,7 +226,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var signatureHelpResult = await MonacoRequestHandler.MultiFileSignatureHelpHandle(request, nugetPackages);
+                var signatureHelpResult = await MonacoRequestHandler.MultiFileSignatureHelpHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(signatureHelpResult);
             }
             else
@@ -232,9 +236,10 @@ namespace SharpPad.Controllers
                 {
                     Code = request?.Code,
                     Position = request?.Position ?? 0,
-                    Packages = request?.Packages
+                    Packages = request?.Packages,
+                    ProjectType = request?.ProjectType
                 };
-                var signatureHelpResult = await MonacoRequestHandler.SignatureHelpHandle(singleRequest, nugetPackages);
+                var signatureHelpResult = await MonacoRequestHandler.SignatureHelpHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(signatureHelpResult);
             }
         }
@@ -246,7 +251,7 @@ namespace SharpPad.Controllers
 
             if (request?.IsMultiFile == true)
             {
-                var hoverInfoResult = await MonacoRequestHandler.MultiFileHoverHandle(request, nugetPackages);
+                var hoverInfoResult = await MonacoRequestHandler.MultiFileHoverHandle(request, nugetPackages, request?.ProjectType);
                 return Ok(hoverInfoResult);
             }
             else
@@ -256,9 +261,10 @@ namespace SharpPad.Controllers
                 {
                     Code = request?.Code,
                     Position = request?.Position ?? 0,
-                    Packages = request?.Packages
+                    Packages = request?.Packages,
+                    ProjectType = request?.ProjectType
                 };
-                var hoverInfoResult = await MonacoRequestHandler.HoverHandle(singleRequest, nugetPackages);
+                var hoverInfoResult = await MonacoRequestHandler.HoverHandle(singleRequest, nugetPackages, request?.ProjectType);
                 return Ok(hoverInfoResult);
             }
         }

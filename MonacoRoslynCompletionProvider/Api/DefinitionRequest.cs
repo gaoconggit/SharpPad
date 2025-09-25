@@ -7,6 +7,7 @@ namespace MonacoRoslynCompletionProvider.Api
         public string Code { get; set; } = string.Empty;
         public int Position { get; set; }
         public List<NugetPackage> Packages { get; set; } = new();
+        public string ProjectType { get; set; }
     }
     
     public class NugetPackage

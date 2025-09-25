@@ -34,5 +34,10 @@ namespace MonacoRoslynCompletionProvider.Api
         /// Indicates if the request contains multiple files.
         /// </summary>
         public bool IsMultiFile => Files != null && Files.Count > 0;
+
+        /// <summary>
+        /// Project type (e.g., "console", "winforms", "web")
+        /// </summary>
+        public string ProjectType { get; set; }
     }
 }

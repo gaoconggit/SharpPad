@@ -6,5 +6,6 @@ namespace MonacoRoslynCompletionProvider.Api
     {
         public string Code { get; set; } = string.Empty;
         public List<Package> Packages { get; set; } = new();
+        public string ProjectType { get; set; }
     }
 }

@@ -10,5 +10,7 @@ namespace MonacoRoslynCompletionProvider.Api
         public virtual string Code { get; set; }
 
         public List<Package> Packages { get; set; }
+
+        public string ProjectType { get; set; }
     }
 }
