@@ -46,8 +46,4 @@ jobs:
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
-          claude_args: |
-            --model claude-sonnet-4-20250514
-            --max-turns 50
-            --dangerously-skip-permissions
-            --allowed-tools *
+          claude_args: '--model claude-sonnet-4-20250514 --max-turns 50 --dangerously-skip-permissions --allowed-tools *'
