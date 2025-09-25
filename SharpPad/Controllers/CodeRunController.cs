@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System.Text.Json;
 using System.Threading.Channels;
 using System.IO.Compression;
+using System.Collections.Concurrent;
 using static MonacoRoslynCompletionProvider.Api.CodeRunner;
 
 namespace SharpPad.Controllers
@@ -14,6 +15,8 @@ namespace SharpPad.Controllers
     [Route("api/[controller]")]
     public class CodeRunController : ControllerBase
     {
+        // 会话管理：存储活跃的会话和对应的取消令牌
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeSessions = new();
         [HttpPost("run")]
         public async Task Run([FromBody] MultiFileCodeRunRequest request)
         {
@@ -26,6 +29,12 @@ namespace SharpPad.Controllers
 
             var cts = new CancellationTokenSource();
             HttpContext.RequestAborted.Register(() => cts.Cancel());
+
+            // 注册会话，如果有SessionId的话
+            if (!string.IsNullOrEmpty(request?.SessionId))
+            {
+                _activeSessions.TryAdd(request.SessionId, cts);
+            }
 
             // 创建一个无界的 Channel 以缓冲输出
             var channel = Channel.CreateUnbounded<string>();
@@ -87,6 +96,14 @@ namespace SharpPad.Controllers
                     {
                         // 如果响应已经被处理，则忽略该异常
                     }
+                }
+            }
+            finally
+            {
+                // 清理会话
+                if (!string.IsNullOrEmpty(request?.SessionId))
+                {
+                    _activeSessions.TryRemove(request.SessionId, out _);
                 }
             }
         }
@@ -167,6 +184,25 @@ namespace SharpPad.Controllers
             return Ok(new { success });
         }
 
+        [HttpPost("stop")]
+        public IActionResult StopExecution([FromBody] StopRequest request)
+        {
+            if (string.IsNullOrEmpty(request?.SessionId))
+            {
+                return BadRequest("SessionId is required");
+            }
+
+            // 查找并取消对应的会话
+            if (_activeSessions.TryGetValue(request.SessionId, out var cts))
+            {
+                cts.Cancel();
+                _activeSessions.TryRemove(request.SessionId, out _);
+                return Ok(new { success = true, message = "代码执行已停止" });
+            }
+
+            return Ok(new { success = false, message = "未找到活跃的执行会话" });
+        }
+
         [HttpPost("buildExe")]
         public async Task<IActionResult> BuildExe([FromBody] ExeBuildRequest request)
         {
@@ -237,5 +273,10 @@ namespace SharpPad.Controllers
     {
         public string SessionId { get; set; }
         public string Input { get; set; }
+    }
+
+    public class StopRequest
+    {
+        public string SessionId { get; set; }
     }
 }
