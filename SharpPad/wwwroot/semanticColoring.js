@@ -289,18 +289,23 @@ function setupModelSemanticColoring(model, legend) {
  */
 async function applySemanticDecorationsFast(model, tokenData, legend, decorationIds) {
     const lines = model.getLinesContent();
+    const stringRanges = detectStringRanges(model);
     const commentLines = new Set();
-    
-    // 极速注释行扫描
+
+    // 粗略注释扫描（忽略字符串内的 //）
     for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes('//')) {
-            commentLines.add(i + 1);
+        const line = lines[i];
+        const commentIndex = line.indexOf("//");
+        if (commentIndex !== -1) {
+            const commentPos = { line: i + 1, char: commentIndex };
+            if (!isPositionInString(commentPos, stringRanges)) {
+                commentLines.add(i + 1);
+            }
         }
     }
 
-    // 如果有 Worker 且数据量大，使用 Worker 处理
+    // 如果有 Worker 支持且数据量较大，使用 Worker 处理
     if (semanticWorker && tokenData.length > 1000) {
-        const stringRanges = detectStringRanges(model);
         
         return new Promise((resolve) => {
             const handleWorkerMessage = (e) => {
@@ -330,7 +335,6 @@ async function applySemanticDecorationsFast(model, tokenData, legend, decoration
     let currentChar = 0;
     
     // 检测字符串范围以避免在字符串内部应用语义着色
-    const stringRanges = detectStringRanges(model);
     
     // 只处理关键令牌类型，添加更多重要的类型
     const importantTypes = new Set(['class', 'interface', 'method', 'function', 'comment', 'type', 'struct', 'enum']);
@@ -344,7 +348,13 @@ async function applySemanticDecorationsFast(model, tokenData, legend, decoration
         
         // 更精确的注释检测
         const lineContent = model.getLineContent(currentLine + 1);
-        const commentStart = lineContent.indexOf('//');
+        let commentStart = lineContent.indexOf("//");
+        if (commentStart !== -1) {
+            const commentPos = { line: currentLine + 1, char: commentStart };
+            if (isPositionInString(commentPos, stringRanges)) {
+                commentStart = -1;
+            }
+        }
         const isInComment = commentStart !== -1 && currentChar >= commentStart;
         
         // 检查是否在字符串内部

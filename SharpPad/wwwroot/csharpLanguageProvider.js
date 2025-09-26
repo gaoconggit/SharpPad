@@ -1,9 +1,11 @@
 import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
+import { overrideCSharpLanguage } from './csharpLanguageDefinition.js';
 
 export function registerCsharpProvider() {
-    // Monaco Editor 已内置 C# 语言支持
-    // 完全使用原生语法高亮，不添加任何增强着色
+    // Override Monaco's built-in C# language with enhanced tokenizer
+    // This specifically fixes the issue where https:// inside strings affects .Dump() highlighting
+    overrideCSharpLanguage();
 
     monaco.languages.registerCompletionItemProvider('csharp', {
         triggerCharacters: [".", " "],
