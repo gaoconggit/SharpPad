@@ -58,18 +58,22 @@ function mergePackageLists(...groups) {
 export class CodeRunner {
     constructor() {
         this.runButton = document.getElementById('runButton');
+        this.stopButton = document.getElementById('stopButton');
         this.buildExeButton = document.getElementById('buildExeButton');
         this.outputContent = document.getElementById('outputContent');
         this.notification = document.getElementById('notification');
         this.projectTypeSelect = document.getElementById('projectTypeSelect');
         this.projectTypeStorageKey = 'sharpPad.projectType';
         this.currentSessionId = null;
+        this.isRunning = false;
+        this.isStopping = false;
         this.initializeProjectTypeSelector();
         this.initializeEventListeners();
     }
 
     initializeEventListeners() {
         this.runButton.addEventListener('click', () => this.runCode(window.editor.getValue()));
+        this.stopButton.addEventListener('click', () => this.stopCode());
         this.buildExeButton.addEventListener('click', () => this.buildExe(window.editor.getValue()));
     }
 
@@ -102,6 +106,96 @@ export class CodeRunner {
             }));
         });
     }
+
+    setRunningState(isRunning) {
+        this.isRunning = isRunning;
+        if (isRunning) {
+            this.runButton.style.display = 'none';
+            this.stopButton.style.display = 'inline-block';
+            this.stopButton.disabled = false;
+        } else {
+            this.runButton.style.display = 'inline-block';
+            this.stopButton.style.display = 'none';
+            this.stopButton.disabled = false;
+        }
+
+        // 如果正在停止，禁用停止按钮
+        if (this.isStopping) {
+            this.stopButton.disabled = true;
+            this.stopButton.textContent = '停止中...';
+        } else {
+            this.stopButton.textContent = '停止';
+        }
+    }
+
+    async stopCode() {
+        if (!this.currentSessionId) {
+            this.appendOutput('没有正在运行的代码需要停止', 'error');
+            return;
+        }
+
+        if (this.isStopping) {
+            this.appendOutput('停止操作正在进行中...', 'info');
+            return;
+        }
+
+        this.isStopping = true;
+
+        try {
+            const request = {
+                SessionId: this.currentSessionId
+            };
+
+            // 添加超时控制，防止长时间等待
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+
+            const response = await fetch('/api/coderun/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.appendOutput('✅ 代码执行已停止', 'info');
+                this.notification.textContent = '执行已停止';
+                this.notification.style.backgroundColor = 'rgba(255, 152, 0, 0.9)';
+                this.notification.style.display = 'block';
+
+                // 3秒后隐藏通知
+                setTimeout(() => {
+                    this.notification.style.display = 'none';
+                }, 3000);
+            } else {
+                this.appendOutput(`停止失败: ${result.message || '未知错误'}`, 'error');
+            }
+
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                this.appendOutput('停止请求超时，但代码执行可能已被终止', 'error');
+            } else {
+                this.appendOutput('停止代码执行失败: ' + error.message, 'error');
+            }
+        } finally {
+            // 重置状态
+            this.isStopping = false;
+            this.currentSessionId = null;
+            this.setRunningState(false);
+            this.outputContent.classList.remove("result-streaming");
+        }
+    }
+
     appendOutput(message, type = 'info') {
         const outputLine = document.createElement('div');
         outputLine.className = `output-${type}`;
@@ -255,6 +349,7 @@ export class CodeRunner {
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
         const projectType = (this.projectTypeSelect?.value || 'console').toLowerCase();
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        this.setRunningState(true);
 
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
@@ -345,6 +440,7 @@ export class CodeRunner {
                             this.notification.style.display = 'none';
                             this.outputContent.classList.remove("result-streaming");
                             this.currentSessionId = null; // 清空会话ID
+                            this.setRunningState(false); // 重置运行状态
                             return;
                     }
                 }
@@ -354,6 +450,7 @@ export class CodeRunner {
             this.notification.textContent = '运行失败';
             this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
             this.notification.style.display = 'block';
+            this.setRunningState(false); // 重置运行状态
         }
     }
 

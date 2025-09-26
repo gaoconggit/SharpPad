@@ -140,7 +140,8 @@ namespace MonacoRoslynCompletionProvider.Api
             Func<string, Task> onOutput,
             Func<string, Task> onError,
             string sessionId = null,
-            string projectType = null)
+            string projectType = null,
+            CancellationToken cancellationToken = default)
         {
             var result = new RunResult();
             CustomAssemblyLoadContext loadContext = null;
@@ -276,6 +277,9 @@ namespace MonacoRoslynCompletionProvider.Api
                             }
                             try
                             {
+                                // 检查取消令牌
+                                cancellationToken.ThrowIfCancellationRequested();
+
                                 if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
                                 {
                                     entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
@@ -284,6 +288,10 @@ namespace MonacoRoslynCompletionProvider.Api
                                 {
                                     entryPoint.Invoke(null, null);
                                 }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                await onError("代码执行已被取消").ConfigureAwait(false);
                             }
                             catch (Exception ex)
                             {
@@ -342,7 +350,8 @@ namespace MonacoRoslynCompletionProvider.Api
     Func<string, Task> onOutput,
     Func<string, Task> onError,
     string sessionId = null,
-    string projectType = null)
+    string projectType = null,
+    CancellationToken cancellationToken = default)
         {
             var result = new RunResult();
             // 低内存版本：不使用 StringBuilder 缓存输出，只依赖回调传递实时数据
@@ -474,6 +483,9 @@ namespace MonacoRoslynCompletionProvider.Api
                             }
                             try
                             {
+                                // 检查取消令牌
+                                cancellationToken.ThrowIfCancellationRequested();
+
                                 if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
                                 {
                                     // 兼容 Main(string[] args)
@@ -483,6 +495,10 @@ namespace MonacoRoslynCompletionProvider.Api
                                 {
                                     entryPoint.Invoke(null, null);
                                 }
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                await onError("代码执行已被取消").ConfigureAwait(false);
                             }
                             catch (Exception ex)
                             {
@@ -497,7 +513,7 @@ namespace MonacoRoslynCompletionProvider.Api
                                     Console.SetError(originalError);
                                     Console.SetIn(originalIn);
                                 }
-                                
+
                                 // 清理会话
                                 if (!string.IsNullOrEmpty(sessionId))
                                 {
