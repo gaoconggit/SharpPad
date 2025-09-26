@@ -66,6 +66,7 @@ export class CodeRunner {
         this.projectTypeStorageKey = 'sharpPad.projectType';
         this.currentSessionId = null;
         this.isRunning = false;
+        this.isStopping = false;
         this.initializeProjectTypeSelector();
         this.initializeEventListeners();
     }
@@ -106,9 +107,19 @@ export class CodeRunner {
         if (isRunning) {
             this.runButton.style.display = 'none';
             this.stopButton.style.display = 'inline-block';
+            this.stopButton.disabled = false;
         } else {
             this.runButton.style.display = 'inline-block';
             this.stopButton.style.display = 'none';
+            this.stopButton.disabled = false;
+        }
+
+        // 如果正在停止，禁用停止按钮
+        if (this.isStopping) {
+            this.stopButton.disabled = true;
+            this.stopButton.textContent = '停止中...';
+        } else {
+            this.stopButton.textContent = '停止';
         }
     }
 
@@ -118,18 +129,36 @@ export class CodeRunner {
             return;
         }
 
+        if (this.isStopping) {
+            this.appendOutput('停止操作正在进行中...', 'info');
+            return;
+        }
+
+        this.isStopping = true;
+
         try {
             const request = {
                 SessionId: this.currentSessionId
             };
+
+            // 添加超时控制，防止长时间等待
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
 
             const response = await fetch('/api/coderun/stop', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(request)
+                body: JSON.stringify(request),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
 
             const result = await response.json();
 
@@ -144,17 +173,21 @@ export class CodeRunner {
                     this.notification.style.display = 'none';
                 }, 3000);
             } else {
-                this.appendOutput(`停止失败: ${result.message}`, 'error');
+                this.appendOutput(`停止失败: ${result.message || '未知错误'}`, 'error');
             }
 
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                this.appendOutput('停止请求超时，但代码执行可能已被终止', 'error');
+            } else {
+                this.appendOutput('停止代码执行失败: ' + error.message, 'error');
+            }
+        } finally {
             // 重置状态
+            this.isStopping = false;
             this.currentSessionId = null;
             this.setRunningState(false);
             this.outputContent.classList.remove("result-streaming");
-
-        } catch (error) {
-            this.appendOutput('停止代码执行失败: ' + error.message, 'error');
-            this.setRunningState(false);
         }
     }
 

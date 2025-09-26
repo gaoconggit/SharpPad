@@ -30,10 +30,14 @@ namespace SharpPad.Controllers
             var cts = new CancellationTokenSource();
             HttpContext.RequestAborted.Register(() => cts.Cancel());
 
-            // 注册会话，如果有SessionId的话
+            // 注册会话，如果有SessionId的话（使用线程安全操作）
             if (!string.IsNullOrEmpty(request?.SessionId))
             {
-                _activeSessions.TryAdd(request.SessionId, cts);
+                _activeSessions.AddOrUpdate(request.SessionId, cts, (key, existing) => {
+                    existing?.Cancel();
+                    existing?.Dispose();
+                    return cts;
+                });
             }
 
             // 创建一个无界的 Channel 以缓冲输出
@@ -49,7 +53,7 @@ namespace SharpPad.Controllers
                 // Check if it's a multi-file request
                 if (request?.IsMultiFile == true)
                 {
-                    // Execute multi-file code runner
+                    // Execute multi-file code runner with cancellation token
                     result = await CodeRunner.RunMultiFileCodeAsync(
                         request.Files,
                         nugetPackages,
@@ -57,12 +61,13 @@ namespace SharpPad.Controllers
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
                         sessionId: request?.SessionId,
-                        projectType: request?.ProjectType
+                        projectType: request?.ProjectType,
+                        cancellationToken: cts.Token
                     );
                 }
                 else
                 {
-                    // Backward compatibility: single file execution
+                    // Backward compatibility: single file execution with cancellation token
                     result = await CodeRunner.RunProgramCodeAsync(
                         request?.SourceCode,
                         nugetPackages,
@@ -70,7 +75,8 @@ namespace SharpPad.Controllers
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
                         sessionId: request?.SessionId,
-                        projectType: request?.ProjectType
+                        projectType: request?.ProjectType,
+                        cancellationToken: cts.Token
                     );
                 }
 
@@ -100,11 +106,15 @@ namespace SharpPad.Controllers
             }
             finally
             {
-                // 清理会话
+                // 清理会话并释放资源
                 if (!string.IsNullOrEmpty(request?.SessionId))
                 {
-                    _activeSessions.TryRemove(request.SessionId, out _);
+                    if (_activeSessions.TryRemove(request.SessionId, out var removedCts))
+                    {
+                        removedCts?.Dispose();
+                    }
                 }
+                cts?.Dispose();
             }
         }
 
@@ -189,18 +199,25 @@ namespace SharpPad.Controllers
         {
             if (string.IsNullOrEmpty(request?.SessionId))
             {
-                return BadRequest("SessionId is required");
+                return BadRequest(new { success = false, message = "SessionId is required" });
             }
 
-            // 查找并取消对应的会话
-            if (_activeSessions.TryGetValue(request.SessionId, out var cts))
+            try
             {
-                cts.Cancel();
-                _activeSessions.TryRemove(request.SessionId, out _);
-                return Ok(new { success = true, message = "代码执行已停止" });
-            }
+                // 查找并取消对应的会话，使用线程安全操作
+                if (_activeSessions.TryRemove(request.SessionId, out var cts))
+                {
+                    cts?.Cancel();
+                    cts?.Dispose();
+                    return Ok(new { success = true, message = "代码执行已停止" });
+                }
 
-            return Ok(new { success = false, message = "未找到活跃的执行会话" });
+                return Ok(new { success = false, message = "未找到活跃的执行会话" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"停止执行时发生错误: {ex.Message}" });
+            }
         }
 
         [HttpPost("buildExe")]
