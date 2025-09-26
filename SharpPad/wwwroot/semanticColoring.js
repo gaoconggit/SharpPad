@@ -1,4 +1,4 @@
-import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest } from './utils/common.js';
+import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, getCurrentProjectType, PROJECT_TYPE_CHANGE_EVENT } from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 
 /**
@@ -62,6 +62,10 @@ function registerSemanticTokensProvider(legend) {
 
 // 语义令牌缓存
 const tokenCache = new Map();
+
+window.addEventListener(PROJECT_TYPE_CHANGE_EVENT, () => {
+    tokenCache.clear();
+});
 
 // Web Worker 支持（如果可用）
 let semanticWorker = null;
@@ -147,13 +151,15 @@ async function getSemanticTokens(model) {
         Version: p.version
     }));
 
+    const projectType = getCurrentProjectType();
+
     const useMultiFile = shouldUseMultiFileMode(code);
     let cacheKey;
     let endpoint;
     let requestPayload;
 
     if (useMultiFile) {
-        const multiFileRequest = createMultiFileRequest(file?.name, undefined, packagesData, code);
+        const multiFileRequest = createMultiFileRequest(file?.name, undefined, packagesData, code, projectType);
         if (!multiFileRequest) {
             return { data: new Uint32Array(0) };
         }
@@ -163,15 +169,16 @@ async function getSemanticTokens(model) {
             .sort()
             .join('|');
 
-        cacheKey = hashCode(`mf:${multiFileRequest.TargetFileId}|${fingerprint}|${JSON.stringify(packagesData)}`);
+        cacheKey = hashCode(`mf:${projectType}|${multiFileRequest.TargetFileId}|${fingerprint}|${JSON.stringify(packagesData)}`);
         endpoint = "multiFileSemanticTokens";
         requestPayload = multiFileRequest;
     } else {
-        cacheKey = hashCode(`sf:${code}|${JSON.stringify(packagesData)}`);
+        cacheKey = hashCode(`sf:${projectType}|${code}|${JSON.stringify(packagesData)}`);
         endpoint = "semanticTokens";
         requestPayload = {
             Code: code,
-            Packages: packagesData
+            Packages: packagesData,
+            ProjectType: projectType
         };
     }
 
@@ -281,6 +288,18 @@ function setupModelSemanticColoring(model, legend) {
     model.onDidChangeContent(() => {
         clearTimeout(timeoutHandle);
         timeoutHandle = setTimeout(applyColoring, 300);
+    });
+
+    const handleProjectTypeChange = () => {
+        clearTimeout(timeoutHandle);
+        lastContentHash = '';
+        timeoutHandle = setTimeout(applyColoring, 100);
+    };
+
+    window.addEventListener(PROJECT_TYPE_CHANGE_EVENT, handleProjectTypeChange);
+
+    model.onWillDispose(() => {
+        window.removeEventListener(PROJECT_TYPE_CHANGE_EVENT, handleProjectTypeChange);
     });
 }
 

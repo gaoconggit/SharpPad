@@ -1,4 +1,11 @@
-import { getCurrentFile, shouldUseMultiFileMode, createMultiFileRequest, createSingleFileRequest } from './utils/common.js';
+import {
+    getCurrentFile,
+    shouldUseMultiFileMode,
+    createMultiFileRequest,
+    createSingleFileRequest,
+    getCurrentProjectType,
+    PROJECT_TYPE_CHANGE_EVENT
+} from './utils/common.js';
 import { sendRequest } from './utils/apiService.js';
 import { overrideCSharpLanguage } from './csharpLanguageDefinition.js';
 
@@ -19,15 +26,17 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
+            const projectType = getCurrentProjectType();
+
             const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileComplete";
             } else {
-                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
                 requestType = "complete";
             }
 
@@ -66,15 +75,17 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
+            const projectType = getCurrentProjectType();
+
             const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileSignature";
             } else {
-                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
                 requestType = "signature";
             }
 
@@ -129,15 +140,17 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
+            const projectType = getCurrentProjectType();
+
             const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue());
+                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileHover";
             } else {
-                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData);
+                request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
                 requestType = "hover";
             }
 
@@ -174,12 +187,14 @@ export function registerCsharpProvider() {
                 Version: p.version
             }));
 
+            const projectType = getCurrentProjectType();
+
             const useMultiFile = shouldUseMultiFileMode(model.getValue());
             let request;
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, undefined, packagesData, model.getValue());
+                request = createMultiFileRequest(file?.name, undefined, packagesData, model.getValue(), projectType);
                 if (!request) {
                     return;
                 }
@@ -187,7 +202,8 @@ export function registerCsharpProvider() {
             } else {
                 request = {
                     Code: model.getValue(),
-                    Packages: packagesData
+                    Packages: packagesData,
+                    ProjectType: projectType
                 };
                 requestType = "codeCheck";
             }
@@ -217,11 +233,26 @@ export function registerCsharpProvider() {
         }
 
         let handle = null;
-        model.onDidChangeContent(() => {
+        const scheduleValidation = (delay = 0) => {
             monaco.editor.setModelMarkers(model, 'csharp', []);
             clearTimeout(handle);
-            handle = setTimeout(() => validate(), 500);
+            handle = setTimeout(() => validate(), delay);
+        };
+
+        model.onDidChangeContent(() => {
+            scheduleValidation(500);
         });
+
+        const handleProjectTypeChange = () => {
+            scheduleValidation(0);
+        };
+
+        window.addEventListener(PROJECT_TYPE_CHANGE_EVENT, handleProjectTypeChange);
+
+        model.onWillDispose(() => {
+            window.removeEventListener(PROJECT_TYPE_CHANGE_EVENT, handleProjectTypeChange);
+        });
+
         validate();
     });
 
@@ -253,6 +284,7 @@ export function registerCsharpProvider() {
         async provideDefinition(model, position) {
             const file = getCurrentFile();
             const packages = file?.nugetConfig?.packages || [];
+            const projectType = getCurrentProjectType();
 
             let request = {
                 Code: model.getValue(),
@@ -260,7 +292,8 @@ export function registerCsharpProvider() {
                 Packages: packages.map(p => ({
                     Id: p.id,
                     Version: p.version
-                }))
+                })),
+                ProjectType: projectType
             };
 
             try {
