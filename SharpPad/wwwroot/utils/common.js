@@ -1,5 +1,28 @@
 import { extractDirectiveReferences, buildMultiFileContext } from './multiFileHelper.js';
 
+export const PROJECT_TYPE_CHANGE_EVENT = 'sharppad:projectTypeChanged';
+
+export function getCurrentProjectType() {
+    const fallback = 'console';
+    try {
+        const select = document.getElementById('projectTypeSelect');
+        if (select && select.value) {
+            return select.value.toLowerCase();
+        }
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const stored = window.localStorage.getItem('sharpPad.projectType');
+            if (stored) {
+                return stored.toLowerCase();
+            }
+        }
+    } catch (error) {
+        console.warn('无法获取项目类型:', error);
+    }
+
+    return fallback;
+}
+
 function sanitizePackageList(packages) {
     if (!Array.isArray(packages)) {
         return [];
@@ -88,7 +111,7 @@ export function shouldUseMultiFileMode(currentContent) {
 }
 
 // 创建多文件请求
-export function createMultiFileRequest(targetFileName, position, packages, currentContent) {
+export function createMultiFileRequest(targetFileName, position, packages, currentContent, projectType) {
     const sanitizedPackages = sanitizePackageList(packages);
     const context = buildMultiFileContext({
         entryFileName: targetFileName || null,
@@ -116,6 +139,10 @@ export function createMultiFileRequest(targetFileName, position, packages, curre
         }))
     };
 
+    if (projectType) {
+        request.ProjectType = projectType.toLowerCase();
+    }
+
     if (typeof position === 'number') {
         request.Position = position;
     }
@@ -124,11 +151,12 @@ export function createMultiFileRequest(targetFileName, position, packages, curre
 }
 
 // 创建单文件请求（向后兼容）
-export function createSingleFileRequest(code, position, packages) {
+export function createSingleFileRequest(code, position, packages, projectType) {
     return {
         Code: code,
         Position: position,
-        Packages: packages
+        Packages: packages,
+        ProjectType: (projectType || 'console').toLowerCase()
     };
 }
 

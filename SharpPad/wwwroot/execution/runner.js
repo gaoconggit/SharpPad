@@ -1,4 +1,4 @@
-import { getCurrentFile } from '../utils/common.js';
+import { getCurrentFile, PROJECT_TYPE_CHANGE_EVENT } from '../utils/common.js';
 import { sendRequest } from '../utils/apiService.js';
 import { FileManager } from '../fileSystem/fileManager.js';
 import { buildMultiFileContext } from '../utils/multiFileHelper.js';
@@ -90,11 +90,16 @@ export class CodeRunner {
         }
 
         this.projectTypeSelect.addEventListener('change', () => {
+            const selectedType = (this.projectTypeSelect.value || 'console').toLowerCase();
             try {
-                window.localStorage.setItem(this.projectTypeStorageKey, this.projectTypeSelect.value);
+                window.localStorage.setItem(this.projectTypeStorageKey, selectedType);
             } catch (error) {
                 console.warn('无法保存项目类型偏好:', error);
             }
+
+            window.dispatchEvent(new CustomEvent(PROJECT_TYPE_CHANGE_EVENT, {
+                detail: { projectType: selectedType }
+            }));
         });
     }
     appendOutput(message, type = 'info') {
