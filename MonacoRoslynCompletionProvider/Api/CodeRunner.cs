@@ -233,6 +233,7 @@ public class RunResult
                 });
             }
 
+            var normalizedProjectType = NormalizeProjectType(projectType);
             var runBehavior = GetRunBehavior(projectType);
             if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files.Select(f => f.Content)))
             {
@@ -275,10 +276,16 @@ public class RunResult
                 TryAddWinFormsReferences(references);
             }
 
+            var packageReferenceMap = BuildPackageReferenceMap(nuget, normalizedProjectType);
             var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
             foreach (var package in nugetAssemblies)
             {
                 references.Add(MetadataReference.CreateFromFile(package.Path));
+            }
+
+            foreach (var pkg in packageReferenceMap.Keys)
+            {
+                TryEnsureAssemblyLoaded(pkg);
             }
 
             var compilation = CSharpCompilation.Create(
@@ -340,6 +347,9 @@ public class RunResult
                         // ignore copy failures; the execution host may still resolve assemblies from their original locations
                     }
                 }
+
+                CopyHostAssembliesForExecution(workingDirectory, copiedFiles);
+                CopyAssembliesForPackages(packageReferenceMap.Keys, workingDirectory, copiedFiles);
 
                 var hostAssemblyPath = LocateExecutionHost();
                 cancellationToken.ThrowIfCancellationRequested();
@@ -732,36 +742,302 @@ public class RunResult
             }
         }
 
-        private static List<string> BuildPackageReferenceLines(string nuget)
+        private static List<string> BuildPackageReferenceLines(string nuget, string normalizedProjectType)
         {
-            var lines = new List<string>();
-            if (string.IsNullOrWhiteSpace(nuget))
+            var map = BuildPackageReferenceMap(nuget, normalizedProjectType);
+            return map
+                .OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(entry => string.IsNullOrWhiteSpace(entry.Value)
+                    ? $"    <PackageReference Include=\"{entry.Key}\" />"
+                    : $"    <PackageReference Include=\"{entry.Key}\" Version=\"{entry.Value}\" />")
+                .ToList();
+        }
+
+
+        private static Dictionary<string, string?> BuildPackageReferenceMap(string nuget, string normalizedProjectType)
+        {
+            var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+            void Add(string? id, string? version)
             {
-                return lines;
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return;
+                }
+
+                var normalizedId = id.Trim();
+                var normalizedVersion = NormalizePackageVersion(version);
+
+                if (map.TryGetValue(normalizedId, out var existing))
+                {
+                    if (string.IsNullOrWhiteSpace(existing) && !string.IsNullOrWhiteSpace(normalizedVersion))
+                    {
+                        map[normalizedId] = normalizedVersion;
+                    }
+
+                    return;
+                }
+
+                map[normalizedId] = normalizedVersion;
             }
 
-            foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            if (!string.IsNullOrWhiteSpace(nuget))
             {
-                var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                var id = items.Length > 0 ? items[0].Trim() : null;
-                if (string.IsNullOrWhiteSpace(id))
+                foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var id = items.Length > 0 ? items[0].Trim() : null;
+                    var version = items.Length > 1 ? items[1].Trim() : null;
+                    Add(id, version);
+                }
+            }
+
+            void AddDefaultPackages()
+            {
+                switch (normalizedProjectType)
+                {
+                    case "aspnetcore":
+                    case "aspnetcorewebapi":
+                    case "webapi":
+                    case "web":
+                        Add("Microsoft.AspNetCore.Mvc.NewtonsoftJson", TryGetPackageVersionFromAssembly("Microsoft.AspNetCore.Mvc.NewtonsoftJson", "8.0.11"));
+                        Add("Newtonsoft.Json", TryGetPackageVersionFromAssembly("Newtonsoft.Json", "13.0.3"));
+                        Add("Swashbuckle.AspNetCore.Swagger", TryGetPackageVersionFromAssembly("Swashbuckle.AspNetCore.Swagger", "6.8.1"));
+                        Add("Swashbuckle.AspNetCore.SwaggerGen", TryGetPackageVersionFromAssembly("Swashbuckle.AspNetCore.SwaggerGen", "6.8.1"));
+                        Add("Swashbuckle.AspNetCore.SwaggerUI", TryGetPackageVersionFromAssembly("Swashbuckle.AspNetCore.SwaggerUI", "6.8.1"));
+                        break;
+                }
+            }
+
+            AddDefaultPackages();
+            return map;
+        }
+
+        private static string? NormalizePackageVersion(string? version)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                return null;
+            }
+
+            var trimmed = version.Trim();
+            var plusIndex = trimmed.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                trimmed = trimmed[..plusIndex];
+            }
+
+            return trimmed.Length == 0 ? null : trimmed;
+        }
+
+        private static string? TryGetPackageVersionFromAssembly(string assemblyName, string? fallbackVersion = null)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                return NormalizePackageVersion(fallbackVersion);
+            }
+
+            try
+            {
+                var assembly = AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .FirstOrDefault(a => !a.IsDynamic && string.Equals(a.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase))
+                    ?? Assembly.Load(new AssemblyName(assemblyName));
+
+                if (assembly != null)
+                {
+                    string? version = null;
+
+                    if (!string.IsNullOrWhiteSpace(assembly.Location))
+                    {
+                        try
+                        {
+                            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
+                            version = NormalizePackageVersion(info.ProductVersion) ?? NormalizePackageVersion(info.FileVersion);
+                        }
+                        catch
+                        {
+                            // ignore version probing failures
+                        }
+                    }
+
+                    version ??= NormalizePackageVersion(assembly.GetName().Version?.ToString());
+
+                    if (!string.IsNullOrWhiteSpace(version))
+                    {
+                        return version;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore load failures
+            }
+
+            return NormalizePackageVersion(fallbackVersion);
+        }
+
+
+        private static void TryEnsureAssemblyLoaded(string assemblyName)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                return;
+            }
+
+            try
+            {
+                var loaded = AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Any(a => !a.IsDynamic && string.Equals(a.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase));
+
+                if (!loaded)
+                {
+                    Assembly.Load(new AssemblyName(assemblyName));
+                }
+            }
+            catch
+            {
+                // ignore load failures; references may not be required at runtime
+            }
+        }
+
+        private static void CopyAssembliesForPackages(IEnumerable<string> packageIds, string workingDirectory, HashSet<string> copiedFiles)
+        {
+            if (packageIds == null)
+            {
+                return;
+            }
+
+            foreach (var packageId in packageIds)
+            {
+                CopyAssemblyByName(packageId, workingDirectory, copiedFiles);
+            }
+        }
+
+        private static void CopyAssemblyByName(string assemblyName, string workingDirectory, HashSet<string> copiedFiles)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                return;
+            }
+
+            Assembly? assembly = null;
+            try
+            {
+                assembly = AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .FirstOrDefault(a => !a.IsDynamic && string.Equals(a.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase));
+
+                assembly ??= Assembly.Load(new AssemblyName(assemblyName));
+            }
+            catch
+            {
+                assembly = null;
+            }
+
+            if (assembly == null || string.IsNullOrWhiteSpace(assembly.Location))
+            {
+                return;
+            }
+
+            try
+            {
+                CopyAssemblyFile(assembly.Location, workingDirectory, copiedFiles);
+
+                var directory = Path.GetDirectoryName(assembly.Location);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    foreach (var file in Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly))
+                    {
+                        CopyAssemblyFile(file, workingDirectory, copiedFiles);
+                    }
+                }
+            }
+            catch
+            {
+                // ignore copy failures
+            }
+        }
+
+        private static void CopyHostAssembliesForExecution(string workingDirectory, HashSet<string> copiedFiles)
+        {
+            var baseDirectory = AppContext.BaseDirectory;
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                return;
+            }
+
+            string? normalizedBase;
+            try
+            {
+                normalizedBase = Path.GetFullPath(baseDirectory);
+            }
+            catch
+            {
+                normalizedBase = null;
+            }
+
+            if (string.IsNullOrEmpty(normalizedBase))
+            {
+                return;
+            }
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.IsDynamic || string.IsNullOrWhiteSpace(assembly.Location))
                 {
                     continue;
                 }
 
-                var version = items.Length > 1 ? items[1].Trim() : null;
-                if (string.IsNullOrWhiteSpace(version))
+                string fullPath;
+                try
                 {
-                    lines.Add("    <PackageReference Include=\"" + id + "\" />");
+                    fullPath = Path.GetFullPath(assembly.Location);
                 }
-                else
+                catch
                 {
-                    lines.Add("    <PackageReference Include=\"" + id + "\" Version=\"" + version + "\" />");
+                    continue;
                 }
+
+                if (!fullPath.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                CopyAssemblyFile(fullPath, workingDirectory, copiedFiles);
+            }
+        }
+
+        private static void CopyAssemblyFile(string sourcePath, string workingDirectory, HashSet<string> copiedFiles)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            {
+                return;
             }
 
-            return lines;
+            var fileName = Path.GetFileName(sourcePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
+
+            var destination = Path.Combine(workingDirectory, fileName);
+            if (!copiedFiles.Add(destination))
+            {
+                return;
+            }
+
+            try
+            {
+                File.Copy(sourcePath, destination, overwrite: true);
+            }
+            catch
+            {
+                copiedFiles.Remove(destination);
+            }
         }
+
         private static string GetHostTargetFramework(bool requireWindows)
         {
             var version = Environment.Version;
@@ -1031,7 +1307,7 @@ public class RunResult
             }
             builder.AppendLine("  </PropertyGroup>");
 
-            var packages = BuildPackageReferenceLines(nuget);
+            var packages = BuildPackageReferenceLines(nuget, normalizedType);
             if (packages.Count > 0)
             {
                 builder.AppendLine("  <ItemGroup>");
@@ -1222,23 +1498,7 @@ public class RunResult
 
                 var csprojPath = Path.Combine(srcDir, $"{asmName}.csproj");
 
-                var pkgRefs = new StringBuilder();
-                if (!string.IsNullOrWhiteSpace(nuget))
-                {
-                    foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        var id = items.Length > 0 ? items[0].Trim() : null;
-                        var ver = items.Length > 1 ? items[1].Trim() : null;
-                        if (!string.IsNullOrWhiteSpace(id))
-                        {
-                            if (!string.IsNullOrWhiteSpace(ver))
-                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" Version=\"{ver}\" />");
-                            else
-                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" />");
-                        }
-                    }
-                }
+                var packageReferences = BuildPackageReferenceMap(nuget, normalizedProjectType);
 
                 var langVer = "latest";
                 try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
@@ -1259,11 +1519,20 @@ public class RunResult
                 }
                 projectBuilder.AppendLine("  </PropertyGroup>");
 
-                var pkgRefText = pkgRefs.ToString().TrimEnd();
-                if (!string.IsNullOrEmpty(pkgRefText))
+                if (packageReferences.Count > 0)
                 {
                     projectBuilder.AppendLine("  <ItemGroup>");
-                    projectBuilder.AppendLine(pkgRefText);
+                    foreach (var reference in packageReferences.OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase))
+                    {
+                        if (string.IsNullOrWhiteSpace(reference.Value))
+                        {
+                            projectBuilder.AppendLine($"    <PackageReference Include=\"{reference.Key}\" />");
+                        }
+                        else
+                        {
+                            projectBuilder.AppendLine($"    <PackageReference Include=\"{reference.Key}\" Version=\"{reference.Value}\" />");
+                        }
+                    }
                     projectBuilder.AppendLine("  </ItemGroup>");
                 }
 
@@ -1398,6 +1667,8 @@ public class RunResult
 
     }
 }
+
+
 
 
 

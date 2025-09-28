@@ -25,51 +25,179 @@ namespace MonacoRoslynCompletionProvider
         private static readonly ConcurrentDictionary<string, MetadataReference> ReferenceCache = new ConcurrentDictionary<string, MetadataReference>();
 
         // 默认程序集路径，仅加载必要的程序集
-        private static readonly string[] DefaultAssemblyPaths = new[]
+        private static readonly string[] DefaultAssemblyPaths = BuildDefaultAssemblyPaths();
+
+        private static string[] BuildDefaultAssemblyPaths()
         {
-            typeof(Console).Assembly.Location,
-            Assembly.Load("System.Runtime").Location,
-            typeof(List<>).Assembly.Location,
-            typeof(int).Assembly.Location,
-            Assembly.Load("netstandard").Location,
-            typeof(System.ComponentModel.DescriptionAttribute).Assembly.Location,
-            typeof(object).Assembly.Location,
-            typeof(Dictionary<,>).Assembly.Location,
-            typeof(Enumerable).Assembly.Location,
-            typeof(System.Data.DataSet).Assembly.Location,
-            typeof(System.Xml.XmlDocument).Assembly.Location,
-            typeof(System.ComponentModel.INotifyPropertyChanged).Assembly.Location,
-            typeof(System.Linq.Expressions.Expression).Assembly.Location,
-            typeof(Microsoft.AspNetCore.Mvc.HttpPostAttribute).Assembly.Location,
-            typeof(Microsoft.AspNetCore.Http.HttpRequest).Assembly.Location,
-            typeof(Microsoft.AspNetCore.Http.IHeaderDictionary).Assembly.Location,
-            typeof(System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler).Assembly.Location,
-            typeof(Microsoft.IdentityModel.Tokens.SecurityTokenHandler).Assembly.Location,
-            Assembly.Load("Microsoft.Extensions.Primitives").Location,
-            Assembly.Load("System.ComponentModel").Location,
-            Assembly.Load("Microsoft.AspNetCore.Mvc.Abstractions").Location,
-            Assembly.Load("System.Collections").Location,
-            Assembly.Load("System.Text.RegularExpressions").Location,
-            Assembly.Load("Microsoft.AspNetCore.DataProtection").Location,
-            Assembly.Load("Newtonsoft.Json").Location,
-            typeof(System.ComponentModel.DataAnnotations.ValidationException).Assembly.Location,
-            Assembly.Load("System.Net.Http, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
-            typeof(System.Net.Http.IHttpClientFactory).Assembly.Location,
-            Assembly.Load("System.Memory, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51").Location,
-            Assembly.Load("System.Private.Uri, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
-            Assembly.Load("System.Net.Primitives, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
-            Assembly.Load("System.Net.HttpListener, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51").Location,
-            Assembly.Load("System.Net.WebHeaderCollection, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
-            Assembly.Load("System.Net.WebProxy, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51").Location,
-            Assembly.Load("Microsoft.Net.Http.Headers, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60").Location,
-            Assembly.Load("System.Security.Cryptography, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a").Location,
-            Assembly.Load("Microsoft.AspNetCore.Http").Location,
-            Assembly.Load("System.Net.Mail, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51").Location,
-            typeof(ObjectExtengsion).Assembly.Location, // 假设此类型存在
-            typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location,
-            typeof(System.Diagnostics.Process).Assembly.Location,
-            typeof(ParallelEnumerable).Assembly.Location
-        };
+            var referencePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var trustedAssemblyMap = CreateTrustedAssemblyMap();
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                TryAddAssembly(referencePaths, assembly);
+            }
+
+            TryAddType(typeof(object));
+            TryAddType(typeof(Console));
+            TryAddType(typeof(List<>));
+            TryAddType(typeof(Dictionary<,>));
+            TryAddType(typeof(IEnumerable<>));
+            TryAddType(typeof(Enumerable));
+            TryAddType(typeof(System.ComponentModel.DescriptionAttribute));
+            TryAddType(typeof(System.ComponentModel.INotifyPropertyChanged));
+            TryAddType(typeof(System.Linq.Expressions.Expression));
+            TryAddType(typeof(System.Data.DataSet));
+            TryAddType(typeof(System.Xml.XmlDocument));
+            TryAddType(typeof(System.ComponentModel.DataAnnotations.ValidationException));
+            TryAddType(typeof(Newtonsoft.Json.JsonConvert));
+            TryAddType(typeof(Microsoft.Extensions.Primitives.StringValues));
+            TryAddType(typeof(Microsoft.AspNetCore.Mvc.HttpPostAttribute));
+            TryAddType(typeof(Microsoft.AspNetCore.Http.HttpRequest));
+            TryAddType(typeof(Microsoft.AspNetCore.Http.IHeaderDictionary));
+            TryAddType(typeof(System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler));
+            TryAddType(typeof(Microsoft.IdentityModel.Tokens.SecurityTokenHandler));
+            TryAddType(typeof(System.Text.RegularExpressions.Regex));
+            TryAddType(typeof(System.Text.Json.JsonSerializer));
+            TryAddType(typeof(System.Net.Http.HttpClient));
+            TryAddType(typeof(System.Net.Http.IHttpClientFactory));
+            TryAddType(typeof(System.Buffers.ArrayPool<byte>));
+            TryAddType(typeof(System.Collections.ArrayList));
+            TryAddType(typeof(System.Net.WebHeaderCollection));
+            TryAddType(typeof(System.Net.WebProxy));
+            TryAddType(typeof(System.Security.Cryptography.HashAlgorithm));
+            TryAddType(typeof(System.Net.Mail.MailAddress));
+            TryAddType(typeof(Microsoft.Net.Http.Headers.MediaTypeHeaderValue));
+            TryAddType(typeof(ObjectExtengsion));
+            TryAddType(typeof(System.Diagnostics.Process));
+            TryAddType(typeof(ParallelEnumerable));
+            TryAddType(typeof(Uri));
+
+            TryAddOptionalType("System.Net.HttpListener, System.Net.HttpListener");
+            TryAddOptionalType("System.Windows.Forms.Form, System.Windows.Forms");
+            TryAddOptionalType("System.Drawing.Image, System.Drawing");
+            TryAddOptionalType("Microsoft.Win32.SystemEvents, Microsoft.Win32.SystemEvents");
+
+            foreach (var assemblyName in new[]
+            {
+                "System.Runtime",
+                "netstandard",
+                "System.ComponentModel",
+                "System.Collections",
+                "System.Text.RegularExpressions",
+                "Microsoft.Extensions.Primitives",
+                "Microsoft.AspNetCore.Mvc.Abstractions",
+                "Microsoft.AspNetCore.DataProtection",
+                "Microsoft.AspNetCore.Http.Features",
+                "System.Memory",
+                "System.Private.Uri",
+                "System.Net.Primitives",
+                "System.Net.HttpListener",
+                "System.Net.WebHeaderCollection",
+                "System.Net.WebProxy",
+                "Microsoft.Net.Http.Headers",
+                "System.Security.Cryptography",
+                "System.Net.Mail"
+            })
+            {
+                TryAddByAssemblyName(assemblyName);
+            }
+
+            return referencePaths.OrderBy(path => path).ToArray();
+
+            static Dictionary<string, string> CreateTrustedAssemblyMap()
+            {
+                var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var raw = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    return result;
+                }
+
+                foreach (var candidate in raw.Split(Path.PathSeparator))
+                {
+                    if (string.IsNullOrWhiteSpace(candidate))
+                    {
+                        continue;
+                    }
+
+                    var name = Path.GetFileNameWithoutExtension(candidate);
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    result.TryAdd(name, candidate);
+                }
+
+                return result;
+            }
+
+            static void TryAddAssembly(HashSet<string> target, Assembly? assembly)
+            {
+                if (assembly is null || assembly.IsDynamic)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var location = assembly.Location;
+                    if (!string.IsNullOrWhiteSpace(location))
+                    {
+                        target.Add(location);
+                    }
+                }
+                catch
+                {
+                    // assemblies loaded from memory do not have a file path
+                }
+            }
+
+            void TryAddType(Type? type)
+            {
+                if (type is null)
+                {
+                    return;
+                }
+
+                TryAddAssembly(referencePaths, type.Assembly);
+            }
+
+            void TryAddOptionalType(string qualifiedTypeName)
+            {
+                if (string.IsNullOrWhiteSpace(qualifiedTypeName))
+                {
+                    return;
+                }
+
+                var type = Type.GetType(qualifiedTypeName, throwOnError: false);
+                TryAddType(type);
+            }
+
+            void TryAddByAssemblyName(string assemblyName)
+            {
+                if (string.IsNullOrWhiteSpace(assemblyName))
+                {
+                    return;
+                }
+
+                if (trustedAssemblyMap.TryGetValue(assemblyName, out var path) && !string.IsNullOrWhiteSpace(path))
+                {
+                    referencePaths.Add(path);
+                    return;
+                }
+
+                try
+                {
+                    var loaded = Assembly.Load(new AssemblyName(assemblyName));
+                    TryAddAssembly(referencePaths, loaded);
+                }
+                catch
+                {
+                    // ignore load failures
+                }
+            }
+        }
 
         // 用于复用 AdhocWorkspace 减少创建开销
         private static readonly ConcurrentBag<AdhocWorkspace> WorkspacePool = new ConcurrentBag<AdhocWorkspace>();
