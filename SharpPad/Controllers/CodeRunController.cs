@@ -205,10 +205,17 @@ namespace SharpPad.Controllers
             try
             {
                 // 查找并取消对应的会话，使用线程安全操作
-                if (_activeSessions.TryRemove(request.SessionId, out var cts))
+                if (_activeSessions.TryGetValue(request.SessionId, out var cts))
                 {
-                    cts?.Cancel();
-                    cts?.Dispose();
+                    try
+                    {
+                        cts?.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Run pipeline already disposed the token source; treat as stopped.
+                    }
+
                     return Ok(new { success = true, message = "代码执行已停止" });
                 }
 

@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
@@ -9,9 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
 using monacoEditorCSharp.DataHelpers;
-using System.Runtime.Loader;
 using System.Threading;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -20,14 +18,9 @@ namespace MonacoRoslynCompletionProvider.Api
 {
     public class CodeRunner
     {
-        // 用于同步Console重定向的锁对象
-        private static readonly object ConsoleLock = new object();
-
-        // 用于创建AssemblyLoadContext的锁对象
-        private static readonly object LoadContextLock = new object();
-
-        // 存储正在运行的代码的交互式读取器
-        private static readonly Dictionary<string, InteractiveTextReader> _activeReaders = new();
+        private static readonly Dictionary<string, ProcessSession> ActiveProcessSessions = new(StringComparer.Ordinal);
+        private static readonly Dictionary<string, InteractiveTextReader> LegacyReaders = new();
+        private static readonly object ProcessSessionLock = new();
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
 
@@ -114,26 +107,38 @@ namespace MonacoRoslynCompletionProvider.Api
         public static bool ProvideInput(string sessionId, string input)
         {
             if (string.IsNullOrEmpty(sessionId))
-                return false;
-
-            lock (_activeReaders)
             {
-                if (_activeReaders.TryGetValue(sessionId, out var reader))
+                return false;
+            }
+
+            lock (LegacyReaders)
+            {
+                if (LegacyReaders.TryGetValue(sessionId, out var reader))
                 {
                     reader.ProvideInput(input);
                     return true;
                 }
             }
+
+            lock (ProcessSessionLock)
+            {
+                if (ActiveProcessSessions.TryGetValue(sessionId, out var session))
+                {
+                    return session.ProvideInput(input);
+                }
+            }
+
             return false;
         }
 
-        public class RunResult
+public class RunResult
         {
             public string Output { get; set; }
             public string Error { get; set; }
         }
 
-        public static async Task<RunResult> RunMultiFileCodeAsync(
+        
+        public static Task<RunResult> RunMultiFileCodeAsync(
             List<FileContent> files,
             string nuget,
             int languageVersion,
@@ -143,459 +148,459 @@ namespace MonacoRoslynCompletionProvider.Api
             string projectType = null,
             CancellationToken cancellationToken = default)
         {
-            var result = new RunResult();
-            CustomAssemblyLoadContext loadContext = null;
-            Assembly assembly = null;
-            try
-            {
-                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
-                loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
-
-                var runBehavior = GetRunBehavior(projectType);
-                if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
-                {
-                    // 自动检测到 WinForms 代码时启用所需的运行时设置
-                    runBehavior = (OutputKind.WindowsApplication, true);
-                }
-
-                if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
-                {
-                    await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
-                    result.Error = WindowsFormsHostRequirementMessage;
-                    return result;
-                }
-
-                var parseOptions = new CSharpParseOptions(
-                    languageVersion: (LanguageVersion)languageVersion,
-                    kind: SourceCodeKind.Regular,
-                    documentationMode: DocumentationMode.Parse
-                );
-
-                string assemblyName = "DynamicCode";
-
-                // Parse all files into syntax trees
-                var syntaxTrees = new List<SyntaxTree>();
-                foreach (var file in files)
-                {
-                    var syntaxTree = CSharpSyntaxTree.ParseText(
-                        file.Content,
-                        parseOptions,
-                        path: file.FileName
-                    );
-                    syntaxTrees.Add(syntaxTree);
-                }
-
-                // Collect references
-                var references = new List<MetadataReference>();
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
-                        references.Add(MetadataReference.CreateFromFile(asm.Location));
-                }
-
-                // 确保加载 Windows Forms 引用（如果是 Windows Forms 项目）
-                if (runBehavior.OutputKind == OutputKind.WindowsApplication)
-                {
-                    EnsureWinFormsAssembliesLoaded();
-                    // 尝试添加 Windows Forms 相关的程序集引用
-                    TryAddWinFormsReferences(references);
-                }
-
-                foreach (var pkg in nugetAssemblies)
-                {
-                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
-                }
-
-                var compilation = CSharpCompilation.Create(
-                    assemblyName,
-                    syntaxTrees,
-                    references,
-                    new CSharpCompilationOptions(runBehavior.OutputKind)
-                );
-
-                using (var peStream = new MemoryStream())
-                {
-                    var compileResult = compilation.Emit(peStream);
-                    if (!compileResult.Success)
-                    {
-                        foreach (var diag in compileResult.Diagnostics)
-                        {
-                            if (diag.Severity == DiagnosticSeverity.Error)
-                            {
-                                var location = diag.Location.GetLineSpan();
-                                var fileName = location.Path ?? "unknown";
-                                var line = location.StartLinePosition.Line + 1;
-                                await onError($"[{fileName}:{line}] {diag.GetMessage()}").ConfigureAwait(false);
-                            }
-                        }
-                        result.Error = "Compilation error";
-                        return result;
-                    }
-                    peStream.Seek(0, SeekOrigin.Begin);
-
-                    lock (LoadContextLock)
-                    {
-                        assembly = loadContext.LoadFromStream(peStream);
-                    }
-
-                    var entryPoint = assembly.EntryPoint;
-                    if (entryPoint != null)
-                    {
-                        var parameters = entryPoint.GetParameters();
-
-                        async Task WriteAction(string text) => await onOutput(text ?? string.Empty).ConfigureAwait(false);
-                        await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
-
-                        async Task ErrorAction(string text) => await onError(text ?? string.Empty).ConfigureAwait(false);
-                        await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
-
-                        var interactiveReader = new InteractiveTextReader(async prompt =>
-                        {
-                            await onOutput($"[INPUT REQUIRED] Please provide input: ").ConfigureAwait(false);
-                        });
-
-                        if (!string.IsNullOrEmpty(sessionId))
-                        {
-                            lock (_activeReaders)
-                            {
-                                _activeReaders[sessionId] = interactiveReader;
-                            }
-                        }
-
-                        Func<Task> executeAsync = async () =>
-                        {
-                            TextWriter originalOut = null, originalError = null;
-                            TextReader originalIn = null;
-                            lock (ConsoleLock)
-                            {
-                                originalOut = Console.Out;
-                                originalError = Console.Error;
-                                originalIn = Console.In;
-                                Console.SetOut(outputWriter);
-                                Console.SetError(errorWriter);
-                                Console.SetIn(interactiveReader);
-                            }
-                            try
-                            {
-                                // 检查取消令牌
-                                cancellationToken.ThrowIfCancellationRequested();
-
-                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
-                                {
-                                    entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
-                                }
-                                else
-                                {
-                                    entryPoint.Invoke(null, null);
-                                }
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                await onError("代码执行已被取消").ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                var errorMessage = "Execution error: " + (ex.InnerException?.Message ?? ex.Message);
-                                await onError(errorMessage).ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                lock (ConsoleLock)
-                                {
-                                    Console.SetOut(originalOut);
-                                    Console.SetError(originalError);
-                                    Console.SetIn(originalIn);
-                                }
-
-                                if (!string.IsNullOrEmpty(sessionId))
-                                {
-                                    lock (_activeReaders)
-                                    {
-                                        _activeReaders.Remove(sessionId);
-                                    }
-                                }
-                                interactiveReader?.Dispose();
-                            }
-                        };
-
-                        await RunEntryPointAsync(executeAsync, runBehavior.RequiresStaThread).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await onError("No entry point found in the code. Please ensure one file contains a Main method.").ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await onError("Runtime error: " + ex.Message).ConfigureAwait(false);
-            }
-            finally
-            {
-                assembly = null;
-                loadContext?.Unload();
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-            }
-
-            result.Output = string.Empty;
-            result.Error = string.Empty;
-            return result;
+            return CompileAndExecuteAsync(
+                files ?? new List<FileContent>(),
+                nuget,
+                languageVersion,
+                onOutput,
+                onError,
+                sessionId,
+                projectType,
+                cancellationToken);
         }
 
-        public static async Task<RunResult> RunProgramCodeAsync(
-    string code,
-    string nuget,
-    int languageVersion,
-    Func<string, Task> onOutput,
-    Func<string, Task> onError,
-    string sessionId = null,
-    string projectType = null,
-    CancellationToken cancellationToken = default)
+        public static Task<RunResult> RunProgramCodeAsync(
+            string code,
+            string nuget,
+            int languageVersion,
+            Func<string, Task> onOutput,
+            Func<string, Task> onError,
+            string sessionId = null,
+            string projectType = null,
+            CancellationToken cancellationToken = default)
         {
-            var result = new RunResult();
-            // 低内存版本：不使用 StringBuilder 缓存输出，只依赖回调传递实时数据
-            CustomAssemblyLoadContext loadContext = null;
-            Assembly assembly = null;
+            var files = new List<FileContent>
+            {
+                new FileContent
+                {
+                    FileName = "Program.cs",
+                    Content = code ?? string.Empty
+                }
+            };
+
+            return CompileAndExecuteAsync(
+                files,
+                nuget,
+                languageVersion,
+                onOutput,
+                onError,
+                sessionId,
+                projectType,
+                cancellationToken);
+        }
+
+        private static async Task<RunResult> CompileAndExecuteAsync(
+            IEnumerable<FileContent> sourceFiles,
+            string nuget,
+            int languageVersion,
+            Func<string, Task> onOutput,
+            Func<string, Task> onError,
+            string sessionId,
+            string projectType,
+            CancellationToken cancellationToken)
+        {
+            var result = new RunResult
+            {
+                Output = string.Empty,
+                Error = string.Empty
+            };
+
+            if (onOutput is null)
+            {
+                throw new ArgumentNullException(nameof(onOutput));
+            }
+
+            if (onError is null)
+            {
+                throw new ArgumentNullException(nameof(onError));
+            }
+
+            var files = (sourceFiles ?? Enumerable.Empty<FileContent>())
+                .Where(f => f != null)
+                .Select(f => new FileContent
+                {
+                    FileName = string.IsNullOrWhiteSpace(f.FileName) ? "Program.cs" : f.FileName,
+                    Content = f.Content ?? string.Empty
+                })
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                files.Add(new FileContent
+                {
+                    FileName = "Program.cs",
+                    Content = string.Empty
+                });
+            }
+
+            var runBehavior = GetRunBehavior(projectType);
+            if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files.Select(f => f.Content)))
+            {
+                runBehavior = (OutputKind.WindowsApplication, true);
+            }
+
+            if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
+            {
+                await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
+                result.Error = WindowsFormsHostRequirementMessage;
+                return result;
+            }
+
+            var parseOptions = new CSharpParseOptions(
+                languageVersion: (LanguageVersion)languageVersion,
+                kind: SourceCodeKind.Regular,
+                documentationMode: DocumentationMode.Parse);
+
+            var syntaxTrees = new List<SyntaxTree>(files.Count);
+            foreach (var file in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var sourceText = SourceText.From(file.Content ?? string.Empty, Encoding.UTF8);
+                var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, parseOptions, path: file.FileName);
+                syntaxTrees.Add(syntaxTree);
+            }
+
+            var references = new List<MetadataReference>();
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
+                {
+                    references.Add(MetadataReference.CreateFromFile(asm.Location));
+                }
+            }
+
+            if (runBehavior.OutputKind == OutputKind.WindowsApplication)
+            {
+                EnsureWinFormsAssembliesLoaded();
+                TryAddWinFormsReferences(references);
+            }
+
+            var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
+            foreach (var package in nugetAssemblies)
+            {
+                references.Add(MetadataReference.CreateFromFile(package.Path));
+            }
+
+            var compilation = CSharpCompilation.Create(
+                "DynamicProgram",
+                syntaxTrees,
+                references,
+                new CSharpCompilationOptions(runBehavior.OutputKind));
+
+            var workingDirectory = CreateWorkingDirectory();
+            var assemblyPath = Path.Combine(workingDirectory, "DynamicProgram.dll");
+            var pdbPath = Path.Combine(workingDirectory, "DynamicProgram.pdb");
+
             try
             {
-                // 加载 NuGet 包（假设返回的包集合较小）
-                var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
-                loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
-
-                var runBehavior = GetRunBehavior(projectType);
-                if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(code))
+                using (var peStream = File.Create(assemblyPath))
+                using (var pdbStream = File.Create(pdbPath))
                 {
-                    // 自动检测到 WinForms 代码时启用所需的运行时设置
-                    runBehavior = (OutputKind.WindowsApplication, true);
-                }
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
-                {
-                    await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
-                    result.Error = WindowsFormsHostRequirementMessage;
-                    return result;
-                }
+                    var emitResult = compilation.Emit(
+                        peStream,
+                        pdbStream,
+                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb));
 
-                // 设置解析选项，尽可能减小额外开销
-                var parseOptions = new CSharpParseOptions(
-                    languageVersion: (LanguageVersion)languageVersion,
-                    kind: SourceCodeKind.Regular,
-                    documentationMode: DocumentationMode.Parse
-                );
-
-                string assemblyName = "DynamicCode";
-
-                // 解析代码
-                var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
-
-                // 用循环收集引用，避免 LINQ 的额外内存分配
-                var references = new List<MetadataReference>();
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    if (!asm.IsDynamic && !string.IsNullOrEmpty(asm.Location))
-                        references.Add(MetadataReference.CreateFromFile(asm.Location));
-                }
-
-                // 确保加载 Windows Forms 引用（如果是 Windows Forms 项目）
-                if (runBehavior.OutputKind == OutputKind.WindowsApplication)
-                {
-                    EnsureWinFormsAssembliesLoaded();
-                    // 尝试添加 Windows Forms 相关的程序集引用
-                    TryAddWinFormsReferences(references);
-                }
-
-                // 添加 NuGet 包引用
-                foreach (var pkg in nugetAssemblies)
-                {
-                    references.Add(MetadataReference.CreateFromFile(pkg.Path));
-                }
-
-                var compilation = CSharpCompilation.Create(
-                    assemblyName,
-                    new[] { syntaxTree },
-                    references,
-                    new CSharpCompilationOptions(runBehavior.OutputKind)
-                );
-
-                // 编译到内存流，使用完后尽快释放内存
-                using (var peStream = new MemoryStream())
-                {
-                    var compileResult = compilation.Emit(peStream);
-                    if (!compileResult.Success)
+                    if (!emitResult.Success)
                     {
-                        foreach (var diag in compileResult.Diagnostics)
+                        foreach (var diagnostic in emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
                         {
-                            if (diag.Severity == DiagnosticSeverity.Error)
-                                await onError(diag.ToString()).ConfigureAwait(false);
+                            await onError(diagnostic.ToString()).ConfigureAwait(false);
                         }
+
                         result.Error = "Compilation error";
                         return result;
                     }
-                    peStream.Seek(0, SeekOrigin.Begin);
+                }
 
-                    // 加载程序集（使用锁保证并发安全）
-                    lock (LoadContextLock)
+                var copiedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var package in nugetAssemblies)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var destination = Path.Combine(workingDirectory, Path.GetFileName(package.Path));
+                    if (string.Equals(package.Path, destination, StringComparison.OrdinalIgnoreCase))
                     {
-                        assembly = loadContext.LoadFromStream(peStream);
+                        continue;
                     }
 
-                    var entryPoint = assembly.EntryPoint;
-                    if (entryPoint != null)
+                    if (!copiedFiles.Add(destination))
                     {
-                        var parameters = entryPoint.GetParameters();
-
-                        // 定义直接回调写入器，不做缓存
-                        async Task WriteAction(string text) => await onOutput(text ?? string.Empty).ConfigureAwait(false);
-                        await using var outputWriter = new ImmediateCallbackTextWriter(WriteAction);
-
-                        async Task ErrorAction(string text) => await onError(text ?? string.Empty).ConfigureAwait(false);
-                        await using var errorWriter = new ImmediateCallbackTextWriter(ErrorAction);
-
-                        // 创建交互式输入读取器
-                        var interactiveReader = new InteractiveTextReader(async prompt =>
-                        {
-                            await onOutput($"[INPUT REQUIRED] Please provide input: ").ConfigureAwait(false);
-                        });
-
-                        // 如果提供了会话ID，将读取器存储起来以便后续提供输入
-                        if (!string.IsNullOrEmpty(sessionId))
-                        {
-                            lock (_activeReaders)
-                            {
-                                _activeReaders[sessionId] = interactiveReader;
-                            }
-                        }
-
-                        // 异步执行入口点代码
-                        Func<Task> executeAsync = async () =>
-                        {
-                            TextWriter originalOut = null, originalError = null;
-                            TextReader originalIn = null;
-                            lock (ConsoleLock)
-                            {
-                                originalOut = Console.Out;
-                                originalError = Console.Error;
-                                originalIn = Console.In;
-                                Console.SetOut(outputWriter);
-                                Console.SetError(errorWriter);
-                                Console.SetIn(interactiveReader);
-                            }
-                            try
-                            {
-                                // 检查取消令牌
-                                cancellationToken.ThrowIfCancellationRequested();
-
-                                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string[]))
-                                {
-                                    // 兼容 Main(string[] args)
-                                    entryPoint.Invoke(null, new object[] { new string[] { "sharpPad" } });
-                                }
-                                else
-                                {
-                                    entryPoint.Invoke(null, null);
-                                }
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                await onError("代码执行已被取消").ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                var errorMessage = "Execution error: " + (ex.InnerException?.Message ?? ex.Message);
-                                await onError(errorMessage).ConfigureAwait(false);
-                            }
-                            finally
-                            {
-                                lock (ConsoleLock)
-                                {
-                                    Console.SetOut(originalOut);
-                                    Console.SetError(originalError);
-                                    Console.SetIn(originalIn);
-                                }
-
-                                // 清理会话
-                                if (!string.IsNullOrEmpty(sessionId))
-                                {
-                                    lock (_activeReaders)
-                                    {
-                                        _activeReaders.Remove(sessionId);
-                                    }
-                                }
-                                interactiveReader?.Dispose();
-                            }
-                        };
-
-                        await RunEntryPointAsync(executeAsync, runBehavior.RequiresStaThread).ConfigureAwait(false);
+                        continue;
                     }
-                    else
+
+                    try
                     {
-                        await onError("No entry point found in the code.").ConfigureAwait(false);
+                        File.Copy(package.Path, destination, overwrite: true);
+                    }
+                    catch
+                    {
+                        // ignore copy failures; the execution host may still resolve assemblies from their original locations
                     }
                 }
+
+                var hostAssemblyPath = LocateExecutionHost();
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await ExecuteInIsolatedProcessAsync(
+                    hostAssemblyPath,
+                    workingDirectory,
+                    assemblyPath,
+                    runBehavior.RequiresStaThread,
+                    onOutput,
+                    onError,
+                    sessionId,
+                    cancellationToken).ConfigureAwait(false);
+
+                result.Output = string.Empty;
+                result.Error = string.Empty;
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                await onError("代码执行已被取消").ConfigureAwait(false);
+                result.Error = "代码执行已被取消";
+                return result;
             }
             catch (Exception ex)
             {
                 await onError("Runtime error: " + ex.Message).ConfigureAwait(false);
+                result.Error = ex.Message;
+                return result;
             }
             finally
             {
-                assembly = null;
-                // 卸载程序集并强制垃圾回收，尽快释放内存
-                loadContext?.Unload();
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
+                TryDeleteDirectory(workingDirectory);
             }
-
-            // 低内存版本不缓存输出，返回空字符串
-            result.Output = string.Empty;
-            result.Error = string.Empty;
-            return result;
         }
+
 
 
         // 自定义可卸载的AssemblyLoadContext
-        private class CustomAssemblyLoadContext : AssemblyLoadContext
+        private static string CreateWorkingDirectory()
         {
-            private readonly Dictionary<string, PackageAssemblyInfo> _packageAssemblies;
+            var root = Path.Combine(Path.GetTempPath(), "SharpPad", "sessions");
+            Directory.CreateDirectory(root);
 
-            public CustomAssemblyLoadContext(IEnumerable<PackageAssemblyInfo> packageAssemblies) : base(isCollectible: true)
+            var directory = Path.Combine(root, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            return directory;
+        }
+
+        private static async Task<int> ExecuteInIsolatedProcessAsync(
+            string hostAssemblyPath,
+            string workingDirectory,
+            string compiledAssemblyPath,
+            bool requiresStaThread,
+            Func<string, Task> onOutput,
+            Func<string, Task> onError,
+            string sessionId,
+            CancellationToken cancellationToken)
+        {
+            var startInfo = new ProcessStartInfo
             {
-                _packageAssemblies = packageAssemblies?
-                    .GroupBy(p => p.AssemblyName.Name ?? Path.GetFileNameWithoutExtension(p.Path), StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.AssemblyName.Version ?? new Version(0, 0, 0, 0)).First(), StringComparer.OrdinalIgnoreCase)
-                    ?? new Dictionary<string, PackageAssemblyInfo>(StringComparer.OrdinalIgnoreCase);
+                FileName = "dotnet",
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+
+            startInfo.ArgumentList.Add(hostAssemblyPath);
+            startInfo.ArgumentList.Add("--assembly");
+            startInfo.ArgumentList.Add(compiledAssemblyPath);
+            startInfo.ArgumentList.Add("--workingDirectory");
+            startInfo.ArgumentList.Add(workingDirectory);
+            startInfo.ArgumentList.Add("--requiresSta");
+            startInfo.ArgumentList.Add(requiresStaThread ? "true" : "false");
+
+            using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+
+            if (!process.Start())
+            {
+                throw new InvalidOperationException("Failed to start execution host process.");
             }
 
-            protected override Assembly Load(AssemblyName assemblyName)
+            if (process.StandardInput == null)
             {
-                if (assemblyName?.Name != null && _packageAssemblies.TryGetValue(assemblyName.Name, out var package))
-                {
-                    return LoadFromAssemblyPath(package.Path);
-                }
+                throw new InvalidOperationException("Execution host stdin was not redirected.");
+            }
 
-                return null;
+            ProcessSession session = null;
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                session = new ProcessSession(process);
+                lock (ProcessSessionLock)
+                {
+                    ActiveProcessSessions[sessionId] = session;
+                }
+            }
+
+            var cancellationRequested = false;
+            using var registration = cancellationToken.Register(() =>
+            {
+                cancellationRequested = true;
+                TryTerminateProcess(process);
+            });
+
+            var stdoutTask = PumpStreamAsync(process.StandardOutput, onOutput, cancellationToken);
+            var stderrTask = PumpStreamAsync(process.StandardError, onError, cancellationToken);
+
+            try
+            {
+                await process.WaitForExitAsync().ConfigureAwait(false);
+                await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    lock (ProcessSessionLock)
+                    {
+                        ActiveProcessSessions.Remove(sessionId);
+                    }
+                }
+            }
+
+            if (cancellationRequested || cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+
+            return process.ExitCode;
+        }
+
+        private static async Task PumpStreamAsync(StreamReader reader, Func<string, Task> callback, CancellationToken cancellationToken)
+        {
+            if (reader == null)
+            {
+                return;
+            }
+
+            var buffer = new char[1024];
+
+            try
+            {
+                while (true)
+                {
+                    var read = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                    if (read <= 0)
+                    {
+                        break;
+                    }
+
+                    var text = new string(buffer, 0, read);
+                    await callback(text).ConfigureAwait(false);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (IOException)
+            {
             }
         }
 
-        private sealed class ImmediateCallbackTextWriter : TextWriter
+        private static string LocateExecutionHost()
         {
-            private readonly Func<string, Task> _onWrite;
-
-            public ImmediateCallbackTextWriter(Func<string, Task> onWrite)
+            var baseDirectory = AppContext.BaseDirectory;
+            var candidates = new[]
             {
-                _onWrite = onWrite ?? throw new ArgumentNullException(nameof(onWrite));
+                Path.Combine(baseDirectory, "ExecutionHost", "SharpPad.ExecutionHost.dll"),
+                Path.Combine(baseDirectory, "SharpPad.ExecutionHost.dll"),
+                Path.Combine(baseDirectory, "..", "ExecutionHost", "SharpPad.ExecutionHost.dll")
+            };
+
+            foreach (var candidate in candidates)
+            {
+                var fullPath = Path.GetFullPath(candidate);
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
             }
 
-            public override Encoding Encoding => Encoding.UTF8;
+            throw new FileNotFoundException("Unable to locate SharpPad.ExecutionHost.dll. Ensure the ExecutionHost project is built and copied to the output directory.");
+        }
 
-            public override void Write(char value) => _onWrite(value.ToString()).GetAwaiter().GetResult();
+        private static void TryDeleteDirectory(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
 
-            public override void Write(string value) => _onWrite(value ?? string.Empty).GetAwaiter().GetResult();
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, recursive: true);
+                }
+            }
+            catch
+            {
+                // ignore cleanup errors
+            }
+        }
 
-            public override void WriteLine(string value) => _onWrite((value ?? string.Empty) + Environment.NewLine).GetAwaiter().GetResult();
+        private static void TryTerminateProcess(Process process)
+        {
+            if (process == null)
+            {
+                return;
+            }
 
-            public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // ignore termination failures
+            }
+        }
+
+        private sealed class ProcessSession
+        {
+            private readonly Process _process;
+            private readonly StreamWriter _inputWriter;
+
+            public ProcessSession(Process process)
+            {
+                _process = process ?? throw new ArgumentNullException(nameof(process));
+                _inputWriter = process.StandardInput ?? throw new InvalidOperationException("Process stdin not available.");
+                _inputWriter.AutoFlush = true;
+            }
+
+            public bool ProvideInput(string input)
+            {
+                if (_process.HasExited)
+                {
+                    return false;
+                }
+
+                lock (_inputWriter)
+                {
+                    try
+                    {
+                        _inputWriter.WriteLine(input ?? string.Empty);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }
+            }
         }
 
         private static bool DetectWinFormsUsage(IEnumerable<string> sources)
