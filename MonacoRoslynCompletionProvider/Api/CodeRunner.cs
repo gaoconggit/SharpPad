@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using monacoEditorCSharp.DataHelpers;
@@ -17,10 +18,32 @@ namespace MonacoRoslynCompletionProvider.Api
 {
     public class CodeRunner
     {
-        // 管理以 SessionId 为键的运行中进程上下文
+        // Manage running process contexts keyed by SessionId
         private static readonly ConcurrentDictionary<string, ProcessExecutionContext> _activeProcesses = new();
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
+        private const int DEFAULT_LANGUAGE_VERSION = 2147483647; // C# Latest
+        private const int PROCESS_CLEANUP_TIMEOUT_MS = 5000;
+        private const string CODE_EXECUTION_CANCELLED_MESSAGE = "Code execution was cancelled";
+        private const string DOTNET_RESTORE_FAILED_MESSAGE = "dotnet restore failed with exit code";
+        private const string PROCESS_EXITED_MESSAGE = "Process exited with code";
+        private const string CODE_EXECUTION_STOPPED_MESSAGE = "Code execution stopped";
+        private const string RESPONSE_DISPOSED_MESSAGE = "Response object disposed";
+        private const string RESPONSE_WRITE_ERROR_MESSAGE = "Response write error";
+        private const string CHANNEL_PROCESSING_ERROR_MESSAGE = "Error occurred while processing channel";
+
+        private static async Task<bool> IsDotnetCliAvailableAsync()
+        {
+            try
+            {
+                var (exitCode, _, _) = await RunProcessCaptureAsync("dotnet", "--version", Environment.CurrentDirectory);
+                return exitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private static string NormalizeProjectType(string type)
         {
@@ -121,6 +144,15 @@ namespace MonacoRoslynCompletionProvider.Api
                 return result;
             }
 
+            // Check if dotnet CLI is available
+            if (!await IsDotnetCliAvailableAsync())
+            {
+                const string dotnetNotAvailableMessage = "dotnet CLI is not available. Please ensure .NET SDK is installed and in PATH.";
+                await onError(dotnetNotAvailableMessage).ConfigureAwait(false);
+                result.Error = dotnetNotAvailableMessage;
+                return result;
+            }
+
             var workingRoot = Path.Combine(Path.GetTempPath(), "SharpPadRuntime", Guid.NewGuid().ToString("N"));
             var projectDir = Path.Combine(workingRoot, "src");
             Directory.CreateDirectory(projectDir);
@@ -146,14 +178,14 @@ namespace MonacoRoslynCompletionProvider.Api
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    await onError("代码执行已被取消").ConfigureAwait(false);
-                    result.Error = "代码执行已被取消";
+                    await onError(CODE_EXECUTION_CANCELLED_MESSAGE).ConfigureAwait(false);
+                    result.Error = CODE_EXECUTION_CANCELLED_MESSAGE;
                     return result;
                 }
 
                 if (restoreExitCode != 0)
                 {
-                    var message = $"dotnet restore 失败，退出代码 {restoreExitCode}";
+                    var message = $"{DOTNET_RESTORE_FAILED_MESSAGE} {restoreExitCode}";
                     await onError(message).ConfigureAwait(false);
                     result.Error = message;
                     return result;
@@ -184,12 +216,12 @@ namespace MonacoRoslynCompletionProvider.Api
 
                 if (context.IsStopRequested || cancellationToken.IsCancellationRequested)
                 {
-                    await onError("代码执行已被取消").ConfigureAwait(false);
-                    result.Error = "代码执行已被取消";
+                    await onError(CODE_EXECUTION_CANCELLED_MESSAGE).ConfigureAwait(false);
+                    result.Error = CODE_EXECUTION_CANCELLED_MESSAGE;
                 }
                 else if (exitCode != 0)
                 {
-                    var message = $"进程以退出代码 {exitCode} 结束";
+                    var message = $"{PROCESS_EXITED_MESSAGE} {exitCode}";
                     await onError(message).ConfigureAwait(false);
                     result.Error = message;
                 }
@@ -472,6 +504,20 @@ namespace MonacoRoslynCompletionProvider.Api
                     if (!Process.HasExited)
                     {
                         Process.Kill(true);
+
+                        // Wait for graceful termination with timeout
+                        if (!Process.WaitForExit(PROCESS_CLEANUP_TIMEOUT_MS))
+                        {
+                            // Force termination if graceful exit timeout
+                            try
+                            {
+                                Process.Kill(true);
+                            }
+                            catch
+                            {
+                                // ignore force termination failures
+                            }
+                        }
                     }
                 }
                 catch
@@ -881,6 +927,16 @@ namespace MonacoRoslynCompletionProvider.Api
 
                 var safeRelativePath = Path.Combine(segments);
                 var destinationPath = Path.Combine(destinationDir, safeRelativePath);
+
+                // Security check: Prevent path traversal attacks
+                var fullDestinationPath = Path.GetFullPath(destinationPath);
+                var fullDestinationDir = Path.GetFullPath(destinationDir);
+                if (!fullDestinationPath.StartsWith(fullDestinationDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+                    !fullDestinationPath.Equals(fullDestinationDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new SecurityException($"Path traversal attempt detected: {safeRelativePath}");
+                }
+
                 var directory = Path.GetDirectoryName(destinationPath);
                 if (!string.IsNullOrEmpty(directory))
                 {
@@ -973,93 +1029,11 @@ namespace MonacoRoslynCompletionProvider.Api
                 var asmName = Path.GetFileNameWithoutExtension(outName);
                 var artifactFileName = Path.ChangeExtension(outName, ".zip");
 
-                var normalizedProjectType = NormalizeProjectType(projectType);
-                var sdk = "Microsoft.NET.Sdk";
-                var targetFramework = GetHostTargetFramework(requireWindows: false);
-                var outputTypeValue = "Exe";
-                var propertyExtraLines = new List<string>();
-                var frameworkRefLines = new List<string>();
-                switch (normalizedProjectType)
-                {
-                    case "winform":
-                    case "winforms":
-                    case "windowsforms":
-                        targetFramework = GetHostTargetFramework(requireWindows: true);
-                        outputTypeValue = "WinExe";
-                        propertyExtraLines.Add("    <UseWindowsForms>true</UseWindowsForms>");
-                        propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
-                        frameworkRefLines.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
-                        break;
-                    case "aspnetcore":
-                    case "aspnetcorewebapi":
-                    case "webapi":
-                    case "web":
-                        sdk = "Microsoft.NET.Sdk.Web";
-                        break;
-                    default:
-                        break;
-                }
-
                 var csprojPath = Path.Combine(srcDir, $"{asmName}.csproj");
 
-                var pkgRefs = new StringBuilder();
-                if (!string.IsNullOrWhiteSpace(nuget))
-                {
-                    foreach (var part in nuget.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var items = part.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        var id = items.Length > 0 ? items[0].Trim() : null;
-                        var ver = items.Length > 1 ? items[1].Trim() : null;
-                        if (!string.IsNullOrWhiteSpace(id))
-                        {
-                            if (!string.IsNullOrWhiteSpace(ver))
-                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" Version=\"{ver}\" />");
-                            else
-                                pkgRefs.AppendLine($"    <PackageReference Include=\"{id}\" />");
-                        }
-                    }
-                }
-
-                var langVer = "latest";
-                try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
-
-                var projectBuilder = new StringBuilder();
-                projectBuilder.AppendLine($"<Project Sdk=\"{sdk}\">");
-                projectBuilder.AppendLine("  <PropertyGroup>");
-                projectBuilder.AppendLine($"    <OutputType>{outputTypeValue}</OutputType>");
-                projectBuilder.AppendLine($"    <TargetFramework>{targetFramework}</TargetFramework>");
-                projectBuilder.AppendLine("    <ImplicitUsings>enable</ImplicitUsings>");
-                projectBuilder.AppendLine("    <Nullable>enable</Nullable>");
-                projectBuilder.AppendLine($"    <AssemblyName>{asmName}</AssemblyName>");
-                projectBuilder.AppendLine($"    <RootNamespace>{asmName}</RootNamespace>");
-                projectBuilder.AppendLine($"    <LangVersion>{langVer}</LangVersion>");
-                foreach (var line in propertyExtraLines)
-                {
-                    projectBuilder.AppendLine(line);
-                }
-                projectBuilder.AppendLine("  </PropertyGroup>");
-
-                var pkgRefText = pkgRefs.ToString().TrimEnd();
-                if (!string.IsNullOrEmpty(pkgRefText))
-                {
-                    projectBuilder.AppendLine("  <ItemGroup>");
-                    projectBuilder.AppendLine(pkgRefText);
-                    projectBuilder.AppendLine("  </ItemGroup>");
-                }
-
-                if (frameworkRefLines.Count > 0)
-                {
-                    projectBuilder.AppendLine("  <ItemGroup>");
-                    foreach (var line in frameworkRefLines)
-                    {
-                        projectBuilder.AppendLine(line);
-                    }
-                    projectBuilder.AppendLine("  </ItemGroup>");
-                }
-
-                projectBuilder.AppendLine("</Project>");
-                var csproj = projectBuilder.ToString();
-                await File.WriteAllTextAsync(csprojPath, csproj, Encoding.UTF8);
+                // Use the shared project file generation logic
+                var projectContent = BuildProjectFileContent(asmName, nuget, languageVersion, projectType);
+                await File.WriteAllTextAsync(csprojPath, projectContent, Encoding.UTF8);
 
                 foreach (var f in files)
                 {
@@ -1103,7 +1077,7 @@ namespace MonacoRoslynCompletionProvider.Api
                     return result;
                 }
 
-                var rid = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+                var rid = GetRuntimeIdentifier();
                 var publishArgs = $"publish -c Release -r {rid} --self-contained true -o \"{publishDir}\"";
                 var (rc2, o2, e2) = await RunAsync("dotnet", publishArgs, srcDir);
                 if (rc2 != 0)
@@ -1174,6 +1148,15 @@ namespace MonacoRoslynCompletionProvider.Api
             }
 
             return result;
+        }
+
+        private static string GetRuntimeIdentifier()
+        {
+            if (OperatingSystem.IsWindows())
+                return "win-x64";
+            if (OperatingSystem.IsMacOS())
+                return "osx-x64";
+            return "linux-x64";
         }
 
     }

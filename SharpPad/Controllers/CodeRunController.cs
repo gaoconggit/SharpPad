@@ -57,7 +57,7 @@ namespace SharpPad.Controllers
                     result = await CodeRunner.RunMultiFileCodeAsync(
                         request.Files,
                         nugetPackages,
-                        request?.LanguageVersion ?? 2147483647,
+                        request?.LanguageVersion ?? DEFAULT_LANGUAGE_VERSION,
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
                         sessionId: request?.SessionId,
@@ -71,7 +71,7 @@ namespace SharpPad.Controllers
                     result = await CodeRunner.RunProgramCodeAsync(
                         request?.SourceCode,
                         nugetPackages,
-                        request?.LanguageVersion ?? 2147483647,
+                        request?.LanguageVersion ?? DEFAULT_LANGUAGE_VERSION,
                         message => OnOutputAsync(message, channel.Writer, cts.Token),
                         error => OnErrorAsync(error, channel.Writer, cts.Token),
                         sessionId: request?.SessionId,
@@ -242,7 +242,7 @@ namespace SharpPad.Controllers
                     result = await CodeRunner.BuildMultiFileExecutableAsync(
                         request.Files,
                         nugetPackages,
-                        request?.LanguageVersion ?? 2147483647,
+                        request?.LanguageVersion ?? DEFAULT_LANGUAGE_VERSION,
                         request?.OutputFileName ?? "Program.exe",
                         request?.ProjectType
                     );
@@ -252,7 +252,7 @@ namespace SharpPad.Controllers
                     result = await CodeRunner.BuildExecutableAsync(
                         request?.SourceCode,
                         nugetPackages,
-                        request?.LanguageVersion ?? 2147483647,
+                        request?.LanguageVersion ?? DEFAULT_LANGUAGE_VERSION,
                         request?.OutputFileName ?? "Program.exe",
                         request?.ProjectType
                     );
