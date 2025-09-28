@@ -354,7 +354,6 @@ export class CodeRunner {
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preRunMessages = [];
-        preRunMessages.push({ type: 'info', text: `项目类型：${this.getProjectTypeLabel(projectType)}` });
 
         if (autoIncludedNames.length > 0) {
             preRunMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
@@ -626,7 +625,6 @@ export class CodeRunner {
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preBuildMessages = [];
-        preBuildMessages.push({ type: 'info', text: `项目类型：${this.getProjectTypeLabel(projectType)}` });
 
         if (autoIncludedNames.length > 0) {
             preBuildMessages.push({ type: 'info', text: `自动包含引用文件: ${autoIncludedNames.join(', ')}` });
