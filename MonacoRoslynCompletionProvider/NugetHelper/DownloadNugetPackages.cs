@@ -91,7 +91,7 @@ namespace monacoEditorCSharp.DataHelpers
             return assemblies;
         }
 
-        public static async Task DownloadAllPackagesAsync(string packages)
+        public static async Task DownloadAllPackagesAsync(string packages, string preferredSourceKey = null)
         {
             if (String.IsNullOrWhiteSpace(packages))
             {
@@ -100,7 +100,7 @@ namespace monacoEditorCSharp.DataHelpers
 
             var tasks = new List<Task>();
             string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var item in npackages)
             {
                 if (String.IsNullOrWhiteSpace(item))
@@ -112,7 +112,7 @@ namespace monacoEditorCSharp.DataHelpers
                 string downloadItem = parts[0].Trim();
                 string version = parts.Length > 1 ? parts[1].Trim() : string.Empty;
 
-                tasks.Add(DownloadPackageAsync(downloadItem, version));
+                tasks.Add(DownloadPackageAsync(downloadItem, version, preferredSourceKey));
             }
 
             await Task.WhenAll(tasks);
@@ -124,7 +124,7 @@ namespace monacoEditorCSharp.DataHelpers
             DownloadAllPackagesAsync(packages).GetAwaiter().GetResult();
         }
 
-        public static async Task DownloadPackageAsync(string packageName, string version)
+        public static async Task DownloadPackageAsync(string packageName, string version, string preferredSourceKey = null)
         {
             if (string.IsNullOrWhiteSpace(packageName))
             {
@@ -148,29 +148,47 @@ namespace monacoEditorCSharp.DataHelpers
 
             string packageFile = Path.Combine(packageVersionDirectory, BuildPackageFileName(packageName, version));
 
-            string url = $"https://packages.nuget.org/api/v2/package/{packageName}";
-            if (versionSpecified)
-            {
-                url += $"/{version}";
-            }
+            // Get available source URLs with preferred source first
+            var sourceUrls = PackageSourceManager.GetSourceUrls(preferredSourceKey);
 
-            try
+            Exception lastException = null;
+            bool downloadSuccessful = false;
+
+            foreach (var baseUrl in sourceUrls)
             {
-                using (var response = await httpClient.GetAsync(url))
+                try
                 {
-                    response.EnsureSuccessStatusCode();
-                    using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                    string url = $"{baseUrl.TrimEnd('/')}/{packageName}";
+                    if (versionSpecified)
                     {
-                        await response.Content.CopyToAsync(fileStream);
+                        url += $"/{version}";
                     }
-                }
 
-                ZipFile.ExtractToDirectory(packageFile, packageVersionDirectory, true);
+                    using (var response = await httpClient.GetAsync(url))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            await response.Content.CopyToAsync(fileStream);
+                        }
+                    }
+
+                    ZipFile.ExtractToDirectory(packageFile, packageVersionDirectory, true);
+                    downloadSuccessful = true;
+                    break; // Success, no need to try other sources
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    Console.WriteLine($"Failed to download {packageName} from {baseUrl}: {ex.Message}");
+                    TryDeleteFile(packageFile); // Clean up partial download
+                    // Continue to next source
+                }
             }
-            catch (Exception ex)
+
+            if (!downloadSuccessful)
             {
-                // Log exception or handle it appropriately
-                Console.WriteLine($"Error downloading package {packageName}: {ex.Message}");
+                Console.WriteLine($"Error downloading package {packageName} from all sources: {lastException?.Message}");
 
                 if (!HasAssemblies(packageVersionDirectory))
                 {

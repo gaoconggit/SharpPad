@@ -153,6 +153,16 @@
     gap: 6px;
 }
 
+.nuget-search-options select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+}
+
 .nuget-panels {
     flex: 1;
     background: rgba(11, 16, 25, 0.85);
@@ -564,6 +574,12 @@ body.theme-light .nuget-search button {
 
 body.theme-light .nuget-search-options {
     color: #64748b;
+}
+
+body.theme-light .nuget-search-options select {
+    background: rgba(248, 250, 255, 0.96);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #1f2937;
 }
 
 body.theme-light .nuget-panels {

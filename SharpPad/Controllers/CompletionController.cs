@@ -115,7 +115,7 @@ namespace SharpPad.Controllers
             try
             {
                 string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
-                CodeRunner.DownloadPackage(nugetPackages);
+                CodeRunner.DownloadPackage(nugetPackages, request?.SourceKey);
                 return Ok(new
                 {
                     code = 0,

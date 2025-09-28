@@ -1422,9 +1422,9 @@ public class RunResult
             return (process.ExitCode, stdOut.ToString(), stdErr.ToString());
         }
 
-        public static void DownloadPackage(string nuget)
+        public static void DownloadPackage(string nuget, string preferredSourceKey = null)
         {
-            DownloadNugetPackages.DownloadAllPackages(nuget);
+            DownloadNugetPackages.DownloadAllPackagesAsync(nuget, preferredSourceKey).GetAwaiter().GetResult();
         }
 
         public static async Task<ExeBuildResult> BuildMultiFileExecutableAsync(

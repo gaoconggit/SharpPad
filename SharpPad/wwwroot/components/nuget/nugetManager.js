@@ -73,6 +73,7 @@ export class NugetManager {
         this.searchInput = document.getElementById("nugetSearchInput");
         this.searchButton = document.getElementById("nugetSearchButton");
         this.includePrerelease = document.getElementById("nugetIncludePrerelease");
+        this.packageSourceSelect = document.getElementById("nugetPackageSource");
         this.searchResultsEl = document.getElementById("nugetSearchResults");
         this.installedListEl = document.getElementById("nugetInstalledList");
         this.updatesListEl = document.getElementById("nugetUpdatesList");
@@ -126,6 +127,14 @@ export class NugetManager {
 
         if (this.includePrerelease) {
             this.includePrerelease.addEventListener("change", () => {
+                if (this.activeTab === "browse") {
+                    this.performSearch(true);
+                }
+            });
+        }
+
+        if (this.packageSourceSelect) {
+            this.packageSourceSelect.addEventListener("change", () => {
                 if (this.activeTab === "browse") {
                     this.performSearch(true);
                 }
@@ -188,6 +197,10 @@ export class NugetManager {
 
     getCurrentFile() {
         return this.currentFile;
+    }
+
+    getSelectedPackageSource() {
+        return this.packageSourceSelect?.value || "nuget";
     }
 
     switchTab(tabName, options = {}) {
@@ -725,7 +738,8 @@ export class NugetManager {
 
         try {
             const request = {
-                Packages: [{ Id: packageId, Version: targetVersion }]
+                Packages: [{ Id: packageId, Version: targetVersion }],
+                SourceKey: this.getSelectedPackageSource()
             };
             const result = await this.sendRequest("addPackages", request);
             if (!result?.data || result.data.code !== 0) {

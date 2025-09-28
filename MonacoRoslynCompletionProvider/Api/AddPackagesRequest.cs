@@ -9,5 +9,6 @@ namespace MonacoRoslynCompletionProvider.Api
     public class AddPackagesRequest
     {
         public List<Package> Packages { get; set; }
+        public string SourceKey { get; set; }
     }
 }
