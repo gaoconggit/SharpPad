@@ -204,11 +204,19 @@ namespace SharpPad.Controllers
 
             try
             {
+                var processStopped = CodeRunner.TryStopProcess(request.SessionId);
+
                 // 查找并取消对应的会话，使用线程安全操作
+                var sessionStopped = false;
                 if (_activeSessions.TryRemove(request.SessionId, out var cts))
                 {
                     cts?.Cancel();
                     cts?.Dispose();
+                    sessionStopped = true;
+                }
+
+                if (processStopped || sessionStopped)
+                {
                     return Ok(new { success = true, message = "代码执行已停止" });
                 }
 
