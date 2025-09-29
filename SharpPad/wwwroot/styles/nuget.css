@@ -1,5 +1,5 @@
 .nuget-modal {
-    width: 1200px;
+    width: 1220px;
     max-width: 96vw;
     max-height: 85vh;
     display: flex;
@@ -1026,5 +1026,6 @@ body.theme-light .nuget-secondary-btn.danger {
     color: #b91c1c;
     border-color: rgba(248, 113, 113, 0.35);
     box-shadow: 0 16px 32px rgba(248, 113, 113, 0.18);
-}
+}
+
 
