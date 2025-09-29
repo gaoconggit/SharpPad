@@ -53,6 +53,12 @@ namespace monacoEditorCSharp.DataHelpers
                 {
                     try
                     {
+                        if (file.IndexOf($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            file.IndexOf($"{Path.AltDirectorySeparatorChar}ref{Path.AltDirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            continue;
+                        }
+
                         var fileName = Path.GetFileName(file);
                         if (!file.EndsWith(Path.Combine("net8.0", fileName)) &&
                             !file.Contains(Path.Combine("netstandard2.0", fileName)) &&
@@ -338,3 +344,4 @@ namespace monacoEditorCSharp.DataHelpers
         public AssemblyName AssemblyName { get; }
     }
 }
+

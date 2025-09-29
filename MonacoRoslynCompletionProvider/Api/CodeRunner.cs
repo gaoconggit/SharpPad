@@ -235,7 +235,7 @@ public class RunResult
 
             var normalizedProjectType = NormalizeProjectType(projectType);
             var runBehavior = GetRunBehavior(projectType);
-            if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files.Select(f => f.Content)))
+            if (runBehavior.OutputKind != OutputKind.WindowsApplication)
             {
                 runBehavior = (OutputKind.WindowsApplication, true);
             }
@@ -612,39 +612,6 @@ public class RunResult
                 }
             }
         }
-
-        private static bool DetectWinFormsUsage(IEnumerable<string> sources)
-        {
-            if (sources == null)
-            {
-                return false;
-            }
-
-            foreach (var source in sources)
-            {
-                if (DetectWinFormsUsage(source))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool DetectWinFormsUsage(string source)
-        {
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return false;
-            }
-
-            return source.IndexOf("System.Windows.Forms", StringComparison.OrdinalIgnoreCase) >= 0
-                || source.IndexOf("Application.Run", StringComparison.OrdinalIgnoreCase) >= 0
-                || source.IndexOf(": Form", StringComparison.OrdinalIgnoreCase) >= 0
-                || source.IndexOf(" new Form", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-
 
         private static void EnsureWinFormsAssembliesLoaded()
         {
@@ -1667,16 +1634,6 @@ public class RunResult
 
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 

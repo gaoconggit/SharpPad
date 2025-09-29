@@ -1,6 +1,42 @@
-const NUGET_SEARCH_ENDPOINT = "https://azuresearch-usnc.nuget.org/query";
-const NUGET_FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer";
 const SEARCH_DEBOUNCE_MS = 350;
+
+const DEFAULT_PACKAGE_SOURCES = [
+    {
+        key: "nuget",
+        name: "NuGet.org",
+        url: "https://packages.nuget.org/api/v2/package",
+        searchUrl: "https://azuresearch-usnc.nuget.org/query",
+        apiUrl: "https://api.nuget.org/v3-flatcontainer",
+        isDefault: true,
+        isCustom: false
+    },
+    {
+        key: "azure",
+        name: "Azure CDN",
+        url: "https://nuget.cdn.azure.cn/api/v2/package",
+        searchUrl: "https://azuresearch-usnc.nuget.org/query",
+        apiUrl: "https://nuget.cdn.azure.cn/v3-flatcontainer",
+        isDefault: false,
+        isCustom: false
+    },
+    {
+        key: "huawei",
+        name: "Huawei Cloud",
+        url: "https://mirrors.huaweicloud.com/repository/nuget/v2/package",
+        searchUrl: "https://azuresearch-usnc.nuget.org/query",
+        apiUrl: "https://mirrors.huaweicloud.com/repository/nuget/v3-flatcontainer",
+        isDefault: false,
+        isCustom: false
+    }
+];
+
+const FALLBACK_SOURCE_KEY = "nuget";
+
+const PACKAGE_SOURCE_ENDPOINTS = {
+    list: "/api/PackageSource/list",
+    add: "/api/PackageSource/custom",
+    remove: (key) => `/api/PackageSource/custom/${encodeURIComponent(key)}`
+};
 
 const escapeHtml = (value = "") => {
     const text = value === null || value === undefined ? "" : String(value);
@@ -85,6 +121,22 @@ export class NugetManager {
             updates: document.getElementById("nugetUpdatesPanel")
         };
 
+        this.manageSourcesButton = document.getElementById("nugetManageSourcesButton");
+        this.sourceModal = document.getElementById("nugetSourceModal");
+        this.sourceModalCloseButton = document.getElementById("nugetSourceModalClose");
+        this.sourceListEl = document.getElementById("nugetSourceList");
+        this.sourceForm = document.getElementById("nugetSourceForm");
+        this.sourceSubmitButton = document.getElementById("nugetSourceSubmit");
+        this.sourceKeyInput = document.getElementById("nugetSourceKey");
+        this.sourceNameInput = document.getElementById("nugetSourceName");
+        this.sourceUrlInput = document.getElementById("nugetSourceUrl");
+        this.sourceSearchUrlInput = document.getElementById("nugetSourceSearchUrl");
+        this.sourceApiUrlInput = document.getElementById("nugetSourceApiUrl");
+
+        this.packageSources = new Map(DEFAULT_PACKAGE_SOURCES.map((source) => [source.key, { ...source }]));
+        this.defaultSourceKey = DEFAULT_PACKAGE_SOURCES.find((source) => source.isDefault)?.key || FALLBACK_SOURCE_KEY;
+        this.currentSourceKey = this.defaultSourceKey;
+        this.isLoadingSources = false;
         this.activeTab = "browse";
         this.currentFile = null;
         this.pendingUpdates = [];
@@ -96,10 +148,13 @@ export class NugetManager {
         this.currentSearchAbort = null;
         this.lastSearchResults = [];
     }
-    initialize() {
+    async initialize() {
         if (!this.dialog) {
             return;
         }
+
+        await this.refreshPackageSources({ suppressNotifications: true });
+        this.updateSearchPlaceholder();
 
         this.tabButtons.forEach((button) => {
             button.addEventListener("click", () => {
@@ -135,8 +190,14 @@ export class NugetManager {
 
         if (this.packageSourceSelect) {
             this.packageSourceSelect.addEventListener("change", () => {
+                this.currentSourceKey = (this.packageSourceSelect.value || FALLBACK_SOURCE_KEY).toLowerCase();
+                this.resetSourceCaches();
+                this.updateSearchPlaceholder();
+
                 if (this.activeTab === "browse") {
                     this.performSearch(true);
+                } else if (this.activeTab === "updates") {
+                    this.refreshUpdates({ background: true });
                 }
             });
         }
@@ -147,6 +208,33 @@ export class NugetManager {
             });
         }
 
+        if (this.manageSourcesButton) {
+            this.manageSourcesButton.addEventListener("click", () => {
+                this.openSourceManager();
+            });
+        }
+
+        if (this.sourceModalCloseButton) {
+            this.sourceModalCloseButton.addEventListener("click", () => {
+                this.closeSourceManager();
+            });
+        }
+
+        if (this.sourceModal) {
+            this.sourceModal.addEventListener("click", (event) => {
+                if (event.target === this.sourceModal) {
+                    this.closeSourceManager();
+                }
+            });
+        }
+
+        if (this.sourceForm) {
+            this.sourceForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                await this.handleCustomSourceSubmit();
+            });
+        }
+
         this.dialog.addEventListener("click", (event) => {
             if (event.target === this.dialog) {
                 this.close();
@@ -154,11 +242,380 @@ export class NugetManager {
         });
 
         document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape" && this.dialog.style.display === "block") {
-                this.close();
+            if (event.key === "Escape") {
+                if (this.sourceModal && this.sourceModal.style.display === "block") {
+                    this.closeSourceManager();
+                    event.preventDefault();
+                    return;
+                }
+
+                if (this.dialog.style.display === "block") {
+                    this.close();
+                }
             }
         });
     }
+    async refreshPackageSources({ suppressNotifications = false } = {}) {
+        this.isLoadingSources = true;
+        const previousKey = (this.packageSourceSelect?.value || this.currentSourceKey || this.defaultSourceKey || FALLBACK_SOURCE_KEY).toLowerCase();
+        let fetchedSources = null;
+
+        try {
+            const response = await fetch(PACKAGE_SOURCE_ENDPOINTS.list);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const payload = await response.json();
+            const data = payload?.data ?? payload?.Data;
+            if (Array.isArray(data)) {
+                fetchedSources = data;
+            }
+        } catch (error) {
+            console.error('加载包源失败', error);
+            if (!suppressNotifications) {
+                this.notify(`加载包源失败：${error.message || '未知错误'}`, 'error');
+            }
+        }
+
+        this.packageSources.clear();
+        DEFAULT_PACKAGE_SOURCES.forEach((source) => {
+            this.packageSources.set(source.key, { ...source });
+        });
+
+        if (Array.isArray(fetchedSources)) {
+            fetchedSources.forEach((raw) => {
+                const normalized = this.normalizeSource(raw);
+                if (normalized) {
+                    this.packageSources.set(normalized.key, normalized);
+                }
+            });
+        }
+
+        const defaultCandidate = Array.from(this.packageSources.values()).find((source) => source.isDefault);
+        this.defaultSourceKey = defaultCandidate?.key || DEFAULT_PACKAGE_SOURCES.find((source) => source.isDefault)?.key || FALLBACK_SOURCE_KEY;
+
+        this.populatePackageSourceSelect(previousKey);
+        this.resetSourceCaches();
+        this.isLoadingSources = false;
+
+        if (this.sourceModal && this.sourceModal.style.display === 'block') {
+            this.renderSourceList();
+        }
+    }
+
+    normalizeSource(raw) {
+        if (!raw) {
+            return null;
+        }
+
+        const keyValue = (raw.key ?? raw.Key ?? '').toString().trim().toLowerCase();
+        if (!keyValue) {
+            return null;
+        }
+
+        return {
+            key: keyValue,
+            name: raw.name ?? raw.Name ?? keyValue,
+            url: raw.url ?? raw.Url ?? '',
+            searchUrl: raw.searchUrl ?? raw.SearchUrl ?? '',
+            apiUrl: raw.apiUrl ?? raw.ApiUrl ?? '',
+            isDefault: Boolean(raw.isDefault ?? raw.IsDefault ?? false),
+            isCustom: Boolean(raw.isCustom ?? raw.IsCustom ?? false)
+        };
+    }
+
+    populatePackageSourceSelect(preferredKey) {
+        if (!this.packageSourceSelect) {
+            if (preferredKey) {
+                this.currentSourceKey = preferredKey.toLowerCase();
+            }
+            return;
+        }
+
+        const sources = Array.from(this.packageSources.values());
+        sources.sort((left, right) => {
+            if (left.key === this.defaultSourceKey && right.key !== this.defaultSourceKey) {
+                return -1;
+            }
+            if (left.key !== this.defaultSourceKey && right.key === this.defaultSourceKey) {
+                return 1;
+            }
+            return left.name.localeCompare(right.name, 'zh-Hans', { sensitivity: 'base' });
+        });
+
+        this.packageSourceSelect.innerHTML = '';
+        sources.forEach((source) => {
+            const option = document.createElement('option');
+            option.value = source.key;
+            option.textContent = source.name;
+            option.dataset.custom = source.isCustom ? 'true' : 'false';
+            this.packageSourceSelect.appendChild(option);
+        });
+
+        let resolvedKey = preferredKey && this.packageSources.has(preferredKey)
+            ? preferredKey
+            : (this.packageSources.has(this.currentSourceKey) ? this.currentSourceKey : this.defaultSourceKey);
+
+        if (!resolvedKey && sources.length > 0) {
+            resolvedKey = sources[0].key;
+        }
+
+        if (resolvedKey) {
+            this.packageSourceSelect.value = resolvedKey;
+        }
+
+        this.currentSourceKey = (this.packageSourceSelect.value || this.defaultSourceKey || FALLBACK_SOURCE_KEY).toLowerCase();
+        this.updateSearchPlaceholder();
+    }
+
+    updateSearchPlaceholder() {
+        if (!this.searchInput) {
+            return;
+        }
+        const activeSource = this.getActiveSource();
+        const sourceName = activeSource?.name || 'NuGet';
+        this.searchInput.placeholder = `搜索 ${sourceName} 上的包 (例如：Newtonsoft.Json)`;
+    }
+
+    resetSourceCaches() {
+        if (this.currentSearchAbort) {
+            this.currentSearchAbort.abort();
+            this.currentSearchAbort = null;
+        }
+        this.packageCache.clear();
+        this.searchCache.clear();
+        this.latestVersionCache.clear();
+        this.detailRequestToken += 1;
+        this.lastSearchResults = [];
+        this.lastQuery = null;
+    }
+
+    openSourceManager() {
+        if (!this.sourceModal) {
+            return;
+        }
+        this.renderSourceList();
+        this.resetSourceForm();
+        this.toggleSourceFormDisabled(false);
+        this.sourceModal.style.display = 'block';
+        if (this.sourceKeyInput) {
+            setTimeout(() => this.sourceKeyInput.focus(), 0);
+        }
+    }
+
+    closeSourceManager() {
+        if (!this.sourceModal) {
+            return;
+        }
+        this.sourceModal.style.display = 'none';
+        this.toggleSourceFormDisabled(false);
+    }
+
+    renderSourceList() {
+        if (!this.sourceListEl) {
+            return;
+        }
+
+        const sources = Array.from(this.packageSources.values());
+        if (sources.length === 0) {
+            this.sourceListEl.innerHTML = '<div class="nuget-source-empty">暂无可用包源</div>';
+            return;
+        }
+
+        const selectedKey = this.getSelectedPackageSource();
+        sources.sort((left, right) => left.name.localeCompare(right.name, 'zh-Hans', { sensitivity: 'base' }));
+
+        const markup = sources.map((source) => {
+            const tags = [];
+            if (source.isDefault) {
+                tags.push('<span class="nuget-source-tag default">默认</span>');
+            }
+            if (source.isCustom) {
+                tags.push('<span class="nuget-source-tag custom">自定义</span>');
+            }
+            if (source.key === selectedKey) {
+                tags.push('<span class="nuget-source-tag active">当前</span>');
+            }
+
+            const urlDisplay = source.url || '未配置';
+            const searchDisplay = source.searchUrl || '未配置';
+            const apiDisplay = source.apiUrl || '未配置';
+            const removeButton = source.isCustom
+                ? `<button class="nuget-source-remove" data-key="${escapeHtml(source.key)}">移除</button>`
+                : '';
+
+            return `
+                <div class="nuget-source-item">
+                    <div class="nuget-source-info">
+                        <div class="nuget-source-title">${escapeHtml(source.name)}
+                            <div class="nuget-source-tags">${tags.join('')}</div>
+                        </div>
+                        <div class="nuget-source-meta">标识：${escapeHtml(source.key)}</div>
+                        <div class="nuget-source-meta">包下载：${escapeHtml(urlDisplay)}</div>
+                        <div class="nuget-source-meta">搜索：${escapeHtml(searchDisplay)}</div>
+                        <div class="nuget-source-meta">版本查询：${escapeHtml(apiDisplay)}</div>
+                    </div>
+                    <div class="nuget-source-actions">${removeButton}</div>
+                </div>
+            `;
+        }).join('');
+
+        this.sourceListEl.innerHTML = markup;
+        this.sourceListEl.querySelectorAll('.nuget-source-remove').forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetKey = button.getAttribute('data-key');
+                this.removeCustomSource(targetKey);
+            });
+        });
+    }
+
+    resetSourceForm() {
+        if (this.sourceForm) {
+            this.sourceForm.reset();
+        }
+        if (this.sourceSubmitButton) {
+            this.sourceSubmitButton.disabled = false;
+            this.sourceSubmitButton.textContent = '保存包源';
+        }
+    }
+
+    toggleSourceFormDisabled(disabled, pendingLabel = '保存中...') {
+        if (!this.sourceForm) {
+            return;
+        }
+
+        Array.from(this.sourceForm.elements).forEach((element) => {
+            element.disabled = disabled;
+        });
+
+        if (this.sourceSubmitButton) {
+            this.sourceSubmitButton.disabled = disabled;
+            this.sourceSubmitButton.textContent = disabled ? pendingLabel : '保存包源';
+        }
+    }
+
+    async handleCustomSourceSubmit() {
+        if (!this.sourceForm) {
+            return;
+        }
+
+        const key = (this.sourceKeyInput?.value || '').trim().toLowerCase();
+        const name = (this.sourceNameInput?.value || '').trim();
+        const url = (this.sourceUrlInput?.value || '').trim();
+        const searchUrl = (this.sourceSearchUrlInput?.value || '').trim();
+        const apiUrl = (this.sourceApiUrlInput?.value || '').trim();
+
+        if (!key) {
+            this.notify('请填写包源标识', 'error');
+            this.sourceKeyInput?.focus();
+            return;
+        }
+
+        if (!/^[a-z0-9_-]+$/.test(key)) {
+            this.notify('包源标识仅支持字母、数字、短横线和下划线', 'error');
+            this.sourceKeyInput?.focus();
+            return;
+        }
+
+        if (!url) {
+            this.notify('请填写包下载地址', 'error');
+            this.sourceUrlInput?.focus();
+            return;
+        }
+
+        const payload = {
+            Key: key,
+            Name: name || key,
+            Url: url,
+            SearchUrl: searchUrl || null,
+            ApiUrl: apiUrl || null
+        };
+
+        this.toggleSourceFormDisabled(true);
+
+        try {
+            const response = await fetch(PACKAGE_SOURCE_ENDPOINTS.add, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result?.code !== 0) {
+                throw new Error(result?.message || `HTTP ${response.status}`);
+            }
+
+            this.notify(`已保存包源 ${payload.Name}`, 'success');
+            await this.refreshPackageSources({ suppressNotifications: true });
+
+            if (this.packageSourceSelect) {
+                this.packageSourceSelect.value = key;
+                this.packageSourceSelect.dispatchEvent(new Event('change'));
+            }
+
+            this.renderSourceList();
+            this.resetSourceForm();
+        } catch (error) {
+            console.error('添加包源失败', error);
+            this.notify(`添加包源失败：${error.message || '未知错误'}`, 'error');
+        } finally {
+            this.toggleSourceFormDisabled(false);
+        }
+    }
+
+    async removeCustomSource(key) {
+        if (!key) {
+            return;
+        }
+
+        const normalizedKey = key.toLowerCase();
+        const targetSource = this.packageSources.get(normalizedKey);
+        if (!targetSource?.isCustom) {
+            this.notify('只能移除自定义包源', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(PACKAGE_SOURCE_ENDPOINTS.remove(normalizedKey), {
+                method: 'DELETE'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result?.code !== 0) {
+                throw new Error(result?.message || `HTTP ${response.status}`);
+            }
+
+            const wasSelected = this.getSelectedPackageSource() === normalizedKey;
+            this.notify(`已移除包源 ${targetSource.name}`, 'success');
+            await this.refreshPackageSources({ suppressNotifications: true });
+
+            if (wasSelected && this.packageSourceSelect) {
+                const fallbackKey = this.packageSources.has(this.defaultSourceKey)
+                    ? this.defaultSourceKey
+                    : (this.packageSources.keys().next().value || FALLBACK_SOURCE_KEY);
+                this.packageSourceSelect.value = fallbackKey;
+                this.packageSourceSelect.dispatchEvent(new Event('change'));
+            } else {
+                this.updateSearchPlaceholder();
+            }
+
+            this.renderSourceList();
+        } catch (error) {
+            console.error('移除包源失败', error);
+            this.notify(`移除包源失败：${error.message || '未知错误'}`, 'error');
+        }
+    }
+
+    composeSourceCacheKey(sourceKey, packageId) {
+        return `${(sourceKey || '').toLowerCase()}::${(packageId || '').toLowerCase()}`;
+    }
+
+    getActiveSource(sourceKey) {
+        const key = (sourceKey || this.getSelectedPackageSource() || FALLBACK_SOURCE_KEY).toLowerCase();
+        return this.packageSources.get(key) || this.packageSources.get(this.defaultSourceKey) || DEFAULT_PACKAGE_SOURCES[0];
+    }
+
     open(file) {
         if (!file) {
             return;
@@ -200,7 +657,9 @@ export class NugetManager {
     }
 
     getSelectedPackageSource() {
-        return this.packageSourceSelect?.value || "nuget";
+        const value = (this.packageSourceSelect?.value || this.currentSourceKey || this.defaultSourceKey || FALLBACK_SOURCE_KEY).toLowerCase();
+        this.currentSourceKey = value;
+        return value;
     }
 
     switchTab(tabName, options = {}) {
@@ -257,7 +716,24 @@ export class NugetManager {
         }
 
         this.currentSearchAbort = new AbortController();
-        const url = new URL(NUGET_SEARCH_ENDPOINT);
+        const sourceKey = this.getSelectedPackageSource();
+        const activeSource = this.getActiveSource(sourceKey);
+        const searchEndpoint = activeSource?.searchUrl || DEFAULT_PACKAGE_SOURCES[0].searchUrl;
+
+        if (!searchEndpoint) {
+            this.searchResultsEl.innerHTML = '<div class="nuget-error">当前包源缺少搜索地址</div>';
+            return;
+        }
+
+        let url;
+        try {
+            url = new URL(searchEndpoint);
+        } catch (error) {
+            console.error('Invalid search endpoint', error);
+            this.searchResultsEl.innerHTML = '<div class="nuget-error">当前包源的搜索地址无效</div>';
+            return;
+        }
+
         url.searchParams.set("q", query);
         url.searchParams.set("skip", "0");
         url.searchParams.set("take", "20");
@@ -325,6 +801,7 @@ export class NugetManager {
                 const cached = this.searchCache.get(packageId.toLowerCase());
                 const context = {
                     source: "browse",
+                    sourceKey: this.getSelectedPackageSource(),
                     latestVersion: cached?.version,
                     installedVersion: this.getInstalledPackage(packageId)?.version || null
                 };
@@ -367,6 +844,7 @@ export class NugetManager {
                 const updateInfo = this.pendingUpdates.find((item) => item.id.toLowerCase() === packageId.toLowerCase());
                 const context = {
                     source: "installed",
+                    sourceKey: this.getSelectedPackageSource(),
                     installedVersion: pkg?.version || null,
                     latestVersion: updateInfo?.latestVersion || pkg?.version || null
                 };
@@ -405,6 +883,7 @@ export class NugetManager {
                 const pkg = this.getInstalledPackage(packageId);
                 const context = {
                     source: "updates",
+                    sourceKey: this.getSelectedPackageSource(),
                     installedVersion: pkg?.version || null,
                     latestVersion: updateInfo?.latestVersion || null
                 };
@@ -426,6 +905,8 @@ export class NugetManager {
             return;
         }
 
+        const sourceKey = this.getSelectedPackageSource();
+
         if (!background && this.updatesListEl) {
             this.updatesListEl.innerHTML = '<div class="nuget-loading">正在检查更新...</div>';
         }
@@ -433,7 +914,7 @@ export class NugetManager {
         try {
             const updates = await Promise.all(packages.map(async (pkg) => {
                 try {
-                    const latest = await this.fetchLatestVersion(pkg.id);
+                    const latest = await this.fetchLatestVersion(pkg.id, sourceKey);
                     const hasUpdate = compareVersions(latest, pkg.version) > 0;
                     return {
                         id: pkg.id,
@@ -470,17 +951,18 @@ export class NugetManager {
         }
 
         this.highlightSelection(packageId, context.source);
+        const sourceKey = context.sourceKey || this.getSelectedPackageSource();
         const requestToken = ++this.detailRequestToken;
         if (this.detailsPanel) {
             this.detailsPanel.innerHTML = '<div class="nuget-loading">正在加载包信息...</div>';
         }
 
         try {
-            const metadata = await this.fetchPackageMetadata(packageId);
+            const metadata = await this.fetchPackageMetadata(packageId, sourceKey);
             if (this.detailRequestToken !== requestToken) {
                 return;
             }
-            const versions = await this.fetchPackageVersions(packageId);
+            const versions = await this.fetchPackageVersions(packageId, sourceKey);
             if (this.detailRequestToken !== requestToken) {
                 return;
             }
@@ -661,16 +1143,28 @@ export class NugetManager {
         const packages = this.getInstalledPackages();
         return packages.find((pkg) => pkg.id.toLowerCase() === packageId.toLowerCase()) || null;
     }
-    async fetchPackageMetadata(packageId) {
-        const cacheKey = packageId.toLowerCase();
+    async fetchPackageMetadata(packageId, sourceKey = this.getSelectedPackageSource()) {
+        const cacheKey = this.composeSourceCacheKey(sourceKey, packageId);
         if (this.packageCache.has(cacheKey)) {
             return this.packageCache.get(cacheKey);
         }
 
-        const url = new URL(NUGET_SEARCH_ENDPOINT);
-        url.searchParams.set("q", `PackageId:${packageId}`);
-        url.searchParams.set("take", "1");
-        url.searchParams.set("prerelease", "true");
+        const activeSource = this.getActiveSource(sourceKey);
+        const searchEndpoint = activeSource?.searchUrl || DEFAULT_PACKAGE_SOURCES[0].searchUrl;
+        if (!searchEndpoint) {
+            throw new Error('当前包源缺少搜索地址');
+        }
+
+        let url;
+        try {
+            url = new URL(searchEndpoint);
+        } catch (error) {
+            throw new Error('当前包源的搜索地址无效');
+        }
+
+        url.searchParams.set('q', `PackageId:${packageId}`);
+        url.searchParams.set('take', '1');
+        url.searchParams.set('prerelease', 'true');
 
         const response = await fetch(url.toString());
         if (!response.ok) {
@@ -679,19 +1173,28 @@ export class NugetManager {
         const payload = await response.json();
         const metadata = payload.data && payload.data[0];
         if (!metadata) {
-            throw new Error("未找到包元数据");
+            throw new Error('未找到包元数据');
         }
         this.packageCache.set(cacheKey, metadata);
         return metadata;
     }
 
-    async fetchPackageVersions(packageId) {
-        const cacheKey = packageId.toLowerCase();
+    async fetchPackageVersions(packageId, sourceKey = this.getSelectedPackageSource()) {
+        const cacheKey = this.composeSourceCacheKey(sourceKey, packageId);
         const cached = this.latestVersionCache.get(cacheKey);
         if (cached?.versions) {
             return cached.versions;
         }
-        const response = await fetch(`${NUGET_FLAT_CONTAINER}/${packageId.toLowerCase()}/index.json`);
+
+        const activeSource = this.getActiveSource(sourceKey);
+        const apiEndpoint = activeSource?.apiUrl || DEFAULT_PACKAGE_SOURCES[0].apiUrl;
+        if (!apiEndpoint) {
+            throw new Error('当前包源缺少版本查询地址');
+        }
+
+        const baseUrl = apiEndpoint.endsWith('/') ? apiEndpoint.slice(0, -1) : apiEndpoint;
+        const lowerId = packageId.toLowerCase();
+        const response = await fetch(`${baseUrl}/${lowerId}/index.json`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -704,20 +1207,21 @@ export class NugetManager {
         return versions;
     }
 
-    async fetchLatestVersion(packageId) {
-        const cacheKey = packageId.toLowerCase();
+    async fetchLatestVersion(packageId, sourceKey = this.getSelectedPackageSource()) {
+        const cacheKey = this.composeSourceCacheKey(sourceKey, packageId);
         const cached = this.latestVersionCache.get(cacheKey);
         if (cached?.latestVersion) {
             return cached.latestVersion;
         }
-        const versions = await this.fetchPackageVersions(packageId);
-        const latest = versions.at(-1) || "0.0.0";
+        const versions = await this.fetchPackageVersions(packageId, sourceKey);
+        const latest = versions.at(-1) || '0.0.0';
         this.latestVersionCache.set(cacheKey, {
             latestVersion: latest,
             versions
         });
         return latest;
     }
+
     async installOrUpdatePackage(packageId, targetVersion, installedVersion) {
         if (!this.currentFile) {
             return;
@@ -818,7 +1322,5 @@ export class NugetManager {
         update(files);
         localStorage.setItem("controllerFiles", JSON.stringify(files));
     }
-}
-
-
+}
 

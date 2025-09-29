@@ -1,19 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0-windows</TargetFramework>
-    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
-    <OutputType>Exe</OutputType>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>SharpPad.ExecutionHost</RootNamespace>
-    <AssemblyName>SharpPad.ExecutionHost</AssemblyName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-    <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-
-  <ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0-windows</TargetFramework>
+		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
+		<OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
+		<OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>SharpPad.ExecutionHost</RootNamespace>
+		<AssemblyName>SharpPad.ExecutionHost</AssemblyName>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+		<!--<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />-->
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.IdentityModel.Logging" Version="8.14.0" />
 	</ItemGroup>
 </Project>
