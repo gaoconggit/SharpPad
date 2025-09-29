@@ -85,7 +85,7 @@ if (ENABLE_WORKER) {
                 }
             };
             
-            function processTokensInWorker(tokenData, commentLines, stringRanges) {
+            function processTokensInWorker(tokenData, commentLines, stringRanges) {\n                const commentLineSet = (commentLines && typeof commentLines.has === "function") ? commentLines : new Set(commentLines || []);
                 const decorations = [];
                 let currentLine = 0;
                 let currentChar = 0;
@@ -100,7 +100,7 @@ if (ENABLE_WORKER) {
                     currentLine += deltaLine;
                     currentChar = deltaLine === 0 ? currentChar + deltaChar : deltaChar;
                     
-                    const isCommentLine = commentLines.has(currentLine + 1);
+                    const isCommentLine = commentLineSet.has(currentLine + 1);
                     const isInString = isPositionInStringWorker({ line: currentLine + 1, char: currentChar }, stringRanges);
                     
                     decorations.push({
@@ -889,3 +889,4 @@ if (typeof window !== 'undefined') {
         });
     };
 }
+

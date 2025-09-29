@@ -177,12 +177,21 @@
                         <button class="nuget-tab" data-tab="updates">更新</button>
                     </div>
                     <div class="nuget-search">
-                        <input type="text" id="nugetSearchInput" placeholder="搜索 nuget.org 上的包 (例如：Newtonsoft.Json)">
+                        <input type="text" id="nugetSearchInput" placeholder="搜索包 (例如：Newtonsoft.Json)">
                         <div class="nuget-search-options">
                             <label>
                                 <input type="checkbox" id="nugetIncludePrerelease">
                                 预发行
                             </label>
+                            <label>
+                                包源：
+                                <select id="nugetPackageSource">
+                                    <option value="nuget">NuGet.org</option>
+                                    <option value="azure">Azure CDN</option>
+                                    <option value="huawei">Huawei Cloud</option>
+                                </select>
+                            </label>
+                            <button type="button" id="nugetManageSourcesButton" class="nuget-manage-sources-btn">管理包源</button>
                         </div>
                         <button id="nugetSearchButton">搜索</button>
                     </div>
@@ -206,6 +215,51 @@
                 </div>
                 <div class="nuget-details" id="nugetDetailsPanel">
                     <div class="nuget-details-placeholder">选择一个包查看详细信息</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="nugetSourceModal" class="modal" style="display: none;">
+        <div class="modal-content nuget-source-modal">
+            <div class="modal-header">
+                <h2>包源管理</h2>
+                <button class="close-button" id="nugetSourceModalClose">&times;</button>
+            </div>
+            <div class="modal-body nuget-source-body">
+                <div class="nuget-source-section">
+                    <h3>已配置的包源</h3>
+                    <div id="nugetSourceList" class="nuget-source-list">
+                        <div class="nuget-source-empty">正在加载包源...</div>
+                    </div>
+                </div>
+                <div class="nuget-source-section">
+                    <h3>添加自定义包源</h3>
+                    <form id="nugetSourceForm" class="nuget-source-form">
+                        <div class="form-group">
+                            <label for="nugetSourceKey">标识 (字母/数字/-/_)</label>
+                            <input type="text" id="nugetSourceKey" placeholder="例如: internal" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nugetSourceName">显示名称</label>
+                            <input type="text" id="nugetSourceName" placeholder="例如: 公司内部源">
+                        </div>
+                        <div class="form-group">
+                            <label for="nugetSourceUrl">包下载地址</label>
+                            <input type="text" id="nugetSourceUrl" placeholder="例如: https://nuget.example.com/api/v2/package" required>
+                            <div class="nuget-source-hint">用于后端下载包，通常是 V2 API 地址</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="nugetSourceSearchUrl">搜索地址 (可选)</label>
+                            <input type="text" id="nugetSourceSearchUrl" placeholder="例如: https://nuget.example.com/v3/query">
+                        </div>
+                        <div class="form-group">
+                            <label for="nugetSourceApiUrl">版本查询地址 (可选)</label>
+                            <input type="text" id="nugetSourceApiUrl" placeholder="例如: https://nuget.example.com/v3-flatcontainer">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" id="nugetSourceSubmit" class="nuget-primary-btn">保存包源</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -357,4 +411,4 @@
     <script type="module" src="chat/chat.js" defer></script>
 </body>
 
-</html>
+</html>

@@ -94,7 +94,7 @@ async function initializeApp() {
     window.sendRequest = sendRequest;  // 暴露 sendRequest 到全局作用域
 
     const nugetManager = new NugetManager({ sendRequest, notify: showNotification });
-    nugetManager.initialize();
+    await nugetManager.initialize();
     window.nugetManager = nugetManager;
     window.closeNuGetConfigDialog = () => nugetManager.close();
     window.loadNuGetConfig = (file) => nugetManager.open(file);
@@ -265,5 +265,4 @@ async function startApp() {
     await initializeApp();
 }
 
-startApp();
-
+startApp();
