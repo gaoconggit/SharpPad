@@ -415,8 +415,8 @@ namespace SharpPad.ExecutionHost
             _originalError = Console.Error;
             _originalIn = Console.In;
 
-            _stdoutWriter = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-            _stderrWriter = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
+            _stdoutWriter = new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8) { AutoFlush = true };
+            _stderrWriter = new StreamWriter(Console.OpenStandardError(), Encoding.UTF8) { AutoFlush = true };
             Console.SetOut(_stdoutWriter);
             Console.SetError(_stderrWriter);
 
@@ -503,9 +503,17 @@ namespace SharpPad.ExecutionHost
         public override async Task<string?> ReadLineAsync()
         {
             EnsurePrompt();
-            var line = await _inner.ReadLineAsync().ConfigureAwait(false);
-            ResetPrompt();
-            return line;
+            try
+            {
+                var line = await _inner.ReadLineAsync().ConfigureAwait(false);
+                ResetPrompt();
+                return line;
+            }
+            catch (Exception)
+            {
+                ResetPrompt();
+                throw;
+            }
         }
 
         protected override void Dispose(bool disposing)
