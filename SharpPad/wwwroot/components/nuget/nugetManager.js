@@ -1,6 +1,8 @@
-const NUGET_SEARCH_ENDPOINT = "https://azuresearch-usnc.nuget.org/query";
-const NUGET_FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer";
 const SEARCH_DEBOUNCE_MS = 350;
+
+// Dynamic endpoints that will be set based on selected source
+let NUGET_SEARCH_ENDPOINT = "https://azuresearch-usnc.nuget.org/query";
+let NUGET_FLAT_CONTAINER = "https://api.nuget.org/v3-flatcontainer";
 
 const escapeHtml = (value = "") => {
     const text = value === null || value === undefined ? "" : String(value);
@@ -73,6 +75,7 @@ export class NugetManager {
         this.searchInput = document.getElementById("nugetSearchInput");
         this.searchButton = document.getElementById("nugetSearchButton");
         this.includePrerelease = document.getElementById("nugetIncludePrerelease");
+        this.sourceSelect = document.getElementById("nugetSourceSelect");
         this.searchResultsEl = document.getElementById("nugetSearchResults");
         this.installedListEl = document.getElementById("nugetInstalledList");
         this.updatesListEl = document.getElementById("nugetUpdatesList");
@@ -132,6 +135,12 @@ export class NugetManager {
             });
         }
 
+        if (this.sourceSelect) {
+            this.sourceSelect.addEventListener("change", () => {
+                this.handleSourceChange();
+            });
+        }
+
         if (this.searchButton) {
             this.searchButton.addEventListener("click", () => {
                 this.performSearch(true);
@@ -149,7 +158,97 @@ export class NugetManager {
                 this.close();
             }
         });
+
+        // Load available NuGet sources
+        this.loadNugetSources();
     }
+
+    async loadNugetSources() {
+        if (!this.sourceSelect) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/completion/nugetSources');
+            const result = await response.json();
+
+            if (result.code === 0 && result.data) {
+                const { sources, currentSource } = result.data;
+
+                // Clear existing options
+                this.sourceSelect.innerHTML = '';
+
+                // Add source options
+                Object.entries(sources).forEach(([key, source]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = source.name;
+                    if (key === currentSource) {
+                        option.selected = true;
+                    }
+                    this.sourceSelect.appendChild(option);
+                });
+
+                // Update endpoints based on current source
+                this.updateEndpoints(currentSource, sources);
+            }
+        } catch (error) {
+            console.error('Failed to load NuGet sources:', error);
+            // Set default option on error
+            this.sourceSelect.innerHTML = '<option value="nuget">nuget.org</option>';
+        }
+    }
+
+    async handleSourceChange() {
+        if (!this.sourceSelect) {
+            return;
+        }
+
+        const selectedSource = this.sourceSelect.value;
+        if (!selectedSource) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/completion/setNugetSource', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sourceKey: selectedSource })
+            });
+
+            const result = await response.json();
+            if (result.code === 0) {
+                // Reload sources to get updated endpoints
+                await this.loadNugetSources();
+
+                // Clear search cache and re-search if there's a query
+                this.searchCache.clear();
+                this.latestVersionCache.clear();
+
+                if (this.activeTab === "browse" && this.searchInput && this.searchInput.value.trim()) {
+                    this.performSearch(true);
+                }
+
+                this.notify(`已切换到包源: ${this.sourceSelect.options[this.sourceSelect.selectedIndex].text}`, "success");
+            } else {
+                this.notify(`切换包源失败: ${result.message || "未知错误"}`, "error");
+            }
+        } catch (error) {
+            console.error('Failed to set NuGet source:', error);
+            this.notify(`切换包源失败: ${error.message || "网络错误"}`, "error");
+        }
+    }
+
+    updateEndpoints(currentSource, sources) {
+        if (sources && sources[currentSource]) {
+            const source = sources[currentSource];
+            NUGET_SEARCH_ENDPOINT = source.searchUrl;
+            NUGET_FLAT_CONTAINER = source.flatContainerUrl;
+        }
+    }
+
     open(file) {
         if (!file) {
             return;

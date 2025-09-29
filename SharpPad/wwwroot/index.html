@@ -177,8 +177,14 @@
                         <button class="nuget-tab" data-tab="updates">更新</button>
                     </div>
                     <div class="nuget-search">
-                        <input type="text" id="nugetSearchInput" placeholder="搜索 nuget.org 上的包 (例如：Newtonsoft.Json)">
+                        <input type="text" id="nugetSearchInput" placeholder="搜索 NuGet 包 (例如：Newtonsoft.Json)">
                         <div class="nuget-search-options">
+                            <label>
+                                <select id="nugetSourceSelect">
+                                    <option value="">加载中...</option>
+                                </select>
+                                包源
+                            </label>
                             <label>
                                 <input type="checkbox" id="nugetIncludePrerelease">
                                 预发行

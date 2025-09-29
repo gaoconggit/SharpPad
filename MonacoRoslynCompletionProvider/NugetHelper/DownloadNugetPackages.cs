@@ -148,7 +148,8 @@ namespace monacoEditorCSharp.DataHelpers
 
             string packageFile = Path.Combine(packageVersionDirectory, BuildPackageFileName(packageName, version));
 
-            string url = $"https://packages.nuget.org/api/v2/package/{packageName}";
+            var currentSource = MonacoRoslynCompletionProvider.NugetSourceManager.GetCurrentSourceInfo();
+            string url = $"{currentSource.V2Url}/package/{packageName}";
             if (versionSpecified)
             {
                 url += $"/{version}";

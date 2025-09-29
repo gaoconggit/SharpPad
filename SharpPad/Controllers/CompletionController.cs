@@ -268,5 +268,73 @@ namespace SharpPad.Controllers
                 return Ok(hoverInfoResult);
             }
         }
+
+        [HttpGet("nugetSources")]
+        public IActionResult GetNugetSources()
+        {
+            try
+            {
+                var sources = NugetSourceManager.GetAvailableSources();
+                var currentSource = NugetSourceManager.GetCurrentSource();
+
+                return Ok(new
+                {
+                    code = 0,
+                    data = new
+                    {
+                        sources = sources,
+                        currentSource = currentSource
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    data = default(object),
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("setNugetSource")]
+        public IActionResult SetNugetSource([FromBody] SetNugetSourceRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request?.SourceKey))
+                {
+                    return BadRequest(new
+                    {
+                        code = 400,
+                        data = default(object),
+                        message = "Source key is required"
+                    });
+                }
+
+                NugetSourceManager.SetCurrentSource(request.SourceKey);
+
+                return Ok(new
+                {
+                    code = 0,
+                    data = default(object)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    data = default(object),
+                    message = ex.Message
+                });
+            }
+        }
     }
-} 
+
+    public class SetNugetSourceRequest
+    {
+        public string SourceKey { get; set; }
+    }
+}
