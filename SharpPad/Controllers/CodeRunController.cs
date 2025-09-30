@@ -228,10 +228,24 @@ namespace SharpPad.Controllers
         }
 
         [HttpPost("buildExe")]
-        public async Task<IActionResult> BuildExe([FromBody] ExeBuildRequest request)
+        public async Task BuildExe([FromBody] ExeBuildRequest request)
         {
+            // 设置响应头，允许流式输出
+            Response.Headers.TryAdd("Content-Type", "text/event-stream;charset=utf-8");
+            Response.Headers.TryAdd("Cache-Control", "no-cache");
+            Response.Headers.TryAdd("Connection", "keep-alive");
+
+            var cts = new CancellationTokenSource();
+            HttpContext.RequestAborted.Register(() => cts.Cancel());
+
+            // 创建一个无界的 Channel 以缓冲输出
+            var channel = Channel.CreateUnbounded<string>();
+
             try
             {
+                // 创建处理 Channel 的任务
+                var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
+
                 string nugetPackages = string.Join(" ", request?.Packages?.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
 
                 ExeBuildResult result;
@@ -243,7 +257,8 @@ namespace SharpPad.Controllers
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
                         request?.OutputFileName ?? "Program.exe",
-                        request?.ProjectType
+                        request?.ProjectType,
+                        message => OnBuildOutputAsync(message, channel.Writer, cts.Token)
                     );
                 }
                 else
@@ -253,7 +268,8 @@ namespace SharpPad.Controllers
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
                         request?.OutputFileName ?? "Program.exe",
-                        request?.ProjectType
+                        request?.ProjectType,
+                        message => OnBuildOutputAsync(message, channel.Writer, cts.Token)
                     );
                 }
 
@@ -262,11 +278,26 @@ namespace SharpPad.Controllers
                     // CodeRunner already produced the final artifact (zip or exe).
                     var filePath = result.ExeFilePath;
                     var fileName = Path.GetFileName(filePath);
-                    var contentType = Path.GetExtension(fileName).Equals(".zip", StringComparison.OrdinalIgnoreCase)
-                        ? "application/zip"
-                        : "application/octet-stream";
+                    var fileSize = new FileInfo(filePath).Length;
 
-                    var fileBytes = System.IO.File.ReadAllBytes(filePath);
+                    // 生成临时下载ID
+                    var downloadId = Guid.NewGuid().ToString("N");
+
+                    // 将文件移动到临时下载目录
+                    var tempDownloadDir = Path.Combine(Path.GetTempPath(), "SharpPadDownloads");
+                    Directory.CreateDirectory(tempDownloadDir);
+                    var tempFilePath = Path.Combine(tempDownloadDir, $"{downloadId}_{fileName}");
+                    System.IO.File.Move(filePath, tempFilePath, true);
+
+                    // 发送完成消息，包含下载ID
+                    await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new
+                    {
+                        type = "completed",
+                        success = true,
+                        fileName = fileName,
+                        fileSize = fileSize,
+                        downloadId = downloadId
+                    })}\n\n", cts.Token);
 
                     // Best-effort cleanup of the working directory
                     try
@@ -278,13 +309,94 @@ namespace SharpPad.Controllers
                         }
                     }
                     catch { /* ignore cleanup errors */ }
-
-                    return File(fileBytes, contentType, fileName);
                 }
                 else
                 {
-                    return BadRequest(result);
+                    // 发送错误消息
+                    await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new
+                    {
+                        type = "error",
+                        content = result.Error ?? "构建失败"
+                    })}\n\n", cts.Token);
                 }
+
+                // 关闭 Channel
+                channel.Writer.Complete();
+
+                // 等待处理任务完成
+                await processTask;
+            }
+            catch (Exception ex)
+            {
+                if (!cts.Token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
+                        await Response.Body.FlushAsync(cts.Token);
+                    }
+                    catch
+                    {
+                        // 如果响应已经被处理，则忽略该异常
+                    }
+                }
+            }
+            finally
+            {
+                cts?.Dispose();
+            }
+        }
+
+        private async Task OnBuildOutputAsync(string output, ChannelWriter<string> writer, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return;
+
+            try
+            {
+                await writer.WriteAsync(
+                    $"data: {JsonConvert.SerializeObject(new { type = "output", content = output })}\n\n",
+                    token);
+            }
+            catch (ChannelClosedException)
+            {
+                // Channel 已关闭，可以选择记录日志或忽略此异常
+            }
+        }
+
+        [HttpGet("downloadBuild/{downloadId}")]
+        public IActionResult DownloadBuild(string downloadId)
+        {
+            try
+            {
+                var tempDownloadDir = Path.Combine(Path.GetTempPath(), "SharpPadDownloads");
+                if (!Directory.Exists(tempDownloadDir))
+                {
+                    return NotFound(new { error = "下载文件不存在" });
+                }
+
+                // 查找匹配的文件
+                var files = Directory.GetFiles(tempDownloadDir, $"{downloadId}_*");
+                if (files.Length == 0)
+                {
+                    return NotFound(new { error = "下载文件不存在" });
+                }
+
+                var filePath = files[0];
+                var fileName = Path.GetFileName(filePath).Substring(downloadId.Length + 1); // 移除 downloadId_ 前缀
+
+                var fileBytes = System.IO.File.ReadAllBytes(filePath);
+                var contentType = Path.GetExtension(fileName).Equals(".zip", StringComparison.OrdinalIgnoreCase)
+                    ? "application/zip"
+                    : "application/octet-stream";
+
+                // 删除临时文件
+                try
+                {
+                    System.IO.File.Delete(filePath);
+                }
+                catch { /* ignore cleanup errors */ }
+
+                return File(fileBytes, contentType, fileName);
             }
             catch (Exception ex)
             {

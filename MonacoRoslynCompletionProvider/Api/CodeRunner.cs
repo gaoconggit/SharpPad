@@ -1659,9 +1659,10 @@ namespace MonacoRoslynCompletionProvider.Api
             string nuget,
             int languageVersion,
             string outputFileName,
-            string projectType)
+            string projectType,
+            Func<string, Task> onOutput = null)
         {
-            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType);
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType, onOutput);
         }
 
         public static async Task<ExeBuildResult> BuildExecutableAsync(
@@ -1669,10 +1670,11 @@ namespace MonacoRoslynCompletionProvider.Api
             string nuget,
             int languageVersion,
             string outputFileName,
-            string projectType)
+            string projectType,
+            Func<string, Task> onOutput = null)
         {
             var files = new List<FileContent> { new FileContent { FileName = "Program.cs", Content = code } };
-            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType);
+            return await BuildWithDotnetPublishAsync(files, nuget, languageVersion, outputFileName, projectType, onOutput);
         }
 
         private static async Task<ExeBuildResult> BuildWithDotnetPublishAsync(
@@ -1680,7 +1682,8 @@ namespace MonacoRoslynCompletionProvider.Api
             string nuget,
             int languageVersion,
             string outputFileName,
-            string projectType)
+            string projectType,
+            Func<string, Task> onOutput = null)
         {
             var result = new ExeBuildResult();
 
@@ -1786,7 +1789,7 @@ namespace MonacoRoslynCompletionProvider.Api
                     await File.WriteAllTextAsync(dest, f?.Content ?? string.Empty, Encoding.UTF8);
                 }
 
-                static async Task<(int code, string stdout, string stderr)> RunAsync(string fileName, string args, string workingDir)
+                async Task<(int code, string stdout, string stderr)> RunAsync(string fileName, string args, string workingDir)
                 {
                     var psi = new ProcessStartInfo(fileName, args)
                     {
@@ -1801,8 +1804,22 @@ namespace MonacoRoslynCompletionProvider.Api
                     var p = new Process { StartInfo = psi };
                     var sbOut = new StringBuilder();
                     var sbErr = new StringBuilder();
-                    p.OutputDataReceived += (_, e) => { if (e.Data != null) sbOut.AppendLine(e.Data); };
-                    p.ErrorDataReceived += (_, e) => { if (e.Data != null) sbErr.AppendLine(e.Data); };
+                    p.OutputDataReceived += (_, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            sbOut.AppendLine(e.Data);
+                            onOutput?.Invoke(e.Data + Environment.NewLine).GetAwaiter().GetResult();
+                        }
+                    };
+                    p.ErrorDataReceived += (_, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            sbErr.AppendLine(e.Data);
+                            onOutput?.Invoke(e.Data + Environment.NewLine).GetAwaiter().GetResult();
+                        }
+                    };
                     p.Start();
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
@@ -1810,6 +1827,10 @@ namespace MonacoRoslynCompletionProvider.Api
                     return (p.ExitCode, sbOut.ToString(), sbErr.ToString());
                 }
 
+                if (onOutput != null)
+                {
+                    await onOutput($"开始还原 NuGet 包...\n");
+                }
                 var (rc1, o1, e1) = await RunAsync("dotnet", "restore", srcDir);
                 if (rc1 != 0)
                 {
@@ -1819,6 +1840,10 @@ namespace MonacoRoslynCompletionProvider.Api
                     return result;
                 }
 
+                if (onOutput != null)
+                {
+                    await onOutput($"开始发布应用...\n");
+                }
                 var rid = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
                 var publishArgs = $"publish -c Release -r {rid} --self-contained true -o \"{publishDir}\"";
                 var (rc2, o2, e2) = await RunAsync("dotnet", publishArgs, srcDir);
@@ -1828,6 +1853,11 @@ namespace MonacoRoslynCompletionProvider.Api
                     result.Success = false;
                     result.Error = msg;
                     return result;
+                }
+
+                if (onOutput != null)
+                {
+                    await onOutput($"创建发布包...\n");
                 }
 
                 // Find the actual executable file

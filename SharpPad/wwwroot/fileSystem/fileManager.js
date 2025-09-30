@@ -1114,7 +1114,18 @@ class FileManager {
 
                     if (findAndAddToFolder(files)) {
                         localStorage.setItem('controllerFiles', JSON.stringify(files));
+
+                        // 保存当前展开的文件夹，并添加目标文件夹
+                        const expandedFolders = this.saveExpandedFolders();
+                        if (!expandedFolders.includes(targetFolderId)) {
+                            expandedFolders.push(targetFolderId);
+                        }
+
                         this.loadFileList();
+
+                        // 恢复展开状态（包括新导入的目标文件夹）
+                        this.restoreExpandedFolders(expandedFolders);
+
                         showNotification('导入成功', 'success');
                     }
 

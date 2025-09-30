@@ -382,8 +382,6 @@ export class CodeRunner {
                 ProjectType: projectType,
                 SessionId: this.currentSessionId
             };
-
-            preRunMessages.push({ type: 'info', text: `正在编译 ${selectedFiles.length} 个文件: ${selectedFiles.map(f => f.name).join(', ')}` });
         } else {
             request = {
                 SourceCode: code,
@@ -680,23 +678,67 @@ export class CodeRunner {
         // 禁用构建按钮防止重复点击
         this.buildExeButton.disabled = true;
         this.buildExeButton.textContent = '构建中...';
+
+        // 清空输出区域
+        this.outputContent.innerHTML = '';
         preBuildMessages.forEach(msg => this.appendOutput(msg.text, msg.type));
 
         try {
-            const result = await sendRequest('buildExe', request);
+            let buildOutput = "";
+            const { reader, showNotificationTimer } = await sendRequest('buildExe', request);
 
-            if (result.success) {
-                this.appendOutput(`✅ 成功构建 ${result.fileName}，文件已开始下载`, 'success');
-                this.notification.textContent = `构建成功：${result.fileName}`;
-                this.notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
-                this.notification.style.display = 'block';
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
 
-                // 3秒后隐藏通知
-                setTimeout(() => {
-                    this.notification.style.display = 'none';
-                }, 3000);
-            } else {
-                this.appendOutput('构建失败', 'error');
+                // 将 Uint8Array 转换为字符串
+                const text = new TextDecoder("utf-8").decode(value);
+                // 处理每一行数据
+                const lines = text.split('\n');
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    if (!line.startsWith('data: ')) continue;
+
+                    const data = JSON.parse(line.substring(6));
+                    switch (data.type) {
+                        case 'output':
+                            buildOutput += data.content;
+                            this.streamOutput(buildOutput, 'info');
+                            break;
+                        case 'error':
+                            this.appendOutput(data.content, 'error');
+                            this.notification.textContent = '构建失败';
+                            this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+                            this.notification.style.display = 'block';
+                            break;
+                        case 'completed':
+                            clearTimeout(showNotificationTimer);
+                            this.outputContent.classList.remove("result-streaming");
+
+                            if (data.success && data.downloadId) {
+                                // 通过下载端点下载文件
+                                const downloadUrl = `/api/coderun/downloadBuild/${data.downloadId}`;
+                                const a = document.createElement('a');
+                                a.href = downloadUrl;
+                                a.download = data.fileName;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+
+                                this.appendOutput(`\n✅ 成功构建 ${data.fileName}，文件已开始下载`, 'success');
+                                this.notification.textContent = `构建成功：${data.fileName}`;
+                                this.notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
+                                this.notification.style.display = 'block';
+
+                                // 3秒后隐藏通知
+                                setTimeout(() => {
+                                    this.notification.style.display = 'none';
+                                }, 3000);
+                            }
+                            return;
+                    }
+                }
             }
         } catch (error) {
             this.appendOutput('构建失败: ' + error.message, 'error');
@@ -706,7 +748,8 @@ export class CodeRunner {
         } finally {
             // 重新启用构建按钮
             this.buildExeButton.disabled = false;
-            this.buildExeButton.textContent = '构建EXE';
+            this.buildExeButton.textContent = '发布包';
+            this.outputContent.classList.remove("result-streaming");
         }
     }
 }
