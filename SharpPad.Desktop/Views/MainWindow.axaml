@@ -137,7 +137,7 @@
 					</Border>
 
 					<!-- Version Info -->
-					<TextBlock Text="版本 1.0.0 - 高效 C# 代码编辑器"
+					<TextBlock Text=""
 							   FontSize="11"
 							   Foreground="#666666"
 							   HorizontalAlignment="Center"
