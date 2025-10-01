@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles/codeHighlight.css">
     <link rel="stylesheet" href="styles/editorControls.css">
     <link rel="stylesheet" href="styles/nuget.css">
+    <link rel="stylesheet" href="styles/aiEdit.css">
     <link rel="stylesheet" href="markdown/markdown.css">
     <link rel="stylesheet" href="all.min.css">
 </head>
@@ -160,6 +161,34 @@
     <div id="rootContextMenu" class="context-menu" style="display: none;">
         <div class="context-menu-item" onclick="addFile()">新建文件</div>
         <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
+    </div>
+
+    <!-- AI Edit Widget -->
+    <div id="aiEditWidget" class="ai-edit-widget" style="display: none;">
+        <button id="aiEditTrigger" class="ai-edit-trigger" title="AI Edit (Ctrl+K)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 1L10.5 6L16 7L12 11L13 16L8 13.5L3 16L4 11L0 7L5.5 6L8 1Z" fill="currentColor"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- AI Edit Dialog -->
+    <div id="aiEditDialog" class="ai-edit-dialog" style="display: none;">
+        <div class="ai-edit-dialog-header">
+            <span>AI Edit</span>
+            <button id="aiEditClose" class="ai-edit-close">&times;</button>
+        </div>
+        <div class="ai-edit-dialog-body">
+            <textarea id="aiEditInput" placeholder="描述你想要的代码修改..." rows="3"></textarea>
+            <div class="ai-edit-actions">
+                <button id="aiEditSubmit" class="ai-edit-submit">编辑</button>
+                <button id="aiEditCancel" class="ai-edit-cancel">取消</button>
+            </div>
+            <div id="aiEditLoading" class="ai-edit-loading" style="display: none;">
+                <div class="ai-edit-spinner"></div>
+                <span>AI正在处理...</span>
+            </div>
+        </div>
     </div>
 
     <!-- NuGet Package Manager -->
@@ -409,6 +438,7 @@
     <script type="module" src="csharpLanguageProvider.js" defer></script>
     <script type="module" src="index.js" defer></script>
     <script type="module" src="chat/chat.js" defer></script>
+    <script type="module" src="editor/aiEdit.js" defer></script>
 </body>
 
 </html>
