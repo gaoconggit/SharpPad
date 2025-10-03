@@ -1057,7 +1057,7 @@ class FileManager {
             }
 
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
 
@@ -1080,20 +1080,38 @@ class FileManager {
                         });
                     };
 
-                    // 递归保存文件内容
-                    const saveFileContents = (items) => {
-                        items.forEach(item => {
-                            if (item.type !== 'folder' && item.content) {
-                                localStorage.setItem(`file_${item.id}`, item.content);
+                    // 递归保存文件内容和处理NuGet包
+                    const saveFileContents = async (items) => {
+                        for (const item of items) {
+                            if (item.type !== 'folder') {
+                                if (item.content) {
+                                    localStorage.setItem(`file_${item.id}`, item.content);
+                                }
+                                // 处理NuGet包配置
+                                if (item.nugetConfig && item.nugetConfig.packages && item.nugetConfig.packages.length > 0) {
+                                    try {
+                                        // 调用后端API安装NuGet包
+                                        const request = {
+                                            Packages: item.nugetConfig.packages.map(pkg => ({
+                                                Id: pkg.id,
+                                                Version: pkg.version
+                                            })),
+                                            SourceKey: 'nuget' // 使用默认源
+                                        };
+                                        await window.sendRequest('addPackages', request);
+                                    } catch (error) {
+                                        console.error(`安装文件 ${item.name} 的NuGet包失败:`, error);
+                                    }
+                                }
                             }
                             if (item.type === 'folder' && Array.isArray(item.files)) {
-                                saveFileContents(item.files);
+                                await saveFileContents(item.files);
                             }
-                        });
+                        }
                     };
 
                     // 查找目标文件夹并添加导入的内容
-                    const findAndAddToFolder = (items) => {
+                    const findAndAddToFolder = async (items) => {
                         for (let item of items) {
                             if (item.id === targetFolderId) {
                                 if (!item.files) {
@@ -1101,18 +1119,18 @@ class FileManager {
                                 }
                                 // 生成新的 ID 并保存文件内容
                                 const importedFiles = regenerateIds(importedData.files);
-                                saveFileContents(importedFiles);
+                                await saveFileContents(importedFiles);
                                 item.files.push(...importedFiles);
                                 return true;
                             }
                             if (item.type === 'folder' && item.files) {
-                                if (findAndAddToFolder(item.files)) return true;
+                                if (await findAndAddToFolder(item.files)) return true;
                             }
                         }
                         return false;
                     };
 
-                    if (findAndAddToFolder(files)) {
+                    if (await findAndAddToFolder(files)) {
                         localStorage.setItem('controllerFiles', JSON.stringify(files));
 
                         // 保存当前展开的文件夹，并添加目标文件夹
