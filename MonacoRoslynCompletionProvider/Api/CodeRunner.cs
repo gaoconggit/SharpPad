@@ -1654,6 +1654,15 @@ namespace MonacoRoslynCompletionProvider.Api
             DownloadNugetPackages.DownloadAllPackagesAsync(nuget, preferredSourceKey).GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Removes NuGet packages from local cache
+        /// </summary>
+        /// <param name="nuget">Semicolon-separated list of packages in "name,version" format</param>
+        public static void RemovePackages(string nuget)
+        {
+            DownloadNugetPackages.RemoveAllPackages(nuget);
+        }
+
         public static async Task<ExeBuildResult> BuildMultiFileExecutableAsync(
             List<FileContent> files,
             string nuget,

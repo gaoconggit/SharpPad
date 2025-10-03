@@ -330,6 +330,66 @@ namespace monacoEditorCSharp.DataHelpers
                 // Swallow cleanup exceptions
             }
         }
+
+        /// <summary>
+        /// Removes a NuGet package from the local cache by deleting its directory
+        /// </summary>
+        /// <param name="packageName">The package name</param>
+        /// <param name="version">Optional version. If not specified, removes the entire package directory</param>
+        public static void RemovePackage(string packageName, string version = null)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(version))
+            {
+                // Remove specific version
+                var versionDirectory = GetPackageVersionDirectory(packageName, version);
+                TryDeleteDirectory(versionDirectory);
+
+                // If package root is now empty, remove it too
+                var packageRoot = GetPackageRootDirectory(packageName);
+                if (Directory.Exists(packageRoot) && !Directory.EnumerateFileSystemEntries(packageRoot).Any())
+                {
+                    TryDeleteDirectory(packageRoot);
+                }
+            }
+            else
+            {
+                // Remove entire package directory (all versions)
+                var packageRoot = GetPackageRootDirectory(packageName);
+                TryDeleteDirectory(packageRoot);
+            }
+        }
+
+        /// <summary>
+        /// Removes multiple NuGet packages from the local cache
+        /// </summary>
+        /// <param name="packages">Semicolon-separated list of packages in "name,version" format</param>
+        public static void RemoveAllPackages(string packages)
+        {
+            if (string.IsNullOrWhiteSpace(packages))
+            {
+                return;
+            }
+
+            string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var item in npackages)
+            {
+                if (string.IsNullOrWhiteSpace(item))
+                {
+                    continue;
+                }
+
+                string[] parts = item.Contains(',') ? item.Split(',') : new[] { item, string.Empty };
+                string packageName = parts[0].Trim();
+                string version = parts.Length > 1 ? parts[1].Trim() : string.Empty;
+
+                RemovePackage(packageName, version);
+            }
+        }
     }
 
     public sealed class PackageAssemblyInfo

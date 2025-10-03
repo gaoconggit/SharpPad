@@ -1290,6 +1290,24 @@ export class NugetManager {
             this.notify(`未找到包 ${packageId}`, "error");
             return;
         }
+
+        const packageToRemove = packages[index];
+
+        // Call backend to physically delete package files
+        try {
+            const request = {
+                Packages: [{ Id: packageToRemove.id, Version: packageToRemove.version }]
+            };
+            const result = await this.sendRequest("removePackages", request);
+            if (!result?.data || result.data.code !== 0) {
+                console.warn("Failed to delete package files:", result?.data?.message || "Unknown error");
+                // Continue with uninstall even if file deletion fails
+            }
+        } catch (error) {
+            console.error("Error deleting package files:", error);
+            // Continue with uninstall even if file deletion fails
+        }
+
         packages.splice(index, 1);
         this.persistFile();
         this.renderInstalled();
