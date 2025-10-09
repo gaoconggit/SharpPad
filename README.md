@@ -50,6 +50,7 @@
 - `Ctrl + S` 保存代码
 - `Alt+L` 光标在聊天框时,清空聊天记录
 - `Ctrl + Shift + Space` 手动触发GPT自动补全
+- `Ctrl + Shift + K` AI代码编辑
 - `Ctrl + D` 复制上一行到下一行
 
 ## 特性

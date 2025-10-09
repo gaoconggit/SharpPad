@@ -65,8 +65,8 @@ export class AIEditManager {
             }
         });
 
-        // Ctrl+K 快捷键
-        this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+        // Ctrl+Shift+K 快捷键
+        this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK, () => {
             const selection = this.editor.getSelection();
             if (!selection.isEmpty()) {
                 this.currentSelection = selection;
@@ -305,11 +305,11 @@ ${code}
 function initializeAIEdit() {
     // 等待编辑器初始化完成
     const checkEditor = setInterval(() => {
-        if (window.editor && window.editor.editor) {
+        if (window.editor) {
             clearInterval(checkEditor);
 
             // 创建AI Edit管理器
-            const aiEditManager = new AIEditManager(window.editor.editor);
+            const aiEditManager = new AIEditManager(window.editor);
 
             // 将管理器暴露到全局以便调试
             window.aiEditManager = aiEditManager;
