@@ -75,9 +75,8 @@
 ## 期待实现的功能
 
 - 进行中的任务
-  - AI Edit功能
   - 原生断点调试
-  - 优化 dump 输出
+
     
   
 
@@ -87,6 +86,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
