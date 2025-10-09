@@ -79,41 +79,43 @@ if (ENABLE_WORKER) {
                 const { action, data } = e.data;
                 
                 if (action === 'processTokens') {
-                    const { tokenData, commentLines, stringRanges } = data;
-                    const result = processTokensInWorker(tokenData, commentLines, stringRanges);
+                    const { tokenData, commentPositions, stringRanges } = data;
+                    const result = processTokensInWorker(tokenData, commentPositions, stringRanges);
                     self.postMessage({ action: 'tokenProcessed', result });
                 }
             };
-            
-            function processTokensInWorker(tokenData, commentLines, stringRanges) {\n                const commentLineSet = (commentLines && typeof commentLines.has === "function") ? commentLines : new Set(commentLines || []);
+
+            function processTokensInWorker(tokenData, commentPositions, stringRanges) {
+                const commentPosMap = new Map(commentPositions || []);
                 const decorations = [];
                 let currentLine = 0;
                 let currentChar = 0;
-                
+
                 for (let i = 0; i < tokenData.length; i += 5) {
                     const deltaLine = tokenData[i];
                     const deltaChar = tokenData[i + 1];
                     const length = tokenData[i + 2];
                     const typeIndex = tokenData[i + 3];
                     const modifiers = tokenData[i + 4];
-                    
+
                     currentLine += deltaLine;
                     currentChar = deltaLine === 0 ? currentChar + deltaChar : deltaChar;
-                    
-                    const isCommentLine = commentLineSet.has(currentLine + 1);
+
+                    const commentStartPos = commentPosMap.get(currentLine + 1);
+                    const isInComment = commentStartPos !== undefined && currentChar >= commentStartPos;
                     const isInString = isPositionInStringWorker({ line: currentLine + 1, char: currentChar }, stringRanges);
-                    
+
                     decorations.push({
                         line: currentLine + 1,
                         char: currentChar + 1,
                         length: length,
                         typeIndex: typeIndex,
                         modifiers: modifiers,
-                        isComment: isCommentLine,
+                        isComment: isInComment,
                         isInString: isInString
                     });
                 }
-                
+
                 return decorations;
             }
             
@@ -309,23 +311,24 @@ function setupModelSemanticColoring(model, legend) {
 async function applySemanticDecorationsFast(model, tokenData, legend, decorationIds) {
     const lines = model.getLinesContent();
     const stringRanges = detectStringRanges(model);
-    const commentLines = new Set();
 
-    // 粗略注释扫描（忽略字符串内的 //）
+    // 构建注释位置映射（存储每行注释开始的字符位置）
+    const commentPositions = new Map();
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const commentIndex = line.indexOf("//");
         if (commentIndex !== -1) {
             const commentPos = { line: i + 1, char: commentIndex };
             if (!isPositionInString(commentPos, stringRanges)) {
-                commentLines.add(i + 1);
+                // 存储注释开始的字符位置，而不是简单标记整行为注释
+                commentPositions.set(i + 1, commentIndex);
             }
         }
     }
 
     // 如果有 Worker 支持且数据量较大，使用 Worker 处理
     if (semanticWorker && tokenData.length > 1000) {
-        
+
         return new Promise((resolve) => {
             const handleWorkerMessage = (e) => {
                 if (e.data.action === 'tokenProcessed') {
@@ -335,46 +338,39 @@ async function applySemanticDecorationsFast(model, tokenData, legend, decoration
                     resolve();
                 }
             };
-            
+
             semanticWorker.addEventListener('message', handleWorkerMessage);
             semanticWorker.postMessage({
                 action: 'processTokens',
-                data: { 
-                    tokenData: Array.from(tokenData), 
-                    commentLines: Array.from(commentLines),
+                data: {
+                    tokenData: Array.from(tokenData),
+                    commentPositions: Array.from(commentPositions.entries()),
                     stringRanges: stringRanges
                 }
             });
         });
     }
-    
+
     // 回退到主线程处理（超优化版本）
     const decorations = [];
     let currentLine = 0;
     let currentChar = 0;
-    
+
     // 检测字符串范围以避免在字符串内部应用语义着色
-    
+
     // 只处理关键令牌类型，添加更多重要的类型
     const importantTypes = new Set(['class', 'interface', 'method', 'function', 'comment', 'type', 'struct', 'enum']);
-    
+
     for (let i = 0; i < tokenData.length; i += 5) {
         currentLine += tokenData[i];
         currentChar = tokenData[i] === 0 ? currentChar + tokenData[i + 1] : tokenData[i + 1];
-        
+
         const tokenType = legend.tokenTypes[tokenData[i + 3]];
         if (!tokenType || !importantTypes.has(tokenType)) continue;
-        
-        // 更精确的注释检测
-        const lineContent = model.getLineContent(currentLine + 1);
-        let commentStart = lineContent.indexOf("//");
-        if (commentStart !== -1) {
-            const commentPos = { line: currentLine + 1, char: commentStart };
-            if (isPositionInString(commentPos, stringRanges)) {
-                commentStart = -1;
-            }
-        }
-        const isInComment = commentStart !== -1 && currentChar >= commentStart;
+
+        // 使用存储的注释位置进行精确检测
+        const commentStartPos = commentPositions.get(currentLine + 1);
+        const isInComment = commentStartPos !== undefined && currentChar >= commentStartPos;
         
         // 检查是否在字符串内部
         const tokenPos = { line: currentLine + 1, char: currentChar };

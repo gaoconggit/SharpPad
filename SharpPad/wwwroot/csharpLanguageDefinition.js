@@ -38,18 +38,7 @@ export function overrideCSharpLanguage() {
 
         tokenizer: {
             root: [
-                // String literals MUST be processed FIRST to prevent // inside strings from being treated as comments
-                [/"/, { token: 'string.quote', next: '@string' }],
-                [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
-                [/\@"/, { token: 'string.quote', next: '@litstring' }],
-                [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
-
-                // Character literals
-                [/'[^\\']'/, 'string'],
-                [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
-                [/'/, 'string.invalid'],
-
-                // Identifiers and keywords (including method names)
+                // Identifiers and keywords - MUST be first to properly tokenize code before comments
                 [/\@?[a-zA-Z_]\w*/, {
                     cases: {
                         '@namespaceFollows': { token: 'keyword.$0', next: '@namespace' },
@@ -58,7 +47,7 @@ export function overrideCSharpLanguage() {
                     }
                 }],
 
-                // Whitespace (includes comments - but only when NOT inside strings)
+                // Whitespace (includes comments)
                 { include: '@whitespace' },
 
                 // Brackets
@@ -87,7 +76,19 @@ export function overrideCSharpLanguage() {
                 [/[0-9_]+/, 'number'],
 
                 // Delimiters
-                [/[;,.]/, 'delimiter']
+                [/[;,.]/, 'delimiter'],
+
+                // String literals - placed after basic tokens to prevent conflicts
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],
+                [/"/, { token: 'string.quote', next: '@string' }],
+                [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
+                [/\@"/, { token: 'string.quote', next: '@litstring' }],
+                [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
+
+                // Character literals
+                [/'[^\\']'/, 'string'],
+                [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
+                [/'/, 'string.invalid']
             ],
 
             qualified: [
