@@ -429,7 +429,7 @@ class FileManager {
         }
     }
 
-    openFile(file) {
+    async openFile(file) {
         // 移除之前的选中状态
         const selectedFile = this.fileListItems.querySelector('.selected');
         if (selectedFile) {
@@ -446,6 +446,55 @@ class FileManager {
         if (window.editor) {
             const fileContent = localStorage.getItem(`file_${file.id}`);
             window.editor.setValue(fileContent || file.content || '');
+        }
+
+        // 检查文件是否需要恢复 NuGet 包
+        if (file.nugetConfig && Array.isArray(file.nugetConfig.packages) && file.nugetConfig.packages.length > 0) {
+            await this.checkAndRestoreFilePackages(file);
+        }
+    }
+
+    async checkAndRestoreFilePackages(file) {
+        try {
+            // 导入 API 服务
+            const { sendRequest } = await import('../utils/apiService.js');
+
+            const packages = file.nugetConfig.packages;
+            if (!packages || packages.length === 0) {
+                return;
+            }
+
+            // 静默检查包是否存在，只在需要时才恢复
+            const packagesToRestore = [];
+
+            for (const pkg of packages) {
+                // 这里可以添加检查包是否已下载的逻辑
+                // 目前简化处理：尝试添加包，后端会处理已存在的情况
+                packagesToRestore.push(pkg);
+            }
+
+            if (packagesToRestore.length === 0) {
+                return;
+            }
+
+            // 批量恢复包（静默模式）
+            const request = {
+                Packages: packagesToRestore.map(pkg => ({
+                    Id: pkg.id,
+                    Version: pkg.version
+                })),
+                SourceKey: 'nuget' // 使用默认源
+            };
+
+            const result = await sendRequest('addPackages', request);
+
+            if (result?.data && result.data.code === 0) {
+                // 静默成功，不显示通知
+                console.log(`文件 ${file.name} 的 NuGet 包已检查并恢复`);
+            }
+        } catch (error) {
+            // 静默失败，只记录日志
+            console.warn(`检查文件 ${file.name} 的 NuGet 包时出错:`, error);
         }
     }
 
@@ -1057,7 +1106,7 @@ class FileManager {
             }
 
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
 
@@ -1127,6 +1176,9 @@ class FileManager {
                         this.restoreExpandedFolders(expandedFolders);
 
                         showNotification('导入成功', 'success');
+
+                        // 检查并恢复 NuGet 包
+                        await this.restoreNuGetPackages(importedData.files);
                     }
 
                 } catch (error) {
@@ -1145,6 +1197,67 @@ class FileManager {
         };
 
         fileInput.click();
+    }
+
+    async restoreNuGetPackages(items) {
+        // 收集所有需要恢复的包
+        const packagesToRestore = new Map();
+
+        const collectPackages = (files) => {
+            files.forEach(item => {
+                if (item.type === 'folder' && Array.isArray(item.files)) {
+                    collectPackages(item.files);
+                } else if (item.nugetConfig && Array.isArray(item.nugetConfig.packages)) {
+                    item.nugetConfig.packages.forEach(pkg => {
+                        const key = `${pkg.id}@${pkg.version}`.toLowerCase();
+                        if (!packagesToRestore.has(key)) {
+                            packagesToRestore.set(key, pkg);
+                        }
+                    });
+                }
+            });
+        };
+
+        collectPackages(items);
+
+        if (packagesToRestore.size === 0) {
+            return;
+        }
+
+        // 显示恢复进度通知
+        const packages = Array.from(packagesToRestore.values());
+        const packageCount = packages.length;
+
+        // 创建友好的包列表预览（最多显示3个）
+        const packagePreview = packages.slice(0, 3).map(pkg => pkg.id).join(', ');
+        const moreText = packageCount > 3 ? ` 等 ${packageCount} 个` : '';
+
+        showNotification(`正在恢复 NuGet 包: ${packagePreview}${moreText}...`, 'info');
+
+        try {
+            // 导入 API 服务
+            const { sendRequest } = await import('../utils/apiService.js');
+
+            // 批量恢复包
+            const request = {
+                Packages: packages.map(pkg => ({
+                    Id: pkg.id,
+                    Version: pkg.version
+                })),
+                SourceKey: 'nuget' // 使用默认源
+            };
+
+            const result = await sendRequest('addPackages', request);
+
+            if (result?.data && result.data.code === 0) {
+                showNotification(`✓ 成功恢复 ${packageCount} 个 NuGet 包`, 'success');
+            } else {
+                throw new Error(result?.data?.message || '恢复失败');
+            }
+        } catch (error) {
+            console.error('恢复 NuGet 包失败:', error);
+            showNotification(`✗ NuGet 包恢复失败: ${error.message}`, 'error');
+        }
     }
 
     saveFileToLocalStorage(fileId, code) {
