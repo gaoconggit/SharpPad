@@ -101,7 +101,7 @@ namespace System
             sb.AppendLine($"**{collectionType.Name}** (Count: {items.Count})");
             sb.AppendLine();
 
-            // For small collections, show items inline
+            // For simple primitive collections, show items inline
             if (items.Count <= 10 && items.All(item => item == null || item.GetType().IsPrimitive || item is string || item is decimal))
             {
                 sb.AppendLine("```");
@@ -110,33 +110,167 @@ namespace System
                     sb.AppendLine($"[{i}] {FormatPrimitiveValue(items[i])}");
                 }
                 sb.AppendLine("```");
+                return sb.ToString();
             }
-            else
+
+            // Check if items are complex objects with properties
+            var firstNonNullItem = items.FirstOrDefault(item => item != null);
+            if (firstNonNullItem == null)
             {
-                // For larger or complex collections, show as table
-                sb.AppendLine("| Index | Value |");
-                sb.AppendLine("|-------|-------|");
+                return sb.ToString();
+            }
 
-                int displayCount = Math.Min(items.Count, 100); // Limit to 100 items
-                for (int i = 0; i < displayCount; i++)
+            var itemType = firstNonNullItem.GetType();
+
+            // For complex objects, create a table with properties as columns
+            if (!itemType.IsPrimitive && itemType != typeof(string))
+            {
+                var properties = itemType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                        .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+                                        .OrderBy(p => p.Name)
+                                        .ToList();
+
+                var fields = itemType.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                                    .OrderBy(f => f.Name)
+                                    .ToList();
+
+                if (properties.Count > 0 || fields.Count > 0)
                 {
-                    var itemValue = DumpObject(items[i], depth + 1, maxDepth, visited);
-                    // Escape pipe characters and newlines for markdown table
-                    itemValue = itemValue.Replace("|", "\\|").Replace("\n", " ").Replace("\r", "");
-                    if (itemValue.Length > 100)
+                    // Build table with properties as columns
+                    var allMembers = new List<(string Name, Func<object, object> GetValue)>();
+
+                    foreach (var prop in properties)
                     {
-                        itemValue = itemValue.Substring(0, 97) + "...";
+                        allMembers.Add((prop.Name, obj => {
+                            try { return prop.GetValue(obj); }
+                            catch { return "*error*"; }
+                        }));
                     }
-                    sb.AppendLine($"| {i} | {itemValue} |");
-                }
 
-                if (items.Count > displayCount)
-                {
-                    sb.AppendLine($"| ... | *({items.Count - displayCount} more items)* |");
+                    foreach (var field in fields)
+                    {
+                        allMembers.Add((field.Name, obj => {
+                            try { return field.GetValue(obj); }
+                            catch { return "*error*"; }
+                        }));
+                    }
+
+                    // Create header
+                    var headers = new List<string> { "Index" };
+                    headers.AddRange(allMembers.Select(m => m.Name));
+                    sb.AppendLine($"| {string.Join(" | ", headers)} |");
+
+                    // Create separator
+                    var separators = headers.Select(_ => "-------");
+                    sb.AppendLine($"|{string.Join("|", separators)}|");
+
+                    // Create rows
+                    int displayCount = Math.Min(items.Count, 100); // Limit to 100 items
+                    for (int i = 0; i < displayCount; i++)
+                    {
+                        var item = items[i];
+                        var row = new List<string> { i.ToString() };
+
+                        if (item == null)
+                        {
+                            // Fill with null for all columns
+                            row.AddRange(allMembers.Select(_ => "*null*"));
+                        }
+                        else
+                        {
+                            foreach (var member in allMembers)
+                            {
+                                var value = member.GetValue(item);
+                                var formatted = FormatValueForTableCell(value, depth, maxDepth, visited);
+                                row.Add(formatted);
+                            }
+                        }
+
+                        sb.AppendLine($"| {string.Join(" | ", row)} |");
+                    }
+
+                    if (items.Count > displayCount)
+                    {
+                        sb.AppendLine($"| ... | *({items.Count - displayCount} more items)* | |");
+                    }
+
+                    return sb.ToString();
                 }
+            }
+
+            // Fallback: show as simple index-value table
+            sb.AppendLine("| Index | Value |");
+            sb.AppendLine("|-------|-------|");
+
+            int fallbackDisplayCount = Math.Min(items.Count, 100);
+            for (int i = 0; i < fallbackDisplayCount; i++)
+            {
+                var itemValue = FormatValueForTableCell(items[i], depth, maxDepth, visited);
+                sb.AppendLine($"| {i} | {itemValue} |");
+            }
+
+            if (items.Count > fallbackDisplayCount)
+            {
+                sb.AppendLine($"| ... | *({items.Count - fallbackDisplayCount} more items)* |");
             }
 
             return sb.ToString();
+        }
+
+        private static string FormatValueForTableCell(object value, int depth, int maxDepth, HashSet<object> visited)
+        {
+            if (value == null)
+            {
+                return "*null*";
+            }
+
+            var type = value.GetType();
+
+            // Prevent infinite recursion
+            if (depth > maxDepth)
+            {
+                return $"*{type.Name} (max depth)*";
+            }
+
+            // Handle primitive types directly
+            if (type.IsPrimitive || type.IsEnum || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is TimeSpan || value is Guid)
+            {
+                var formatted = FormatPrimitiveValue(value);
+                if (formatted.Length > 50)
+                {
+                    formatted = formatted.Substring(0, 47) + "...";
+                }
+                return EscapeForTable(formatted);
+            }
+
+            // Check for circular references
+            if (!type.IsValueType && visited.Contains(value))
+            {
+                return $"*{type.Name} (circular)*";
+            }
+
+            // Handle collections in a compact way
+            if (value is IEnumerable enumerable && !(value is string))
+            {
+                var innerItems = enumerable.Cast<object>().ToList();
+
+                // Show inline for very small, simple collections
+                if (innerItems.Count <= 3 && innerItems.All(item => item == null || item.GetType().IsPrimitive || item is string))
+                {
+                    var itemsStr = string.Join(", ", innerItems.Select(FormatPrimitiveValue));
+                    if (itemsStr.Length > 40)
+                    {
+                        itemsStr = itemsStr.Substring(0, 37) + "...";
+                    }
+                    return EscapeForTable($"[{innerItems.Count}] {{ {itemsStr} }}");
+                }
+
+                // For complex collections, show summary only
+                return $"*{type.Name}* ({innerItems.Count})";
+            }
+
+            // Handle complex objects - show compact summary
+            return $"*{type.Name}*";
         }
 
         private static string DumpComplexObject(object value, int depth, int maxDepth, HashSet<object> visited)
@@ -173,13 +307,7 @@ namespace System
                 try
                 {
                     var propValue = prop.GetValue(value);
-                    var formattedValue = DumpObject(propValue, depth + 1, maxDepth, visited);
-                    // Escape pipe characters and limit length for table display
-                    formattedValue = formattedValue.Replace("|", "\\|").Replace("\n", " ").Replace("\r", "");
-                    if (formattedValue.Length > 200)
-                    {
-                        formattedValue = formattedValue.Substring(0, 197) + "...";
-                    }
+                    var formattedValue = FormatValueForTable(propValue, depth, maxDepth, visited);
                     sb.AppendLine($"| {prop.Name} | {formattedValue} |");
                 }
                 catch (Exception ex)
@@ -194,13 +322,7 @@ namespace System
                 try
                 {
                     var fieldValue = field.GetValue(value);
-                    var formattedValue = DumpObject(fieldValue, depth + 1, maxDepth, visited);
-                    // Escape pipe characters and limit length for table display
-                    formattedValue = formattedValue.Replace("|", "\\|").Replace("\n", " ").Replace("\r", "");
-                    if (formattedValue.Length > 200)
-                    {
-                        formattedValue = formattedValue.Substring(0, 197) + "...";
-                    }
+                    var formattedValue = FormatValueForTable(fieldValue, depth, maxDepth, visited);
                     sb.AppendLine($"| {field.Name} | {formattedValue} |");
                 }
                 catch (Exception ex)
@@ -210,6 +332,109 @@ namespace System
             }
 
             return sb.ToString();
+        }
+
+        private static string FormatValueForTable(object value, int depth, int maxDepth, HashSet<object> visited)
+        {
+            if (value == null)
+            {
+                return "*null*";
+            }
+
+            var type = value.GetType();
+
+            // Prevent infinite recursion
+            if (depth > maxDepth)
+            {
+                return $"*{type.Name} (max depth)*";
+            }
+
+            // Handle primitive types directly
+            if (type.IsPrimitive || type.IsEnum || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is TimeSpan || value is Guid)
+            {
+                return EscapeForTable(FormatPrimitiveValue(value));
+            }
+
+            // Check for circular references
+            if (!type.IsValueType && visited.Contains(value))
+            {
+                return $"*{type.Name} (circular)*";
+            }
+
+            // Handle collections in a compact way
+            if (value is IEnumerable enumerable && !(value is string))
+            {
+                var items = enumerable.Cast<object>().ToList();
+
+                // Show inline for simple, small collections
+                if (items.Count <= 5 && items.All(item => item == null || item.GetType().IsPrimitive || item is string))
+                {
+                    var itemsStr = string.Join(", ", items.Select(FormatPrimitiveValue));
+                    return $"[{items.Count}] {{ {EscapeForTable(itemsStr)} }}";
+                }
+
+                // For complex collections, show summary
+                return $"*{type.Name}* (Count: {items.Count})";
+            }
+
+            // Handle complex objects - show summary with key properties
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+                                .Take(3) // Only show first 3 properties
+                                .ToList();
+
+            if (properties.Count == 0)
+            {
+                return $"*{type.Name}*";
+            }
+
+            var propSummary = new List<string>();
+            foreach (var prop in properties)
+            {
+                try
+                {
+                    var propValue = prop.GetValue(value);
+                    string propStr;
+
+                    if (propValue == null)
+                    {
+                        propStr = $"{prop.Name}: null";
+                    }
+                    else if (propValue.GetType().IsPrimitive || propValue is string || propValue is decimal)
+                    {
+                        var formatted = FormatPrimitiveValue(propValue);
+                        if (formatted.Length > 30)
+                        {
+                            formatted = formatted.Substring(0, 27) + "...";
+                        }
+                        propStr = $"{prop.Name}: {formatted}";
+                    }
+                    else
+                    {
+                        propStr = $"{prop.Name}: {propValue.GetType().Name}";
+                    }
+
+                    propSummary.Add(propStr);
+                }
+                catch
+                {
+                    propSummary.Add($"{prop.Name}: *error*");
+                }
+            }
+
+            var summary = string.Join(", ", propSummary);
+            if (summary.Length > 150)
+            {
+                summary = summary.Substring(0, 147) + "...";
+            }
+
+            return $"*{type.Name}* {{ {EscapeForTable(summary)} }}";
+        }
+
+        private static string EscapeForTable(string value)
+        {
+            if (value == null) return string.Empty;
+            return value.Replace("|", "\\|").Replace("\n", " ").Replace("\r", "");
         }
     }
 }

@@ -79,6 +79,9 @@ namespace MonacoRoslynCompletionProvider
                     case "CS0246": // 找不到类型或命名空间名称
                         results.AddRange(await CreateAddUsingActions(document, diagnostic, cancellationToken));
                         break;
+                    case "CS1061": // 未找到扩展方法（缺少 using 指令）
+                        results.AddRange(await CreateAddUsingActions(document, diagnostic, cancellationToken));
+                        break;
                     case "CS1002": // 应输入 ;
                         results.Add(CreateAddSemicolonAction(document, diagnostic));
                         break;
@@ -98,12 +101,12 @@ namespace MonacoRoslynCompletionProvider
         private async Task<List<CodeActionResult>> CreateAddUsingActions(Document document, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
             var results = new List<CodeActionResult>();
-            
+
             try
             {
                 var syntaxRoot = await document.GetSyntaxRootAsync(cancellationToken);
                 var sourceText = await document.GetTextAsync(cancellationToken);
-                
+
                 if (syntaxRoot == null || sourceText == null)
                     return results;
 
@@ -112,10 +115,52 @@ namespace MonacoRoslynCompletionProvider
                 var token = syntaxRoot.FindToken(diagnosticSpan.Start);
                 var identifier = token.ValueText;
 
+                // 对于扩展方法调用 (CS1061)，尝试从诊断消息或语法节点中提取方法名
+                if (diagnostic.Id == "CS1061")
+                {
+                    var node = syntaxRoot.FindNode(diagnosticSpan);
+                    if (node is MemberAccessExpressionSyntax memberAccess)
+                    {
+                        identifier = memberAccess.Name.Identifier.ValueText;
+                    }
+                    else if (node is IdentifierNameSyntax identifierName)
+                    {
+                        identifier = identifierName.Identifier.ValueText;
+                    }
+                    else
+                    {
+                        // 从诊断消息中提取方法名: "未包含"Dump"的定义"
+                        var message = diagnostic.GetMessage();
+                        var match = System.Text.RegularExpressions.Regex.Match(message, @"""(\w+)""");
+                        if (match.Success)
+                        {
+                            identifier = match.Groups[1].Value;
+                        }
+                    }
+                }
+                else
+                {
+                    // 对于其他错误类型，检查是否是方法调用
+                    var node = syntaxRoot.FindNode(diagnosticSpan);
+                    if (node is InvocationExpressionSyntax invocation)
+                    {
+                        if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+                        {
+                            identifier = memberAccess.Name.Identifier.ValueText;
+                        }
+                        else if (invocation.Expression is IdentifierNameSyntax identifierName)
+                        {
+                            identifier = identifierName.Identifier.ValueText;
+                        }
+                    }
+                }
+
                 // 常见的命名空间映射
                 var commonNamespaces = new Dictionary<string, string[]>
                 {
                     ["Console"] = new[] { "System" },
+                    ["Dump"] = new[] { "System" },
+                    ["ToJson"] = new[] { "System" },
                     ["Task"] = new[] { "System.Threading.Tasks" },
                     ["List"] = new[] { "System.Collections.Generic" },
                     ["Dictionary"] = new[] { "System.Collections.Generic" },
