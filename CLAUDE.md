@@ -201,6 +201,8 @@ The application is containerized with:
 - `Ctrl + K, Ctrl + D`: Format code
 - `Ctrl + S`: Save code
 - `Ctrl + Shift + Space`: Manual GPT auto-completion
+- `Ctrl + Shift + K`: AI code editing
+- `Ctrl + D`: Duplicate line
 
 ### Chat Shortcuts
 - `Alt + L`: Clear chat history (when cursor is in chat box)

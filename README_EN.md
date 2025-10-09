@@ -35,6 +35,8 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 - `Ctrl + S` - Save code
 - `Alt + L` - Clear chat history (when cursor is in chat box)
 - `Ctrl + Shift + Space` - Manually trigger GPT auto-completion
+- `Ctrl + Shift + K` - AI code editing
+- `Ctrl + D` - Duplicate line
 
 ## Features
 
