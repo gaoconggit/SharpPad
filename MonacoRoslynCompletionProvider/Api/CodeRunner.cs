@@ -14,6 +14,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.Loader;
+using MonacoRoslynCompletionProvider;
 
 namespace MonacoRoslynCompletionProvider.Api
 {
@@ -1652,6 +1653,16 @@ namespace MonacoRoslynCompletionProvider.Api
         public static void DownloadPackage(string nuget, string preferredSourceKey = null)
         {
             DownloadNugetPackages.DownloadAllPackagesAsync(nuget, preferredSourceKey).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Removes NuGet packages from local cache
+        /// </summary>
+        /// <param name="nuget">Semicolon-separated list of packages in "name,version" format</param>
+        public static void RemovePackages(string nuget)
+        {
+            CompletionWorkspace.ClearReferenceCache();
+            DownloadNugetPackages.RemoveAllPackages(nuget);
         }
 
         public static async Task<ExeBuildResult> BuildMultiFileExecutableAsync(

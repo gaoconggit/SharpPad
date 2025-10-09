@@ -133,6 +133,30 @@ namespace SharpPad.Controllers
             }
         }
 
+        [HttpPost("removePackages")]
+        public IActionResult RemovePackages([FromBody] RemovePackagesRequest request)
+        {
+            try
+            {
+                string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+                CodeRunner.RemovePackages(nugetPackages);
+                return Ok(new
+                {
+                    code = 0,
+                    data = default(object)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    code = 500,
+                    data = default(object),
+                    message = ex.ToString()
+                });
+            }
+        }
+
         [HttpPost("codeActions")]
         public async Task<IActionResult> CodeActions([FromBody] CodeActionRequest request)
         {

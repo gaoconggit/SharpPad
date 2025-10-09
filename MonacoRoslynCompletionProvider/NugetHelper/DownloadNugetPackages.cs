@@ -310,9 +310,10 @@ namespace monacoEditorCSharp.DataHelpers
                     Directory.Delete(directory, true);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow cleanup exceptions
+                // Log the error but don't throw to allow cleanup attempts to continue
+                Console.WriteLine($"Failed to delete directory {directory}: {ex.Message}");
             }
         }
 
@@ -328,6 +329,105 @@ namespace monacoEditorCSharp.DataHelpers
             catch
             {
                 // Swallow cleanup exceptions
+            }
+        }
+
+        /// <summary>
+        /// Removes a NuGet package from the local cache by deleting its directory
+        /// </summary>
+        /// <param name="packageName">The package name</param>
+        /// <param name="version">Optional version. If not specified, removes the entire package directory</param>
+        public static void RemovePackage(string packageName, string version = null)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return;
+            }
+
+            var errors = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(version))
+            {
+                // Remove specific version
+                var versionDirectory = GetPackageVersionDirectory(packageName, version);
+                if (Directory.Exists(versionDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(versionDirectory, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = $"Failed to delete package {packageName} version {version}: {ex.Message}";
+                        Console.WriteLine(error);
+                        errors.Add(error);
+                    }
+                }
+
+                // If package root is now empty, remove it too
+                var packageRoot = GetPackageRootDirectory(packageName);
+                if (Directory.Exists(packageRoot) && !Directory.EnumerateFileSystemEntries(packageRoot).Any())
+                {
+                    try
+                    {
+                        Directory.Delete(packageRoot, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to delete empty package root directory {packageRoot}: {ex.Message}");
+                        // Don't add to errors list since this is just cleanup
+                    }
+                }
+            }
+            else
+            {
+                // Remove entire package directory (all versions)
+                var packageRoot = GetPackageRootDirectory(packageName);
+                if (Directory.Exists(packageRoot))
+                {
+                    try
+                    {
+                        Directory.Delete(packageRoot, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = $"Failed to delete package {packageName}: {ex.Message}";
+                        Console.WriteLine(error);
+                        errors.Add(error);
+                    }
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new IOException($"Failed to remove package: {string.Join("; ", errors)}");
+            }
+        }
+
+        /// <summary>
+        /// Removes multiple NuGet packages from the local cache
+        /// </summary>
+        /// <param name="packages">Semicolon-separated list of packages in "name,version" format</param>
+        public static void RemoveAllPackages(string packages)
+        {
+            if (string.IsNullOrWhiteSpace(packages))
+            {
+                return;
+            }
+
+            string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var item in npackages)
+            {
+                if (string.IsNullOrWhiteSpace(item))
+                {
+                    continue;
+                }
+
+                string[] parts = item.Contains(',') ? item.Split(',') : new[] { item, string.Empty };
+                string packageName = parts[0].Trim();
+                string version = parts.Length > 1 ? parts[1].Trim() : string.Empty;
+
+                RemovePackage(packageName, version);
             }
         }
     }

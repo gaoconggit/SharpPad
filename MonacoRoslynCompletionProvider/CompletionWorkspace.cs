@@ -488,11 +488,30 @@ namespace MonacoRoslynCompletionProvider
             }
         }
 
+        private static void DisposeReferenceCacheEntries()
+        {
+            foreach (var reference in ReferenceCache.Values)
+            {
+                if (reference is IDisposable disposable)
+                {
+                    try
+                    {
+                        disposable.Dispose();
+                    }
+                    catch
+                    {
+                        // Ignore disposal issues; cache will be rebuilt as needed.
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// 清理 MetadataReference 缓存，用于重新加载包含文档的引用
         /// </summary>
         public static void ClearReferenceCache()
         {
+            DisposeReferenceCacheEntries();
             ReferenceCache.Clear();
         }
         
@@ -557,7 +576,7 @@ namespace MonacoRoslynCompletionProvider
             {
                 workspace.Dispose();
             }
-            ReferenceCache.Clear();
+            ClearReferenceCache();
         }
     }
 }

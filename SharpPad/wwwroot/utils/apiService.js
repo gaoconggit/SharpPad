@@ -12,6 +12,7 @@ export async function sendRequest(type, request) {
         case 'run': endPoint = '/api/coderun/run'; break;
         case 'buildExe': endPoint = '/api/coderun/buildExe'; break;
         case 'addPackages': endPoint = '/completion/addPackages'; break;
+        case 'removePackages': endPoint = '/completion/removePackages'; break;
         case 'codeActions': endPoint = '/completion/codeActions'; break;
         // Multi-file endpoints
         case 'multiFileComplete': endPoint = '/completion/multiFileComplete'; break;
