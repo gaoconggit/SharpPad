@@ -1098,12 +1098,6 @@ export class NugetManager {
                     await this.uninstallPackage(metadata.id);
                 });
             }
-
-            if (uninstallButton) {
-                uninstallButton.addEventListener("click", async () => {
-                    await this.uninstallPackage(metadata.id);
-                });
-            }
         } catch (error) {
             console.error("加载包详情失败", error);
             if (this.detailsPanel) {

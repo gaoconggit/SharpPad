@@ -14,6 +14,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.Loader;
+using MonacoRoslynCompletionProvider;
 
 namespace MonacoRoslynCompletionProvider.Api
 {
@@ -1660,6 +1661,7 @@ namespace MonacoRoslynCompletionProvider.Api
         /// <param name="nuget">Semicolon-separated list of packages in "name,version" format</param>
         public static void RemovePackages(string nuget)
         {
+            CompletionWorkspace.ClearReferenceCache();
             DownloadNugetPackages.RemoveAllPackages(nuget);
         }
 
