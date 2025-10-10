@@ -319,27 +319,38 @@ class FileManager {
     }
 
     addFolder() {
-        const folderName = prompt('请输入文件夹名称：', 'New Folder');
-        if (!folderName) return;
+        try {
+            const folderName = prompt('请输入文件夹名称：', 'New Folder');
+            if (!folderName || folderName.trim() === '') {
+                console.log('用户取消或输入为空');
+                return;
+            }
 
-        const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
-        const newFolder = {
-            id: Date.now().toString(),
-            name: folderName,
-            type: 'folder',
-            files: []
-        };
+            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const newFolder = {
+                id: Date.now().toString(),
+                name: folderName.trim(),
+                type: 'folder',
+                files: []
+            };
 
-        files.push(newFolder);
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+            files.push(newFolder);
+            localStorage.setItem('controllerFiles', JSON.stringify(files));
 
-        // 保存当前展开的文件夹，并添加新文件夹
-        const expandedFolders = this.saveExpandedFolders();
-        expandedFolders.push(newFolder.id);
+            // 保存当前展开的文件夹，并添加新文件夹
+            const expandedFolders = this.saveExpandedFolders();
+            expandedFolders.push(newFolder.id);
 
-        // 刷新文件列表并恢复展开状态
-        this.loadFileList();
-        this.restoreExpandedFolders(expandedFolders);
+            // 刷新文件列表并恢复展开状态
+            this.loadFileList();
+            this.restoreExpandedFolders(expandedFolders);
+
+            showNotification('文件夹创建成功', 'success');
+            console.log('文件夹创建成功:', newFolder.name);
+        } catch (error) {
+            console.error('创建文件夹失败:', error);
+            showNotification('创建文件夹失败: ' + error.message, 'error');
+        }
     }
 
     showFolderContextMenu(e, folder) {
