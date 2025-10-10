@@ -162,6 +162,45 @@
         <div class="context-menu-item" onclick="addFolder()">新建文件夹</div>
     </div>
 
+    <!-- Custom Prompt Dialog -->
+    <div id="customPromptDialog" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="customPromptTitle">输入</h2>
+                <button class="close-button" id="customPromptClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="customPromptLabel">请输入:</label>
+                    <input type="text" id="customPromptInput" class="form-control" style="width: 100%; padding: 8px; font-size: 14px;">
+                </div>
+                <div class="form-actions">
+                    <button id="customPromptCancel" class="ai-edit-cancel" style="margin-right: 10px;">取消</button>
+                    <button id="customPromptConfirm" class="save-button">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Dialog -->
+    <div id="customConfirmDialog" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="customConfirmTitle">确认</h2>
+                <button class="close-button" id="customConfirmClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <p id="customConfirmMessage" style="margin: 0; font-size: 14px; line-height: 1.6;"></p>
+                </div>
+                <div class="form-actions">
+                    <button id="customConfirmCancel" class="ai-edit-cancel" style="margin-right: 10px;">取消</button>
+                    <button id="customConfirmOk" class="save-button">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Edit Widget -->
     <div id="aiEditWidget" class="ai-edit-widget" style="display: none;">
         <button id="aiEditTrigger" class="ai-edit-trigger" title="AI Edit (Ctrl+Shift+K)">

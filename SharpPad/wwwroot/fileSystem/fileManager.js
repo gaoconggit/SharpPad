@@ -1,5 +1,6 @@
 // 文件系统管理模块
 import { showNotification, DEFAULT_CODE } from '../utils/common.js';
+import { customPrompt, customConfirm } from '../utils/customPrompt.js';
 
 class FileManager {
     constructor() {
@@ -318,9 +319,9 @@ class FileManager {
         return false;
     }
 
-    addFolder() {
+    async addFolder() {
         try {
-            const folderName = prompt('请输入文件夹名称：', 'New Folder');
+            const folderName = await customPrompt('请输入文件夹名称：', 'New Folder');
             if (!folderName || folderName.trim() === '') {
                 console.log('用户取消或输入为空');
                 return;
@@ -391,7 +392,7 @@ class FileManager {
         menu.setAttribute('data-folder-id', folder.id);
     }
 
-    renameFolder() {
+    async renameFolder() {
         const menu = document.getElementById('folderContextMenu');
         const folderId = menu.getAttribute('data-folder-id');
         menu.style.display = 'none';
@@ -402,10 +403,10 @@ class FileManager {
         const files = filesData ? JSON.parse(filesData) : [];
 
         // 递归查找文件夹
-        const findAndRenameFolder = (items) => {
+        const findAndRenameFolder = async (items) => {
             for (let item of items) {
                 if (item.id === folderId) {
-                    const newFolderName = prompt('请输入新的文件夹名称', item.name);
+                    const newFolderName = await customPrompt('请输入新的文件夹名称', item.name);
                     if (!newFolderName || newFolderName === item.name) return;
 
                     item.name = newFolderName;
@@ -422,17 +423,17 @@ class FileManager {
                     return true;
                 }
                 if (item.type === 'folder' && item.files) {
-                    if (findAndRenameFolder(item.files)) return true;
+                    if (await findAndRenameFolder(item.files)) return true;
                 }
             }
             return false;
         };
 
-        findAndRenameFolder(files);
+        await findAndRenameFolder(files);
     }
 
-    deleteFolder(folder) {
-        if (confirm(`确定要删除文件夹 "${folder.name}" 及其所有内容吗？`)) {
+    async deleteFolder(folder) {
+        if (await customConfirm(`确定要删除文件夹 "${folder.name}" 及其所有内容吗？`)) {
             const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
             this.removeFileById(files, folder.id);
             localStorage.setItem('controllerFiles', JSON.stringify(files));
@@ -563,8 +564,8 @@ class FileManager {
         this.openFile(newFile);
     }
 
-    renameFile(file) {
-        const newName = prompt('请输入新的文件名:', file.name);
+    async renameFile(file) {
+        const newName = await customPrompt('请输入新的文件名:', file.name);
         if (newName && newName !== file.name) {
             const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
             const targetFile = this.findFileById(files, file.id);
@@ -576,8 +577,8 @@ class FileManager {
         }
     }
 
-    deleteFile(file) {
-        if (confirm(`确定要删除文件 "${file.name}" 吗？`)) {
+    async deleteFile(file) {
+        if (await customConfirm(`确定要删除文件 "${file.name}" 吗？`)) {
             const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
             this.removeFileById(files, file.id);
             localStorage.setItem('controllerFiles', JSON.stringify(files));
@@ -606,7 +607,7 @@ class FileManager {
         console.log(filter);
     }
 
-    renameFile() {
+    async renameFile() {
         const menu = document.getElementById('fileContextMenu');
         const fileId = menu.getAttribute('data-target-file-id');
         menu.style.display = 'none';
@@ -618,10 +619,10 @@ class FileManager {
         const files = filesData ? JSON.parse(filesData) : [];
 
         // 递归查找并重命名文件
-        const findAndRenameFile = (items) => {
+        const findAndRenameFile = async (items) => {
             for (let i = 0; i < items.length; i++) {
                 if (items[i].id === fileId) {
-                    const newFileName = prompt('请输入新的文件名：', items[i].name);
+                    const newFileName = await customPrompt('请输入新的文件名：', items[i].name);
                     if (!newFileName || newFileName === items[i].name) return;
 
                     // 更新文件名
@@ -642,13 +643,13 @@ class FileManager {
                     return true;
                 }
                 if (items[i].type === 'folder' && items[i].files) {
-                    if (findAndRenameFile(items[i].files)) return true;
+                    if (await findAndRenameFile(items[i].files)) return true;
                 }
             }
             return false;
         };
 
-        findAndRenameFile(files);
+        await findAndRenameFile(files);
     }
 
     initializeContextMenu() {
@@ -900,8 +901,8 @@ class FileManager {
         dialog.style.display = 'block';
     }
 
-    deleteModel(modelId, showConfirm = true) {
-        if (showConfirm && !confirm('确定要删除这个模型吗？')) {
+    async deleteModel(modelId, showConfirm = true) {
+        if (showConfirm && !(await customConfirm('确定要删除这个模型吗？'))) {
             return;
         }
 
@@ -913,12 +914,12 @@ class FileManager {
         this.updateModelSelect();
     }
 
-    addFileToFolder(folderId) {
+    async addFileToFolder(folderId) {
         // 关闭右键菜单
         document.getElementById('folderContextMenu').style.display = 'none';
         document.getElementById('rootContextMenu').style.display = 'none';
 
-        const fileName = prompt('请输入文件名：', 'New File.cs');
+        const fileName = await customPrompt('请输入文件名：', 'New File.cs');
         if (!fileName) return;
 
         const newFile = {
@@ -974,12 +975,12 @@ class FileManager {
         }, 0);
     }
 
-    addFolderToFolder(parentFolderId) {
+    async addFolderToFolder(parentFolderId) {
         // 关闭右键菜单
         document.getElementById('folderContextMenu').style.display = 'none';
         document.getElementById('rootContextMenu').style.display = 'none';
 
-        const folderName = prompt('请输入文件夹名称：', 'New Folder');
+        const folderName = await customPrompt('请输入文件夹名称：', 'New Folder');
         if (!folderName) return;
 
         const newFolder = {
@@ -1304,21 +1305,21 @@ class FileManager {
         }
     }
 
-    saveCode(code) {
+    async saveCode(code) {
         try {
             const selectedFileElement = document.querySelector('#fileListItems a.selected');
             const fileId = selectedFileElement?.getAttribute('data-file-id');
 
             // 如果没有选择文件，提示用户先选择或创建新文件
             if (!fileId) {
-                const createNew = confirm('没有选择文件。是否要创建新文件？');
+                const createNew = await customConfirm('没有选择文件。是否要创建新文件？');
                 if (!createNew) {
                     showNotification('请先选择一个文件', 'warning');
                     return;
                 }
 
                 const newFileId = this.generateUUID();
-                const fileName = prompt('请输入文件名称：', 'New File.cs');
+                const fileName = await customPrompt('请输入文件名称：', 'New File.cs');
                 if (!fileName) {
                     showNotification('取消创建新文件', 'info');
                     return;
