@@ -113,13 +113,14 @@ body.theme-light .version-select option {
 
 .version-select {
     padding: 4px 8px;
-    border: 1px solid #404040;
+    border: 1px solid #555555;
     border-radius: 4px;
     background-color: #2d2d2d;
     color: #e0e0e0;
     font-size: 14px;
     cursor: pointer;
     outline: none;
+    max-width: 130px;
 }
 
 .version-select:hover {
@@ -140,7 +141,7 @@ body.theme-light .version-select option {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-right: 10px;
+    margin-right: 8px;
     color: #cccccc;
     font-size: 13px;
 }
@@ -150,7 +151,33 @@ body.theme-light .project-type-group {
 }
 
 .project-type-select {
-    min-width: 170px;
+    min-width: 100px;
+    border: 1px solid #555555 !important;
+}
+
+.project-type-select:hover {
+    border-color: #007acc !important;
+}
+
+.project-type-select:focus {
+    border-color: #007acc !important;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.25) !important;
+}
+
+/* 浅色主题下的项目类型选择框 */
+body.theme-light .project-type-select {
+    border: 1px solid #d1d1d1 !important;
+    background-color: #f5f5f5 !important;
+    color: #333333 !important;
+}
+
+body.theme-light .project-type-select:hover {
+    border-color: #0066b8 !important;
+}
+
+body.theme-light .project-type-select:focus {
+    border-color: #0066b8 !important;
+    box-shadow: 0 0 0 2px rgba(0, 102, 184, 0.25) !important;
 }
 body.theme-light label {
     color: #333333;
@@ -240,9 +267,63 @@ body.theme-light .chat-messages .assistant-message {
 
 .button-container {
     display: flex;
-    gap: 10px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px;
     background-color: #1e1e1e;
+}
+
+/* 中等分辨率优化 (1366px - 1600px) */
+@media only screen and (min-width: 769px) and (max-width: 1600px) {
+    .button-container {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .button-container a {
+        padding: 3px 6px !important;
+        font-size: 13px !important;
+    }
+
+    .button-container a svg {
+        width: 18px !important;
+        height: 18px !important;
+        margin-right: 4px !important;
+    }
+
+    .version-select {
+        min-width: auto !important;
+        border: 1px solid #555555 !important;
+        border-radius: 4px !important;
+    }
+
+    .project-type-select {
+        min-width: 90px !important;
+        border: 1px solid #555555 !important;
+    }
+
+    .project-type-group {
+        gap: 4px !important;
+        margin-right: 6px !important;
+        font-size: 12px !important;
+    }
+
+    #systemSettingsBtn {
+        padding: 3px 8px !important;
+        font-size: 13px !important;
+    }
+
+    #runButton, #buildExeButton {
+        padding: 4px 10px !important;
+        font-size: 13px !important;
+        margin-right: 6px !important;
+    }
+
+    /* 限制工具栏占位符的扩展 */
+    .toolbar-spacer {
+        flex-grow: 0.5 !important;
+        min-width: 10px;
+        max-width: 100px;
+    }
 }
 
 #systemSettingsBtn {

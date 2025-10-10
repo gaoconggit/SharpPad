@@ -19,6 +19,20 @@
     transition: all 0.2s ease !important;
 }
 
+/* 中等分辨率下的编辑器控制按钮优化 */
+@media only screen and (min-width: 769px) and (max-width: 1600px) {
+    .editor-control-button {
+        top: 7px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 14px !important;
+    }
+
+    .theme-button {
+        right: 40px !important;
+    }
+}
+
 .editor-control-button:hover {
     opacity: 1 !important;
     background-color: #404040 !important;

@@ -748,7 +748,7 @@ export class CodeRunner {
         } finally {
             // 重新启用构建按钮
             this.buildExeButton.disabled = false;
-            this.buildExeButton.textContent = '发布包';
+            this.buildExeButton.textContent = '发布';
             this.outputContent.classList.remove("result-streaming");
         }
     }
