@@ -12,13 +12,13 @@ namespace monacoEditorCSharp.DataHelpers
 {
     public static class DownloadNugetPackages
     {
-        private static readonly string installationDirectory = Path.Combine(Directory.GetCurrentDirectory(), "NugetPackages", "packages");
+        private static readonly string installationDirectory;
         private static readonly HttpClient httpClient = new HttpClient();
         private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars();
 
         static DownloadNugetPackages()
         {
-            Directory.CreateDirectory(installationDirectory);
+            installationDirectory = InitializeInstallationDirectory();
         }
 
         public static List<PackageAssemblyInfo> LoadPackages(string packages)
@@ -211,6 +211,66 @@ namespace monacoEditorCSharp.DataHelpers
         public static void DownloadPackage(string packageName, string version)
         {
             DownloadPackageAsync(packageName, version).GetAwaiter().GetResult();
+        }
+
+        private static string InitializeInstallationDirectory()
+        {
+            var candidatePaths = new List<string>();
+
+            var configuredPath = Environment.GetEnvironmentVariable("SHARPPAD_NUGET_CACHE");
+            if (!string.IsNullOrWhiteSpace(configuredPath))
+            {
+                candidatePaths.Add(configuredPath);
+            }
+
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                candidatePaths.Add(Path.Combine(localAppData, "SharpPad", "NugetPackages", "packages"));
+            }
+
+            var baseDirectory = AppContext.BaseDirectory;
+            if (!string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                candidatePaths.Add(Path.Combine(baseDirectory, "NugetPackages", "packages"));
+            }
+
+            candidatePaths.Add(Path.Combine(Path.GetTempPath(), "SharpPad", "NugetPackages", "packages"));
+
+            foreach (var path in candidatePaths
+                         .Select(TryNormalizePath)
+                         .Where(p => !string.IsNullOrWhiteSpace(p))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    Directory.CreateDirectory(path);
+                    return path;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to initialize NuGet cache at {path}: {ex.Message}");
+                }
+            }
+
+            throw new InvalidOperationException("Unable to initialize NuGet package cache directory for SharpPad.");
+        }
+
+        private static string TryNormalizePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static bool HasAssemblies(string directory)
