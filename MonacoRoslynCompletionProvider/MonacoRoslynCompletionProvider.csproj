@@ -17,7 +17,7 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+		<FrameworkReference Condition="'$(OS)' == 'Windows_NT'"  Include="Microsoft.WindowsDesktop.App.WindowsForms" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
