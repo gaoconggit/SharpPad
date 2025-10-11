@@ -321,6 +321,8 @@ namespace MonacoRoslynCompletionProvider.Api
                         references.Add(MetadataReference.CreateFromFile(asm.Location));
                 }
 
+                EnsureStandardLibraryReferences(references);
+
                 foreach (var pkg in nugetAssemblies)
                 {
                     references.Add(MetadataReference.CreateFromFile(pkg.Path));
@@ -500,6 +502,8 @@ namespace MonacoRoslynCompletionProvider.Api
                     references.Add(MetadataReference.CreateFromFile(asm.Location));
                 }
             }
+
+            EnsureStandardLibraryReferences(references);
 
             if (runBehavior.OutputKind == OutputKind.WindowsApplication)
             {
@@ -896,6 +900,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 }
             }
         }
+
         private static void TryAddWinFormsReferences(List<MetadataReference> references)
         {
             if (references == null) throw new ArgumentNullException(nameof(references));
@@ -967,6 +972,108 @@ namespace MonacoRoslynCompletionProvider.Api
                 }
 
                 references.Add(MetadataReference.CreateFromFile(pathRef));
+            }
+        }
+
+        private static void EnsureStandardLibraryReferences(List<MetadataReference> references)
+        {
+            if (references == null) throw new ArgumentNullException(nameof(references));
+
+            var essentialAssemblies = new[]
+            {
+                "System.Net.Http",
+                "System.Net.WebSockets",
+                "System.Net.WebSockets.Client",
+                "System.Net.WebSockets.WebSocketProtocol"
+            };
+
+            foreach (var assemblyName in essentialAssemblies)
+            {
+                TryAddReferenceByName(references, assemblyName);
+            }
+        }
+
+        private static void TryAddReferenceByName(List<MetadataReference> references, string assemblyName)
+        {
+            if (references == null) throw new ArgumentNullException(nameof(references));
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                return;
+            }
+
+            bool ContainsReference(string path) =>
+                references.OfType<PortableExecutableReference>()
+                    .Any(r => string.Equals(r.FilePath, path, StringComparison.OrdinalIgnoreCase));
+
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(asm => !asm.IsDynamic && string.Equals(asm.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase))
+                    ?? Assembly.Load(new AssemblyName(assemblyName));
+
+                if (assembly != null && !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
+                {
+                    if (!ContainsReference(assembly.Location))
+                    {
+                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                    }
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore load failures; fall back to probing reference assemblies
+            }
+
+            foreach (var candidate in EnumerateReferenceAssemblyCandidates(assemblyName))
+            {
+                if (File.Exists(candidate) && !ContainsReference(candidate))
+                {
+                    references.Add(MetadataReference.CreateFromFile(candidate));
+                    return;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateReferenceAssemblyCandidates(string assemblyName)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyName))
+            {
+                yield break;
+            }
+
+            var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
+            if (!string.IsNullOrEmpty(runtimeDir))
+            {
+                yield return Path.Combine(runtimeDir, assemblyName + ".dll");
+            }
+
+            foreach (var root in EnumerateDotnetRootCandidates())
+            {
+                var packBase = Path.Combine(root, "packs", "Microsoft.NETCore.App.Ref");
+                if (!Directory.Exists(packBase))
+                {
+                    continue;
+                }
+
+                var versionDirs = Directory.GetDirectories(packBase)
+                    .Select(dir => new { dir, version = TryParseVersionFromDirectory(Path.GetFileName(dir)) })
+                    .OrderByDescending(item => item.version)
+                    .ThenByDescending(item => item.dir, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var versionDir in versionDirs)
+                {
+                    var refRoot = Path.Combine(versionDir.dir, "ref");
+                    if (!Directory.Exists(refRoot))
+                    {
+                        continue;
+                    }
+
+                    foreach (var tfmDir in EnumerateTfmDirectories(refRoot))
+                    {
+                        yield return Path.Combine(tfmDir, assemblyName + ".dll");
+                    }
+                }
             }
         }
 

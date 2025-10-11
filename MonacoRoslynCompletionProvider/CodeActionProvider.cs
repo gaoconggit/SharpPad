@@ -160,6 +160,8 @@ namespace MonacoRoslynCompletionProvider
                 {
                     // System基础类型
                     ["Console"] = new[] { "System" },
+                    ["ArrayBufferWriter"] = new[] { "System.Buffers" },
+                    ["ArrayPool"] = new[] { "System.Buffers" },
                     ["Dump"] = new[] { "System" },
                     ["ToJson"] = new[] { "System" },
                     ["DateTime"] = new[] { "System" },
