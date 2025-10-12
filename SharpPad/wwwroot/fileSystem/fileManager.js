@@ -1104,10 +1104,13 @@ class FileManager {
         if (!targetFolderId) return;
 
         // 创建文件输入元素
+        // 使用 opacity 和 position 而不是 display:none 以兼容 macOS/Safari
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.json';
-        fileInput.style.display = 'none';
+        fileInput.style.opacity = '0';
+        fileInput.style.position = 'absolute';
+        fileInput.style.pointerEvents = 'none';
         document.body.appendChild(fileInput);
 
         fileInput.onchange = (e) => {
