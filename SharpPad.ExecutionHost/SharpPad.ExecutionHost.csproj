@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0-windows</TargetFramework>
-		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
+		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net9.0</TargetFramework>
 		<OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
 		<OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
 		<Nullable>enable</Nullable>
