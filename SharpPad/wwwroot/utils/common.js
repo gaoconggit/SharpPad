@@ -5,6 +5,11 @@ export const PROJECT_TYPE_CHANGE_EVENT = 'sharppad:projectTypeChanged';
 export function getCurrentProjectType() {
     const fallback = 'console';
     try {
+        const currentFile = getCurrentFile();
+        if (currentFile && typeof currentFile.projectType === 'string' && currentFile.projectType.trim()) {
+            return currentFile.projectType.trim().toLowerCase();
+        }
+
         const select = document.getElementById('projectTypeSelect');
         if (select && select.value) {
             return select.value.toLowerCase();

@@ -83,22 +83,38 @@ export class CodeRunner {
             return;
         }
 
-        try {
-            const saved = window.localStorage.getItem(this.projectTypeStorageKey);
-            const normalized = saved ? saved.toLowerCase() : null;
-            if (normalized && Array.from(this.projectTypeSelect.options).some(opt => opt.value === normalized)) {
+        const applyInitialSelection = () => {
+            const currentFile = getCurrentFile();
+            let preferredType = currentFile?.projectType;
+
+            if (!preferredType) {
+                try {
+                    preferredType = window.localStorage.getItem(this.projectTypeStorageKey);
+                } catch (error) {
+                    console.warn('无法读取项目类型偏好:', error);
+                }
+            }
+
+            const normalized = fileManager.normalizeProjectType(preferredType);
+            if ((this.projectTypeSelect.value || '').toLowerCase() !== normalized) {
                 this.projectTypeSelect.value = normalized;
             }
-        } catch (error) {
-            console.warn('无法读取项目类型偏好:', error);
-        }
+        };
+
+        applyInitialSelection();
 
         this.projectTypeSelect.addEventListener('change', () => {
-            const selectedType = (this.projectTypeSelect.value || 'console').toLowerCase();
+            const selectedType = fileManager.normalizeProjectType(this.projectTypeSelect.value);
+            this.projectTypeSelect.value = selectedType;
             try {
                 window.localStorage.setItem(this.projectTypeStorageKey, selectedType);
             } catch (error) {
                 console.warn('无法保存项目类型偏好:', error);
+            }
+
+            const currentFile = getCurrentFile();
+            if (currentFile?.id) {
+                fileManager.updateFileProjectType(currentFile.id, selectedType);
             }
 
             window.dispatchEvent(new CustomEvent(PROJECT_TYPE_CHANGE_EVENT, {
@@ -347,7 +363,7 @@ export class CodeRunner {
         const file = getCurrentFile();
         const basePackages = file?.nugetConfig?.packages || [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
-        const projectType = (this.projectTypeSelect?.value || 'console').toLowerCase();
+        const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         this.setRunningState(true);
 
@@ -618,7 +634,7 @@ export class CodeRunner {
         let request;
         let outputFileName = 'Program.exe';
 
-        const projectType = (this.projectTypeSelect?.value || 'console').toLowerCase();
+        const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
 
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);

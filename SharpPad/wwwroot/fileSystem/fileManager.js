@@ -1,5 +1,5 @@
 // 文件系统管理模块
-import { showNotification, DEFAULT_CODE } from '../utils/common.js';
+import { showNotification, DEFAULT_CODE, PROJECT_TYPE_CHANGE_EVENT } from '../utils/common.js';
 import { customPrompt, customConfirm } from '../utils/customPrompt.js';
 
 class FileManager {
@@ -45,6 +45,86 @@ class FileManager {
 
         // 初始化右键菜单事件
         this.initializeContextMenus();
+    }
+
+    normalizeProjectType(projectType) {
+        const fallback = 'console';
+        const candidate = typeof projectType === 'string'
+            ? projectType.trim().toLowerCase()
+            : '';
+
+        const select = document.getElementById('projectTypeSelect');
+        if (select) {
+            const allowed = Array.from(select.options).map(opt => opt.value);
+            if (candidate && allowed.includes(candidate)) {
+                return candidate;
+            }
+
+            if (allowed.includes(fallback)) {
+                return fallback;
+            }
+
+            return allowed[0] || fallback;
+        }
+
+        const allowedFallback = ['console', 'winforms', 'webapi'];
+        if (candidate && allowedFallback.includes(candidate)) {
+            return candidate;
+        }
+
+        return allowedFallback[0];
+    }
+
+    getActiveProjectType() {
+        try {
+            const select = document.getElementById('projectTypeSelect');
+            if (select && select.value) {
+                return this.normalizeProjectType(select.value);
+            }
+
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const stored = window.localStorage.getItem('sharpPad.projectType');
+                if (stored) {
+                    return this.normalizeProjectType(stored);
+                }
+            }
+        } catch (error) {
+            console.warn('无法获取当前项目类型偏好:', error);
+        }
+
+        return this.normalizeProjectType();
+    }
+
+    updateFileProjectType(fileId, projectType) {
+        if (!fileId) {
+            return false;
+        }
+
+        const normalized = this.normalizeProjectType(projectType);
+        let updated = false;
+
+        try {
+            const filesData = window.localStorage.getItem('controllerFiles');
+            if (filesData) {
+                const files = JSON.parse(filesData);
+                const target = this.findFileById(files, fileId);
+                if (target && target.projectType !== normalized) {
+                    target.projectType = normalized;
+                    window.localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    updated = true;
+                }
+            }
+        } catch (error) {
+            console.error('更新项目类型失败:', error);
+        }
+
+        try {
+            window.localStorage.setItem('sharpPad.projectType', normalized);
+        } catch (storageError) {
+            console.warn('无法保存项目类型偏好:', storageError);
+        }
+
+        return updated;
     }
 
     initializeContextMenus() {
@@ -460,6 +540,21 @@ class FileManager {
             window.editor.setValue(fileContent || file.content || '');
         }
 
+        const normalizedType = this.normalizeProjectType(file?.projectType);
+        file.projectType = normalizedType;
+        this.updateFileProjectType(file.id, normalizedType);
+
+        const projectTypeSelect = document.getElementById('projectTypeSelect');
+        if (projectTypeSelect) {
+            const currentValue = (projectTypeSelect.value || '').toLowerCase();
+            if (currentValue !== normalizedType) {
+                projectTypeSelect.value = normalizedType;
+                window.dispatchEvent(new CustomEvent(PROJECT_TYPE_CHANGE_EVENT, {
+                    detail: { projectType: normalizedType }
+                }));
+            }
+        }
+
         // 检查文件是否需要恢复 NuGet 包
         if (file.nugetConfig && Array.isArray(file.nugetConfig.packages) && file.nugetConfig.packages.length > 0) {
             await this.checkAndRestoreFilePackages(file);
@@ -554,6 +649,7 @@ class FileManager {
             id: Date.now().toString(),
             name: 'New File.cs',
             content: DEFAULT_CODE,
+            projectType: this.getActiveProjectType(),
             nugetConfig: {
                 packages: []
             }
@@ -739,6 +835,7 @@ class FileManager {
             id: this.generateUUID(),
             name: `${originalFile.name} (副本)`,
             content: originalFile.content,
+            projectType: this.normalizeProjectType(originalFile.projectType),
             nugetConfig: originalFile.nugetConfig || { packages: [] }
         };
 
@@ -925,7 +1022,11 @@ class FileManager {
         const newFile = {
             id: this.generateUUID(),
             name: fileName,
-            content: DEFAULT_CODE
+            content: DEFAULT_CODE,
+            projectType: this.getActiveProjectType(),
+            nugetConfig: {
+                packages: []
+            }
         };
 
         const filesData = localStorage.getItem('controllerFiles');
@@ -964,14 +1065,7 @@ class FileManager {
 
         // 选中新建的文件
         setTimeout(() => {
-            const newFileElement = document.querySelector(`[data-file-id="${newFile.id}"]`);
-            if (newFileElement) {
-                newFileElement.classList.add('selected');
-                const fileContent = localStorage.getItem(`file_${newFile.id}`);
-                if (fileContent && window.editor) {
-                    window.editor.setValue(fileContent);
-                }
-            }
+            this.openFile(newFile);
         }, 0);
     }
 
@@ -1372,6 +1466,7 @@ class FileManager {
                     id: newFileId,
                     name: fileName,
                     content: code,
+                    projectType: this.getActiveProjectType(),
                     nugetConfig: {
                         packages: []
                     }
@@ -1387,10 +1482,7 @@ class FileManager {
 
                 // 选中新创建的文件
                 setTimeout(() => {
-                    const newFileElement = document.querySelector(`[data-file-id="${newFileId}"]`);
-                    if (newFileElement) {
-                        newFileElement.classList.add('selected');
-                    }
+                    this.openFile(newFile);
                 }, 0);
 
                 showNotification('新文件创建成功', 'success');
