@@ -26,6 +26,8 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly object ConsoleLock = new();
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
+        private static readonly object RuntimeExtensionsLock = new();
+        private static string _objectExtensionsSource = string.Empty;
 
         private static string NormalizeProjectType(string type)
         {
@@ -60,6 +62,48 @@ namespace MonacoRoslynCompletionProvider.Api
                 "winforms" => (OutputKind.WindowsApplication, true),
                 _ => (OutputKind.ConsoleApplication, false)
             };
+        }
+
+        private static string GetObjectExtensionsSource()
+        {
+            if (!string.IsNullOrEmpty(_objectExtensionsSource))
+            {
+                return _objectExtensionsSource;
+            }
+
+            lock (RuntimeExtensionsLock)
+            {
+                if (string.IsNullOrEmpty(_objectExtensionsSource))
+                {
+                    var path = LocateObjectExtensionsFilePath();
+                    _objectExtensionsSource = File.ReadAllText(path, Encoding.UTF8);
+                }
+            }
+
+            return _objectExtensionsSource;
+        }
+
+        private static string LocateObjectExtensionsFilePath()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null)
+            {
+                var candidate = Path.Combine(directory.FullName, "MonacoRoslynCompletionProvider", "Extensions", "ObjectExtengsion.cs");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                var alternative = Path.Combine(directory.FullName, "Extensions", "ObjectExtengsion.cs");
+                if (File.Exists(alternative))
+                {
+                    return alternative;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new FileNotFoundException("Unable to locate MonacoRoslynCompletionProvider/Extensions/ObjectExtengsion.cs for publish runtime extensions.");
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
@@ -189,7 +233,21 @@ namespace MonacoRoslynCompletionProvider.Api
                 onError,
                 sessionId,
                 projectType,
-                cancellationToken);
+            cancellationToken);
+        }
+
+        private static void EnsureRuntimePackageReferences(IDictionary<string, string?> packageReferences)
+        {
+            if (packageReferences == null)
+            {
+                return;
+            }
+
+            const string newtonsoft = "Newtonsoft.Json";
+            if (!packageReferences.ContainsKey(newtonsoft))
+            {
+                packageReferences[newtonsoft] = TryGetPackageVersionFromAssembly(newtonsoft, "13.0.3");
+            }
         }
 
         private static async Task<RunResult> CompileAndExecuteAsync(
@@ -1847,6 +1905,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 var csprojPath = Path.Combine(srcDir, $"{asmName}.csproj");
 
                 var packageReferences = BuildPackageReferenceMap(nuget, normalizedProjectType);
+                EnsureRuntimePackageReferences(packageReferences);
 
                 var langVer = "latest";
                 try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
@@ -1906,6 +1965,9 @@ namespace MonacoRoslynCompletionProvider.Api
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                     await File.WriteAllTextAsync(dest, f?.Content ?? string.Empty, Encoding.UTF8);
                 }
+
+                var runtimeExtensionsPath = Path.Combine(srcDir, "__SharpPadRuntimeExtensions.cs");
+                await File.WriteAllTextAsync(runtimeExtensionsPath, GetObjectExtensionsSource(), Encoding.UTF8);
 
                 async Task<(int code, string stdout, string stderr)> RunAsync(string fileName, string args, string workingDir)
                 {
