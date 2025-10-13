@@ -26,9 +26,9 @@
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.4" />
 		<PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
-		<!-- Use stable version 11.0.0 -->
-		<PackageReference Include="WebView.Avalonia" Version="11.0.0.1" />
-		<PackageReference Include="WebView.Avalonia.Desktop" Version="11.0.0.1" />
+
+		<PackageReference Include="WebView.Avalonia.Cross" Version="11.3.1" />
+		<PackageReference Include="WebView.Avalonia.Desktop.Cross" Version="11.3.1" />
 	</ItemGroup>
 
 	<ItemGroup>
