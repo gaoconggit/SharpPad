@@ -1078,10 +1078,31 @@ class FileManager {
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `${item.name}.json`;
+
+                    // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
+                    a.style.display = 'none';
                     document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+
+                    // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
+                    setTimeout(() => {
+                        try {
+                            a.click();
+                        } catch (e) {
+                            // 如果 click() 失败，尝试通过事件触发
+                            const clickEvent = new MouseEvent('click', {
+                                view: window,
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            a.dispatchEvent(clickEvent);
+                        }
+
+                        // 延迟清理以确保下载开始
+                        setTimeout(() => {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                    }, 0);
 
                     showNotification('文件夹已导出', 'success');
                     return true;
@@ -1107,7 +1128,16 @@ class FileManager {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.json';
-        fileInput.style.display = 'none';
+
+        // 兼容 macOS WebView: 不设置 display: none，而是使用其他方式隐藏
+        fileInput.style.position = 'fixed';
+        fileInput.style.top = '-100px';
+        fileInput.style.left = '-100px';
+        fileInput.style.width = '1px';
+        fileInput.style.height = '1px';
+        fileInput.style.opacity = '0';
+        fileInput.style.pointerEvents = 'none';
+
         document.body.appendChild(fileInput);
 
         fileInput.onchange = (e) => {
@@ -1208,7 +1238,20 @@ class FileManager {
             reader.readAsText(file);
         };
 
-        fileInput.click();
+        // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
+        setTimeout(() => {
+            try {
+                fileInput.click();
+            } catch (e) {
+                // 如果 click() 失败，尝试通过事件触发
+                const clickEvent = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                fileInput.dispatchEvent(clickEvent);
+            }
+        }, 0);
     }
 
     async restoreNuGetPackages(items) {
