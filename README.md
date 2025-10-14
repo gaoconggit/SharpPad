@@ -76,6 +76,7 @@
 
 - 进行中的任务
   - 原生断点调试
+  - macos下文件导入/导出
 
     
   
@@ -86,6 +87,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
