@@ -27,6 +27,8 @@ export class ChatManager {
         this.chatInputArea = null;
         this.isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
         this.isInitialized = false;
+        this.compactBreakpoint = 1500; // Collapse chat by default for screens narrower than this width
+        this.isCompactScreen = window.innerWidth <= this.compactBreakpoint;
         
         // 监听媒体查询变化
         window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').addEventListener('change', (e) => {
@@ -35,6 +37,23 @@ export class ChatManager {
             // this.handleResize();
             this.updateMobileLayout();
         });
+
+        // 监听小屏幕变化，使桌面小屏进入时默认收起
+        const compactMediaQuery = window.matchMedia(`(max-width: ${this.compactBreakpoint}px)`);
+        const compactListener = (event) => {
+            const wasCompact = this.isCompactScreen;
+            this.isCompactScreen = event.matches;
+            if (this.isInitialized && !this.isMobile && this.isCompactScreen && !wasCompact) {
+                this.applyCompactCollapsedState();
+            }
+        };
+        if (typeof compactMediaQuery.addEventListener === 'function') {
+            compactMediaQuery.addEventListener('change', compactListener);
+        } else if (typeof compactMediaQuery.addListener === 'function') {
+            compactMediaQuery.addListener(compactListener);
+        }
+        this.compactMediaQuery = compactMediaQuery;
+        this.compactListener = compactListener;
 
         this.initializeEventListeners();
         this.loadChatHistory();
@@ -47,6 +66,9 @@ export class ChatManager {
         
         // 修复输入框显示问题（特别是在Mac WebView中）
         this.fixInputBoxDisplay();
+
+        // 初始同步聊天面板高度，防止被输出面板遮挡
+        setTimeout(() => this.updateChatPanelHeightForOutput(), 0);
     }
 
     initializeEventListeners() {
@@ -125,6 +147,7 @@ export class ChatManager {
                 // 桌面端正常隐藏
                 this.chatPanel.style.display = 'none';
                 this.minimizedChatButton.style.display = 'block';
+                this.chatPanel.style.height = '';
                 fileListResizer.updateContainerWidth();
             }
         });
@@ -164,6 +187,7 @@ export class ChatManager {
                 this.chatPanel.style.display = 'flex';
                 this.chatPanel.style.transform = '';
                 this.minimizedChatButton.style.setProperty('display', 'none', 'important');
+                this.updateChatPanelHeightForOutput();
                 fileListResizer.updateContainerWidth();
             }
         });
@@ -484,7 +508,13 @@ export class ChatManager {
 
     handleResize() {
         this.isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
-        
+        const wasCompact = this.isCompactScreen;
+        this.isCompactScreen = window.innerWidth <= this.compactBreakpoint;
+
+        if (this.isInitialized && !this.isMobile && this.isCompactScreen && !wasCompact) {
+            this.applyCompactCollapsedState();
+        }
+
         if (this.isMobile) {
             // 移动端适配，固定高度和宽度
             const fixedHeight = window.innerHeight * 0.85; // 固定高度为屏幕高度的85%
@@ -524,6 +554,8 @@ export class ChatManager {
                 setContainerWidth(this.container, fileListWidth, newWidth, isChatVisible);
             }
         }
+
+        this.updateChatPanelHeightForOutput();
     }
 
     loadChatHistory() {
@@ -1015,6 +1047,9 @@ export class ChatManager {
                 setTimeout(() => {
                     fileListResizer?.updateContainerWidth();
                 }, 10);
+            } else if (this.isCompactScreen) {
+                // 小尺寸桌面端默认收起聊天面板
+                this.applyCompactCollapsedState();
             } else {
                 // 桌面端默认显示
                 this.chatPanel.style.display = 'flex';
@@ -1038,12 +1073,70 @@ export class ChatManager {
                 }, 150);
             }
             this.isInitialized = true;
+            this.updateChatPanelHeightForOutput();
         } catch (error) {
             console.error('Error initializing mobile layout:', error);
             // 发生错误时，设置一个安全的默认状态
             this.chatPanel.style.display = 'flex';
             this.minimizedChatButton.style.display = 'none';
             this.isInitialized = true;
+            this.updateChatPanelHeightForOutput();
+        }
+    }
+
+    applyCompactCollapsedState() {
+        if (!this.chatPanel) return;
+
+        this.chatPanel.classList.remove('active', 'minimized');
+        this.chatPanel.style.transform = '';
+        this.chatPanel.style.display = 'none';
+        this.chatPanel.style.height = '';
+        this.minimizedChatButton.style.display = 'block';
+        fileListResizer?.updateContainerWidth();
+    }
+
+    updateChatPanelHeightForOutput() {
+        if (!this.chatPanel || this.chatPanel.style.display === 'none' || this.isMobile) {
+            return;
+        }
+
+        const outputPanel = document.getElementById('outputPanel');
+        if (!outputPanel) {
+            return;
+        }
+
+        const outputStyles = getComputedStyle(outputPanel);
+        const isVisible = outputStyles.display !== 'none' && !outputPanel.classList.contains('collapsed');
+        const isVerticalLayout = outputPanel.classList.contains('vertical');
+
+        if (isVisible && !isVerticalLayout) {
+            const outputHeight = parseInt(outputStyles.height, 10);
+            if (!Number.isNaN(outputHeight)) {
+                this.chatPanel.style.height = `calc(100vh - ${outputHeight}px)`;
+            }
+        } else {
+            this.chatPanel.style.height = '';
+        }
+
+        this.recalculateChatMessagesHeight();
+    }
+
+    recalculateChatMessagesHeight() {
+        if (!this.chatPanel || this.chatPanel.style.display === 'none') {
+            return;
+        }
+
+        if (!this.chatInputArea) {
+            this.chatInputArea = document.querySelector('.chat-input-area');
+        }
+
+        if (!this.chatInputArea) {
+            return;
+        }
+
+        const inputHeight = parseInt(getComputedStyle(this.chatInputArea).height, 10);
+        if (!Number.isNaN(inputHeight)) {
+            this.updateChatMessagesHeight(inputHeight);
         }
     }
 
@@ -1055,6 +1148,7 @@ export class ChatManager {
             // 移动端自适应，高度固定
             this.chatPanel.style.width = '100%';
             this.chatPanel.style.height = '85vh'; // 固定高度，不允许调整
+            this.recalculateChatMessagesHeight();
             
             // 隐藏调整大小的手柄
             const resizeHandle = this.chatPanel.querySelector('.resize-handle');
@@ -1065,6 +1159,13 @@ export class ChatManager {
             // 如果当前是显示状态，确保样式正确
             if (this.chatPanel.style.display !== 'none') {
                 this.chatPanel.classList.add('active');
+            }
+        } else if (this.isCompactScreen) {
+            this.applyCompactCollapsedState();
+            
+            const resizeHandle = this.chatPanel.querySelector('.resize-handle');
+            if (resizeHandle) {
+                resizeHandle.style.display = '';
             }
         } else {
             // 桌面端恢复默认样式
@@ -1080,6 +1181,8 @@ export class ChatManager {
             const defaultWidth = 470;
             this.chatPanel.style.width = `${defaultWidth}px`;
         }
+
+        this.updateChatPanelHeightForOutput();
     }
 
 
@@ -1559,4 +1662,4 @@ document.addEventListener('visibilitychange', () => {
             }
         }, 100);
     }
-}); 
+});

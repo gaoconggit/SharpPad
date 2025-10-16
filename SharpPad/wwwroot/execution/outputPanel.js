@@ -60,6 +60,7 @@ export class OutputPanel {
             // 移除对chatPanel高度的直接设置
             
             layoutEditor();
+            window.chatManager?.updateChatPanelHeightForOutput?.();
         });
 
         // 为toggleOutputLayout添加click和touch事件处理
@@ -77,6 +78,9 @@ export class OutputPanel {
                 fileList.style.height = fullHeight;
                 container.style.height = fullHeight;
                 // 移除对聊天窗口高度的设置
+                if (!isMobileDevice()) {
+                    this.chatPanel.style.height = '';
+                }
                 this.outputPanel.style.height = fullHeight;
 
                 // 使用保存的垂直布局宽度，根据设备类型调整
@@ -133,11 +137,15 @@ export class OutputPanel {
                 fileList.style.height = remainingHeight;
                 container.style.height = remainingHeight;
                 // 移除对聊天面板高度的设置
+                if (!isMobileDevice()) {
+                    this.chatPanel.style.height = '';
+                }
 
                 // 重置编辑器容器的右边距，不考虑聊天面板
                 container.style.marginRight = '0';
             }
             layoutEditor();
+            window.chatManager?.updateChatPanelHeightForOutput?.();
         };
 
         // 添加click事件
@@ -192,6 +200,7 @@ export class OutputPanel {
             }
             
             layoutEditor();
+            window.chatManager?.updateChatPanelHeightForOutput?.();
         });
 
         this.formatOutput.addEventListener('click', this.formatOutputContent.bind(this));
@@ -481,6 +490,8 @@ export class OutputPanel {
                 this.chatPanel.style.height = remainingHeight;
             }
         }
+
+        window.chatManager?.updateChatPanelHeightForOutput?.();
     }
 
     handleMouseUp() {
@@ -529,6 +540,8 @@ export class OutputPanel {
                 this.updateVerticalLayout(maxWidth);
             }
         }
+
+        window.chatManager?.updateChatPanelHeightForOutput?.();
     }
 
     formatOutputContent() {

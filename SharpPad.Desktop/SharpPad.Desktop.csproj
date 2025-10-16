@@ -7,8 +7,10 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">12.0</SupportedOSPlatformVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
-		<CFBundleIconFile Condition="$([MSBuild]::IsOSPlatform('osx'))">favicon.icns</CFBundleIconFile>
+		<!-- Windows图标 -->
+		<ApplicationIcon Condition="'$(OS)' == 'Windows_NT'">Assets\favicon.ico</ApplicationIcon>
+		<!-- macOS图标 - 正确指定路径 -->
+		<CFBundleIconFile Condition="$([MSBuild]::IsOSPlatform('osx'))">Assets/favicon.icns</CFBundleIconFile>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<SelfContained>false</SelfContained>
@@ -37,6 +39,16 @@
 
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
+
+	<!-- 确保图标文件被包含到输出 -->
+	<ItemGroup>
+		<Content Include="Assets\favicon.ico" Condition="'$(OS)' == 'Windows_NT'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\favicon.icns" Condition="$([MSBuild]::IsOSPlatform('osx'))">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<!-- Copy wwwroot and appsettings.json from SharpPad project to publish output -->
