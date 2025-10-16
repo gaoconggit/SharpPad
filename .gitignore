@@ -332,3 +332,5 @@ ASALocalRun/
 # macOS app bundle
 SharpPad.app/
 worktrees/
+# Ignore packaged macOS app bundle artifacts
+SharpPad.app/
