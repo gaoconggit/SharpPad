@@ -112,6 +112,47 @@ const desktopBridge = {
         if (!posted) {
             console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
         }
+    },
+    requestFileDownload(options) {
+        const payload = {
+            type: 'download-file'
+        };
+
+        if (options && typeof options === 'object') {
+            const {
+                fileName,
+                content,
+                mimeType,
+                context
+            } = options;
+
+            if (typeof fileName === 'string' && fileName.trim().length > 0) {
+                payload.fileName = fileName.trim();
+            }
+
+            if (typeof content === 'string' && content.length > 0) {
+                payload.content = content;
+            }
+
+            if (typeof mimeType === 'string' && mimeType.trim().length > 0) {
+                payload.mimeType = mimeType.trim();
+            }
+
+            if (typeof context !== 'undefined') {
+                payload.context = context;
+            }
+        }
+
+        if (!payload.content) {
+            console.warn('Desktop bridge: 缺少需要保存的文件内容。');
+            return false;
+        }
+
+        const posted = sendToHost(payload);
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
+        }
+        return posted;
     }
 };
 

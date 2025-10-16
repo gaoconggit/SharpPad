@@ -66,6 +66,10 @@ internal sealed class WebViewBridge : IDisposable
                 case "pick-and-upload":
                     await HandlePickAndUploadAsync(root);
                     break;
+                
+                case "download-file":
+                    await HandleDownloadFileAsync(root);
+                    break;
 
                 default:
                     Send(new
@@ -96,18 +100,7 @@ internal sealed class WebViewBridge : IDisposable
 
     private async Task HandlePickAndUploadAsync(JsonElement root)
     {
-        object? contextPayload = null;
-        if (root.TryGetProperty("context", out var contextProperty))
-        {
-            try
-            {
-                contextPayload = JsonSerializer.Deserialize<object>(contextProperty.GetRawText());
-            }
-            catch (JsonException)
-            {
-                contextPayload = contextProperty.GetRawText();
-            }
-        }
+        var contextPayload = ExtractContext(root);
 
         Uri? uploadEndpoint = null;
         if (root.TryGetProperty("endpoint", out var endpointProperty))
@@ -162,6 +155,78 @@ internal sealed class WebViewBridge : IDisposable
             message = result.Error,
             context = contextPayload
         });
+    }
+
+    private async Task HandleDownloadFileAsync(JsonElement root)
+    {
+        var contextPayload = ExtractContext(root);
+
+        if (!root.TryGetProperty("content", out var contentProperty) ||
+            contentProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "download-file-completed",
+                success = false,
+                context = contextPayload,
+                message = "导出内容无效。"
+            });
+            return;
+        }
+
+        var content = contentProperty.GetString() ?? string.Empty;
+
+        var fileName = "export.json";
+        if (root.TryGetProperty("fileName", out var fileNameProperty) &&
+            fileNameProperty.ValueKind == JsonValueKind.String)
+        {
+            var providedName = fileNameProperty.GetString();
+            if (!string.IsNullOrWhiteSpace(providedName))
+            {
+                fileName = providedName!;
+            }
+        }
+
+        string? mimeType = null;
+        if (root.TryGetProperty("mimeType", out var mimeTypeProperty) &&
+            mimeTypeProperty.ValueKind == JsonValueKind.String)
+        {
+            var providedMime = mimeTypeProperty.GetString();
+            if (!string.IsNullOrWhiteSpace(providedMime))
+            {
+                mimeType = providedMime;
+            }
+        }
+
+        var result = await FileSaveHelper.SaveTextAsync(_owner, fileName, content, mimeType);
+
+        Send(new
+        {
+            type = "download-file-completed",
+            success = result.Success,
+            cancelled = result.Cancelled,
+            fileName = result.FileName,
+            savedPath = result.FilePath,
+            message = result.Error,
+            context = contextPayload
+        });
+    }
+
+    private object? ExtractContext(JsonElement root)
+    {
+        if (!root.TryGetProperty("context", out var contextProperty))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<object>(contextProperty.GetRawText());
+        }
+        catch (JsonException)
+        {
+            return contextProperty.GetRawText();
+        }
     }
 
     private void Send(object payload)

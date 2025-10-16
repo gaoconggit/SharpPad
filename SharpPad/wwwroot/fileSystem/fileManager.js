@@ -1168,6 +1168,12 @@ class FileManager {
 
                     // 创建并下载 JSON 文件
                     const jsonContent = JSON.stringify(folderData, null, 2);
+
+                    if (this.shouldUseDesktopExport()) {
+                        this.exportFolderViaDesktopBridge(item.name, jsonContent);
+                        return true;
+                    }
+
                     const blob = new Blob([jsonContent], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -1306,6 +1312,39 @@ class FileManager {
         return false;
     }
 
+    shouldUseDesktopExport() {
+        return this.shouldUseDesktopImport();
+    }
+
+    exportFolderViaDesktopBridge(folderName, jsonContent) {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('当前环境不支持桌面导出。', 'warning');
+            return;
+        }
+
+        const trimmedName = typeof folderName === 'string' ? folderName.trim() : '';
+        const fileName = trimmedName.length > 0 ? `${trimmedName}.json` : 'export.json';
+
+        try {
+            const posted = desktopBridge.requestFileDownload({
+                fileName,
+                content: jsonContent,
+                mimeType: 'application/json',
+                context: {
+                    action: 'export-folder',
+                    folderName: trimmedName || undefined
+                }
+            });
+
+            if (!posted) {
+                showNotification('无法唤起桌面导出对话框。', 'error');
+            }
+        } catch (error) {
+            console.error('桌面导出请求失败:', error);
+            showNotification('无法发起导出请求: ' + error.message, 'error');
+        }
+    }
+
     importFolderViaDesktopBridge(targetFolderId) {
         if (!desktopBridge?.isAvailable) {
             showNotification('当前环境不支持桌面导入。', 'warning');
@@ -1388,6 +1427,52 @@ class FileManager {
             console.error('桌面导入失败:', error);
             showNotification('导入失败: ' + error.message, 'error');
         });
+
+        return true;
+    }
+
+    handleDesktopDownload(message) {
+        if (!message || message.type !== 'download-file-completed') {
+            return false;
+        }
+
+        let context = message.context;
+        if (typeof context === 'string') {
+            try {
+                context = JSON.parse(context);
+            } catch {
+                context = { raw: context };
+            }
+        }
+
+        if (!context || typeof context !== 'object') {
+            context = {};
+        }
+
+        const action = context?.action;
+        if (action !== 'export-folder') {
+            return false;
+        }
+
+        if (message.cancelled) {
+            showNotification('已取消导出', 'info');
+            return true;
+        }
+
+        if (!message.success) {
+            showNotification(message.message || '导出失败', 'error');
+            return true;
+        }
+
+        const savedPath = typeof message.savedPath === 'string' && message.savedPath.trim().length > 0
+            ? message.savedPath
+            : null;
+
+        if (savedPath) {
+            showNotification(`已保存到: ${savedPath}`, 'success');
+        } else {
+            showNotification('文件夹已导出', 'success');
+        }
 
         return true;
     }

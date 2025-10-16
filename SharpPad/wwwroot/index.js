@@ -110,6 +110,23 @@ async function initializeApp() {
                     }
                     break;
                 }
+                case 'download-file-completed': {
+                    const handled = typeof window.fileManager?.handleDesktopDownload === 'function'
+                        ? window.fileManager.handleDesktopDownload(message)
+                        : false;
+
+                    if (!handled) {
+                        if (message.success) {
+                            showNotification('文件导出成功', 'success');
+                        } else if (message.cancelled) {
+                            showNotification('已取消导出', 'info');
+                        } else {
+                            const error = message.message || '导出失败，请重试';
+                            showNotification(error, 'error');
+                        }
+                    }
+                    break;
+                }
                 case 'pong':
                     console.log('Desktop bridge handshake completed.');
                     break;
