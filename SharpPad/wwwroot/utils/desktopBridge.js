@@ -123,6 +123,7 @@ const desktopBridge = {
                 fileName,
                 content,
                 mimeType,
+                isBase64,
                 context
             } = options;
 
@@ -136,6 +137,10 @@ const desktopBridge = {
 
             if (typeof mimeType === 'string' && mimeType.trim().length > 0) {
                 payload.mimeType = mimeType.trim();
+            }
+
+            if (typeof isBase64 === 'boolean') {
+                payload.isBase64 = isBase64;
             }
 
             if (typeof context !== 'undefined') {

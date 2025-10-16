@@ -2,6 +2,7 @@ import { getCurrentFile, PROJECT_TYPE_CHANGE_EVENT } from '../utils/common.js';
 import { sendRequest } from '../utils/apiService.js';
 import { FileManager } from '../fileSystem/fileManager.js';
 import { buildMultiFileContext } from '../utils/multiFileHelper.js';
+import desktopBridge from '../utils/desktopBridge.js';
 
 const fileManager = new FileManager();
 
@@ -733,14 +734,27 @@ export class CodeRunner {
                             this.outputContent.classList.remove("result-streaming");
 
                             if (data.success && data.downloadId) {
-                                // 通过下载端点下载文件
                                 const downloadUrl = `/api/coderun/downloadBuild/${data.downloadId}`;
-                                const a = document.createElement('a');
-                                a.href = downloadUrl;
-                                a.download = data.fileName;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
+                                const shouldUseDesktop = this.shouldUseDesktopDownload();
+
+                                if (shouldUseDesktop) {
+                                    try {
+                                        await this.downloadBuildViaDesktop(downloadUrl, data.fileName, data.downloadId);
+                                    } catch (downloadError) {
+                                        this.appendOutput(`下载发布包失败: ${downloadError.message}`, 'error');
+                                        this.notification.textContent = '构建成功但下载失败';
+                                        this.notification.style.backgroundColor = 'rgba(255, 152, 0, 0.95)';
+                                        this.notification.style.display = 'block';
+                                        break;
+                                    }
+                                } else {
+                                    const a = document.createElement('a');
+                                    a.href = downloadUrl;
+                                    a.download = data.fileName;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                }
 
                                 this.appendOutput(`\n✅ 成功构建 ${data.fileName}，文件已开始下载`, 'success');
                                 this.notification.textContent = `构建成功：${data.fileName}`;
@@ -767,6 +781,85 @@ export class CodeRunner {
             this.buildExeButton.textContent = '发布';
             this.outputContent.classList.remove("result-streaming");
         }
+    }
+
+    shouldUseDesktopDownload() {
+        if (!desktopBridge?.isAvailable) {
+            return false;
+        }
+
+        if (typeof fileManager?.shouldUseDesktopExport === 'function') {
+            return fileManager.shouldUseDesktopExport();
+        }
+
+        return false;
+    }
+
+    async downloadBuildViaDesktop(downloadUrl, fileName, downloadId) {
+        if (!desktopBridge?.isAvailable) {
+            throw new Error('当前环境不支持桌面下载通道。');
+        }
+
+        const response = await fetch(downloadUrl, { credentials: 'include' });
+        if (!response.ok) {
+            throw new Error(`请求下载失败 (HTTP ${response.status})`);
+        }
+
+        const buffer = await response.arrayBuffer();
+        const base64Content = this.arrayBufferToBase64(buffer);
+        const artifactName = typeof fileName === 'string' && fileName.trim().length > 0
+            ? fileName.trim()
+            : 'SharpPadBuild.zip';
+        const mimeType = this.getArtifactMimeType(artifactName);
+
+        const posted = desktopBridge.requestFileDownload({
+            fileName: artifactName,
+            content: base64Content,
+            mimeType,
+            isBase64: true,
+            context: {
+                action: 'build-download',
+                downloadId
+            }
+        });
+
+        if (!posted) {
+            throw new Error('无法发起桌面下载请求。');
+        }
+    }
+
+    arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binary = '';
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, chunk);
+        }
+
+        return btoa(binary);
+    }
+
+    getArtifactMimeType(fileName) {
+        if (typeof fileName !== 'string') {
+            return 'application/octet-stream';
+        }
+
+        const lower = fileName.toLowerCase();
+        if (lower.endsWith('.zip')) {
+            return 'application/zip';
+        }
+
+        if (lower.endsWith('.dll')) {
+            return 'application/octet-stream';
+        }
+
+        if (lower.endsWith('.exe')) {
+            return 'application/octet-stream';
+        }
+
+        return 'application/octet-stream';
     }
 }
 

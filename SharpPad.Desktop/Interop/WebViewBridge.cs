@@ -198,7 +198,10 @@ internal sealed class WebViewBridge : IDisposable
             }
         }
 
-        var result = await FileSaveHelper.SaveTextAsync(_owner, fileName, content, mimeType);
+        var isBase64 = root.TryGetProperty("isBase64", out var base64Property) &&
+                       base64Property.ValueKind == JsonValueKind.True;
+
+        var result = await FileSaveHelper.SaveAsync(_owner, fileName, content, mimeType, isBase64);
 
         Send(new
         {

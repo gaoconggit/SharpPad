@@ -10,7 +10,7 @@ namespace SharpPad.Desktop.Services;
 
 internal static class FileSaveHelper
 {
-    public static async Task<FileSaveResult> SaveTextAsync(Window owner, string? suggestedFileName, string content, string? mimeType)
+    public static async Task<FileSaveResult> SaveAsync(Window owner, string? suggestedFileName, string content, string? mimeType, bool isBase64)
     {
         if (owner is null)
         {
@@ -55,6 +55,19 @@ internal static class FileSaveHelper
             return FileSaveResult.CreateCancelled();
         }
 
+        byte[]? binaryContent = null;
+        if (isBase64)
+        {
+            try
+            {
+                binaryContent = Convert.FromBase64String(content);
+            }
+            catch (FormatException)
+            {
+                return FileSaveResult.CreateFailure("无法解析导出的文件内容。");
+            }
+        }
+
         try
         {
             await using var stream = await targetFile.OpenWriteAsync();
@@ -63,9 +76,18 @@ internal static class FileSaveHelper
                 stream.SetLength(0);
             }
 
-            using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            await writer.WriteAsync(content);
-            await writer.FlushAsync();
+            if (binaryContent is not null)
+            {
+                await stream.WriteAsync(binaryContent, 0, binaryContent.Length);
+                await stream.FlushAsync();
+            }
+            else
+            {
+                await using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), bufferSize: 1024, leaveOpen: true);
+                await writer.WriteAsync(content);
+                await writer.FlushAsync();
+                await stream.FlushAsync();
+            }
         }
         catch (Exception ex)
         {

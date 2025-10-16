@@ -1450,17 +1450,21 @@ class FileManager {
         }
 
         const action = context?.action;
-        if (action !== 'export-folder') {
+        if (!action) {
             return false;
         }
 
         if (message.cancelled) {
-            showNotification('已取消导出', 'info');
+            const cancelMessage = action === 'build-download' ? '已取消导出发布包' : '已取消导出';
+            showNotification(cancelMessage, 'info');
             return true;
         }
 
         if (!message.success) {
-            showNotification(message.message || '导出失败', 'error');
+            const errorMessage = action === 'build-download'
+                ? (message.message || '导出发布包失败')
+                : (message.message || '导出失败');
+            showNotification(errorMessage, 'error');
             return true;
         }
 
@@ -1468,13 +1472,25 @@ class FileManager {
             ? message.savedPath
             : null;
 
-        if (savedPath) {
-            showNotification(`已保存到: ${savedPath}`, 'success');
-        } else {
-            showNotification('文件夹已导出', 'success');
+        if (action === 'build-download') {
+            if (savedPath) {
+                showNotification(`发布包已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('发布包已导出', 'success');
+            }
+            return true;
         }
 
-        return true;
+        if (action === 'export-folder') {
+            if (savedPath) {
+                showNotification(`已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('文件夹已导出', 'success');
+            }
+            return true;
+        }
+
+        return false;
     }
 
     async applyImportedFolderData(targetFolderId, jsonContent) {
