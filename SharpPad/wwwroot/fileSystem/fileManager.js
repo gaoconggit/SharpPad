@@ -1,6 +1,7 @@
 // 文件系统管理模块
 import { showNotification, DEFAULT_CODE, PROJECT_TYPE_CHANGE_EVENT } from '../utils/common.js';
 import { customPrompt, customConfirm } from '../utils/customPrompt.js';
+import desktopBridge from '../utils/desktopBridge.js';
 
 class FileManager {
     constructor() {
@@ -1213,17 +1214,24 @@ class FileManager {
 
     importFolder() {
         const menu = document.getElementById('folderContextMenu');
-        const targetFolderId = menu.getAttribute('data-folder-id');
-        menu.style.display = 'none';
+        const targetFolderId = menu?.getAttribute('data-folder-id');
+        if (menu) {
+            menu.style.display = 'none';
+        }
 
-        if (!targetFolderId) return;
+        if (!targetFolderId) {
+            return;
+        }
 
-        // 创建文件输入元素
+        if (this.shouldUseDesktopImport()) {
+            this.importFolderViaDesktopBridge(targetFolderId);
+            return;
+        }
+
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.json';
 
-        // 兼容 macOS WebView: 不设置 display: none，而是使用其他方式隐藏
         fileInput.style.position = 'fixed';
         fileInput.style.top = '-100px';
         fileInput.style.left = '-100px';
@@ -1242,86 +1250,15 @@ class FileManager {
             }
 
             const reader = new FileReader();
-            reader.onload = async (e) => {
+            reader.onload = async (evt) => {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-
-                    // 验证导入的数据格式
-                    if (!importedData.name || !importedData.type || !Array.isArray(importedData.files)) {
-                        throw new Error('无效的文件格式');
-                    }
-
-                    const filesData = localStorage.getItem('controllerFiles');
-                    const files = filesData ? JSON.parse(filesData) : [];
-
-                    // 递归生成新的 ID
-                    const regenerateIds = (items) => {
-                        return items.map(item => {
-                            const newItem = { ...item, id: this.generateUUID() };
-                            if (item.type === 'folder' && Array.isArray(item.files)) {
-                                newItem.files = regenerateIds(item.files);
-                            }
-                            return newItem;
-                        });
-                    };
-
-                    // 递归保存文件内容
-                    const saveFileContents = (items) => {
-                        items.forEach(item => {
-                            if (item.type !== 'folder' && item.content) {
-                                localStorage.setItem(`file_${item.id}`, item.content);
-                            }
-                            if (item.type === 'folder' && Array.isArray(item.files)) {
-                                saveFileContents(item.files);
-                            }
-                        });
-                    };
-
-                    // 查找目标文件夹并添加导入的内容
-                    const findAndAddToFolder = (items) => {
-                        for (let item of items) {
-                            if (item.id === targetFolderId) {
-                                if (!item.files) {
-                                    item.files = [];
-                                }
-                                // 生成新的 ID 并保存文件内容
-                                const importedFiles = regenerateIds(importedData.files);
-                                saveFileContents(importedFiles);
-                                item.files.push(...importedFiles);
-                                return true;
-                            }
-                            if (item.type === 'folder' && item.files) {
-                                if (findAndAddToFolder(item.files)) return true;
-                            }
-                        }
-                        return false;
-                    };
-
-                    if (findAndAddToFolder(files)) {
-                        localStorage.setItem('controllerFiles', JSON.stringify(files));
-
-                        // 保存当前展开的文件夹，并添加目标文件夹
-                        const expandedFolders = this.saveExpandedFolders();
-                        if (!expandedFolders.includes(targetFolderId)) {
-                            expandedFolders.push(targetFolderId);
-                        }
-
-                        this.loadFileList();
-
-                        // 恢复展开状态（包括新导入的目标文件夹）
-                        this.restoreExpandedFolders(expandedFolders);
-
-                        showNotification('导入成功', 'success');
-
-                        // 检查并恢复 NuGet 包
-                        await this.restoreNuGetPackages(importedData.files);
-                    }
-
+                    await this.applyImportedFolderData(targetFolderId, evt.target.result);
                 } catch (error) {
                     console.error('导入错误:', error);
                     showNotification('导入失败: ' + error.message, 'error');
+                } finally {
+                    document.body.removeChild(fileInput);
                 }
-                document.body.removeChild(fileInput);
             };
 
             reader.onerror = () => {
@@ -1332,12 +1269,10 @@ class FileManager {
             reader.readAsText(file);
         };
 
-        // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
         setTimeout(() => {
             try {
                 fileInput.click();
             } catch (e) {
-                // 如果 click() 失败，尝试通过事件触发
                 const clickEvent = new MouseEvent('click', {
                     view: window,
                     bubbles: true,
@@ -1346,6 +1281,190 @@ class FileManager {
                 fileInput.dispatchEvent(clickEvent);
             }
         }, 0);
+    }
+
+    shouldUseDesktopImport() {
+        if (!desktopBridge?.isAvailable) {
+            return false;
+        }
+
+        try {
+            const navPlatform = (navigator?.platform || '').toLowerCase();
+            const navAgent = (navigator?.userAgent || '').toLowerCase();
+            if (navPlatform.includes('mac') || navAgent.includes('macintosh')) {
+                return true;
+            }
+
+            const hostPlatform = desktopBridge.platform?.();
+            if (typeof hostPlatform === 'string' && hostPlatform.toLowerCase().includes('mac')) {
+                return true;
+            }
+        } catch (error) {
+            console.warn('检测桌面导入环境失败:', error);
+        }
+
+        return false;
+    }
+
+    importFolderViaDesktopBridge(targetFolderId) {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('当前环境不支持桌面导入。', 'warning');
+            return;
+        }
+
+        try {
+            desktopBridge.requestPickAndUpload(undefined, {
+                action: 'import-folder',
+                folderId: targetFolderId
+            });
+            showNotification('请选择要导入的 JSON 文件', 'info');
+        } catch (error) {
+            console.error('桌面导入请求失败:', error);
+            showNotification('无法发起导入请求: ' + error.message, 'error');
+        }
+    }
+
+    handleDesktopUpload(message) {
+        if (!message || message.type !== 'pick-and-upload-completed') {
+            return false;
+        }
+
+        let context = message.context;
+        if (typeof context === 'string') {
+            try {
+                context = JSON.parse(context);
+            } catch {
+                context = { raw: context };
+            }
+        }
+
+        if (!context || typeof context !== 'object') {
+            context = {};
+        }
+
+        const action = context?.action;
+        if (action !== 'import-folder') {
+            return false;
+        }
+
+        const folderId = context?.folderId;
+        if (!folderId) {
+            showNotification('导入失败: 缺少目标文件夹信息。', 'error');
+            return true;
+        }
+
+        if (message.cancelled) {
+            showNotification('已取消导入', 'info');
+            return true;
+        }
+
+        if (!message.success) {
+            showNotification(message.message || '导入失败', 'error');
+            return true;
+        }
+
+        let rawContent = null;
+        const payload = message.payload;
+        if (typeof payload === 'string') {
+            rawContent = payload;
+        } else if (payload && typeof payload === 'object') {
+            if (typeof payload.content === 'string') {
+                rawContent = payload.content;
+            } else {
+                try {
+                    rawContent = JSON.stringify(payload);
+                } catch {
+                    rawContent = null;
+                }
+            }
+        }
+
+        if (!rawContent) {
+            showNotification('导入失败: 未收到文件内容。', 'error');
+            return true;
+        }
+
+        this.applyImportedFolderData(folderId, rawContent).catch(error => {
+            console.error('桌面导入失败:', error);
+            showNotification('导入失败: ' + error.message, 'error');
+        });
+
+        return true;
+    }
+
+    async applyImportedFolderData(targetFolderId, jsonContent) {
+        if (!jsonContent) {
+            throw new Error('导入数据为空');
+        }
+
+        const importedData = JSON.parse(jsonContent);
+
+        if (!importedData.name || !importedData.type || !Array.isArray(importedData.files)) {
+            throw new Error('无效的文件格式');
+        }
+
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        const regenerateIds = (items) => {
+            return items.map(item => {
+                const newItem = { ...item, id: this.generateUUID() };
+                if (item.type === 'folder' && Array.isArray(item.files)) {
+                    newItem.files = regenerateIds(item.files);
+                }
+                return newItem;
+            });
+        };
+
+        const saveFileContents = (items) => {
+            items.forEach(item => {
+                if (item.type !== 'folder' && item.content) {
+                    localStorage.setItem(`file_${item.id}`, item.content);
+                }
+                if (item.type === 'folder' && Array.isArray(item.files)) {
+                    saveFileContents(item.files);
+                }
+            });
+        };
+
+        const findAndAddToFolder = (items) => {
+            for (const item of items) {
+                if (item.id === targetFolderId) {
+                    if (!item.files) {
+                        item.files = [];
+                    }
+                    const importedFiles = regenerateIds(importedData.files);
+                    saveFileContents(importedFiles);
+                    item.files.push(...importedFiles);
+                    return true;
+                }
+                if (item.type === 'folder' && item.files) {
+                    if (findAndAddToFolder(item.files)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        if (!findAndAddToFolder(files)) {
+            throw new Error('未找到目标文件夹。');
+        }
+
+        localStorage.setItem('controllerFiles', JSON.stringify(files));
+
+        const expandedFolders = this.saveExpandedFolders();
+        if (!expandedFolders.includes(targetFolderId)) {
+            expandedFolders.push(targetFolderId);
+        }
+
+        this.loadFileList();
+        this.restoreExpandedFolders(expandedFolders);
+
+        showNotification('导入成功', 'success');
+        await this.restoreNuGetPackages(importedData.files);
+
+        return true;
     }
 
     async restoreNuGetPackages(items) {

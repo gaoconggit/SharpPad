@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using AvaloniaWebView;
+using SharpPad.Desktop.Interop;
 using SharpPad.Desktop.ViewModels;
 using WebViewCore.Events;
 using System;
@@ -10,9 +11,12 @@ namespace SharpPad.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly WebViewBridge _bridge;
+
     public MainWindow()
     {
         InitializeComponent();
+        _bridge = new WebViewBridge(MainWebView, this);
     }
 
     private void OnNavigationStarting(object? sender, WebViewUrlLoadingEventArg e)
@@ -35,5 +39,13 @@ public partial class MainWindow : Window
 
             viewModel.IsLoading = false;
         }
+
+        _bridge.NotifyHostReady();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        _bridge.Dispose();
     }
 }

@@ -62,11 +62,66 @@ import { sendRequest } from './utils/apiService.js';
 import { showNotification } from './utils/common.js';
 import { NugetManager } from './components/nuget/nugetManager.js';
 import { setupSemanticColoring } from './semanticColoring.js';
+import desktopBridge from './utils/desktopBridge.js';
 
 // 初始化应用
 async function initializeApp() {
     // 初始化系统设置
     loadSystemSettings();
+
+    if (desktopBridge.isAvailable) {
+        desktopBridge.onceHostReady(() => {
+            console.log('Desktop bridge ready');
+            desktopBridge.send({ type: 'ping' });
+        });
+
+        desktopBridge.onMessage(message => {
+            if (!message?.type) {
+                return;
+            }
+
+            switch (message.type) {
+                case 'bridge-error':
+                    if (message.message) {
+                        showNotification(`桌面通信错误: ${message.message}`, 'error');
+                    }
+                    console.error('Desktop bridge error:', message);
+                    break;
+                case 'bridge-warning':
+                    console.warn('Desktop bridge warning:', message.message);
+                    break;
+                case 'pick-and-upload-progress':
+                    console.log('Desktop upload in progress...', message.status);
+                    break;
+                case 'pick-and-upload-completed': {
+                    const handled = typeof window.fileManager?.handleDesktopUpload === 'function'
+                        ? window.fileManager.handleDesktopUpload(message)
+                        : false;
+
+                    if (!handled) {
+                        if (message.success) {
+                            showNotification('文件上传成功', 'success');
+                        } else if (message.cancelled) {
+                            showNotification('已取消上传', 'info');
+                        } else {
+                            const error = message.message || '上传失败，请重试';
+                            showNotification(error, 'error');
+                        }
+                    }
+                    break;
+                }
+                case 'pong':
+                    console.log('Desktop bridge handshake completed.');
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        window.requestDesktopUpload = (endpoint, context) => desktopBridge.requestPickAndUpload(endpoint, context);
+    } else {
+        console.log('Desktop bridge unavailable - running in browser mode.');
+    }
     
     // 初始化文件系统
     const fileManager = new FileManager();

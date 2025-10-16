@@ -471,6 +471,14 @@
     <script src="axios.min.js"></script>
     <script src="./markdown/markdown-it.min.js"></script>
     <script src="./markdown/highlight.min.js"></script>
+    <script>
+        window.__avaloniaPendingMessages = window.__avaloniaPendingMessages || [];
+        if (typeof window.__dispatchMessageCallback !== 'function') {
+            window.__dispatchMessageCallback = function(message) {
+                window.__avaloniaPendingMessages.push(message);
+            };
+        }
+    </script>
 
     <!-- 主要应用脚本 - 使用defer确保DOM就绪后执行 -->
     <script type="module" src="csharpLanguageProvider.js" defer></script>
@@ -480,4 +488,3 @@
 </body>
 
 </html>
-
