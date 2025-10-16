@@ -13,6 +13,7 @@ using monacoEditorCSharp.DataHelpers;
 using System.Threading;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using MonacoRoslynCompletionProvider;
 
@@ -1444,6 +1445,45 @@ namespace MonacoRoslynCompletionProvider.Api
             return moniker;
         }
 
+        private static string GetRuntimeIdentifier()
+        {
+            var arch = RuntimeInformation.ProcessArchitecture;
+
+            if (OperatingSystem.IsWindows())
+            {
+                return arch switch
+                {
+                    Architecture.Arm64 => "win-arm64",
+                    Architecture.Arm => "win-arm",
+                    Architecture.X86 => "win-x86",
+                    _ => "win-x64"
+                };
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                return arch switch
+                {
+                    Architecture.Arm64 => "osx-arm64",
+                    Architecture.X64 => "osx-x64",
+                    _ => "osx-x64"
+                };
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                return arch switch
+                {
+                    Architecture.Arm64 => "linux-arm64",
+                    Architecture.Arm => "linux-arm",
+                    Architecture.X86 => "linux-x86",
+                    _ => "linux-x64"
+                };
+            }
+
+            return "linux-x64";
+        }
+
         private static IEnumerable<string> GetWindowsDesktopReferencePaths(IEnumerable<string> assemblyNames)
         {
             if (assemblyNames == null)
@@ -2024,7 +2064,7 @@ namespace MonacoRoslynCompletionProvider.Api
                 {
                     await onOutput($"开始发布应用...\n");
                 }
-                var rid = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+                var rid = GetRuntimeIdentifier();
                 var publishArgs = $"publish -c Release -r {rid} --self-contained true -o \"{publishDir}\"";
                 var (rc2, o2, e2) = await RunAsync("dotnet", publishArgs, srcDir);
                 if (rc2 != 0)
