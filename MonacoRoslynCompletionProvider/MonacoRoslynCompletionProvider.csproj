@@ -56,4 +56,8 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Extensions\ObjectExtengsion.cs" />
+	</ItemGroup>
 </Project>

@@ -76,35 +76,26 @@ namespace MonacoRoslynCompletionProvider.Api
             {
                 if (string.IsNullOrEmpty(_objectExtensionsSource))
                 {
-                    var path = LocateObjectExtensionsFilePath();
-                    _objectExtensionsSource = File.ReadAllText(path, Encoding.UTF8);
+                    _objectExtensionsSource = LoadObjectExtensionsFromEmbeddedResource();
                 }
             }
 
             return _objectExtensionsSource;
         }
 
-        private static string LocateObjectExtensionsFilePath()
+        private static string LoadObjectExtensionsFromEmbeddedResource()
         {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory != null)
+            var assembly = typeof(CodeRunner).Assembly;
+            var resourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtengsion.cs";
+
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
             {
-                var candidate = Path.Combine(directory.FullName, "MonacoRoslynCompletionProvider", "Extensions", "ObjectExtengsion.cs");
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                var alternative = Path.Combine(directory.FullName, "Extensions", "ObjectExtengsion.cs");
-                if (File.Exists(alternative))
-                {
-                    return alternative;
-                }
-
-                directory = directory.Parent;
+                throw new FileNotFoundException($"Unable to locate embedded resource: {resourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
             }
 
-            throw new FileNotFoundException("Unable to locate MonacoRoslynCompletionProvider/Extensions/ObjectExtengsion.cs for publish runtime extensions.");
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
