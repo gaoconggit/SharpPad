@@ -66,9 +66,13 @@ internal sealed class WebViewBridge : IDisposable
                 case "pick-and-upload":
                     await HandlePickAndUploadAsync(root);
                     break;
-                
+
                 case "download-file":
                     await HandleDownloadFileAsync(root);
+                    break;
+
+                case "open-external-url":
+                    HandleOpenExternalUrl(root);
                     break;
 
                 default:
@@ -213,6 +217,48 @@ internal sealed class WebViewBridge : IDisposable
             message = result.Error,
             context = contextPayload
         });
+    }
+
+    private void HandleOpenExternalUrl(JsonElement root)
+    {
+        if (!root.TryGetProperty("url", out var urlProperty) ||
+            urlProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "bridge-error",
+                message = "URL 无效。"
+            });
+            return;
+        }
+
+        var url = urlProperty.GetString();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Send(new
+            {
+                type = "bridge-error",
+                message = "URL 不能为空。"
+            });
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Send(new
+            {
+                type = "bridge-error",
+                message = $"无法打开 URL: {ex.Message}"
+            });
+        }
     }
 
     private object? ExtractContext(JsonElement root)

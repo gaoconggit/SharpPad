@@ -266,6 +266,33 @@ async function initializeApp() {
         return;
     }
 
+    // 设置编辑器内的链接在桌面版中使用系统浏览器打开
+    if (desktopBridge.isAvailable) {
+        const openerService = editor._codeEditorService?.openerService ?? editor._standaloneThemeService?.openerService;
+        if (openerService) {
+            const originalOpen = openerService.open.bind(openerService);
+            openerService.open = async (target, options) => {
+                // 获取 URL 字符串
+                let url = null;
+                if (typeof target === 'string') {
+                    url = target;
+                } else if (target && typeof target === 'object') {
+                    // Monaco URI 对象
+                    url = target.toString?.() ?? target.path ?? target.href;
+                }
+
+                // 如果是 http/https URL，使用桌面桥打开
+                if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                    desktopBridge.openExternalUrl(url);
+                    return true;
+                }
+
+                // 其他情况使用默认行为
+                return originalOpen(target, options);
+            };
+        }
+    }
+
     // 注册编辑器命令
     const commands = new EditorCommands(editor);
     commands.registerCommands();
