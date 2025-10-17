@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace System
 {
-    public static class ObjectExtengsion
+    public static class ObjectExtension
     {
         public static string ToJson(this Object value, bool format = false)
         {

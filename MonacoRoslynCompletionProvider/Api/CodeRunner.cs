@@ -27,8 +27,8 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly object ConsoleLock = new();
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
-        private static readonly object RuntimeExtensionsLock = new();
-        private static string _objectExtensionsSource = string.Empty;
+        private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
+        private static readonly Lazy<string> _objectExtensionsSource = new(LoadObjectExtensionsFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
 
         private static string NormalizeProjectType(string type)
         {
@@ -65,46 +65,20 @@ namespace MonacoRoslynCompletionProvider.Api
             };
         }
 
-        private static string GetObjectExtensionsSource()
+        private static string GetObjectExtensionsSource() => _objectExtensionsSource.Value;
+
+        private static string LoadObjectExtensionsFromEmbeddedResource()
         {
-            if (!string.IsNullOrEmpty(_objectExtensionsSource))
+            var assembly = typeof(CodeRunner).Assembly;
+
+            using var stream = assembly.GetManifestResourceStream(ObjectExtensionsResourceName);
+            if (stream == null)
             {
-                return _objectExtensionsSource;
+                throw new FileNotFoundException($"Unable to locate embedded resource: {ObjectExtensionsResourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
             }
 
-            lock (RuntimeExtensionsLock)
-            {
-                if (string.IsNullOrEmpty(_objectExtensionsSource))
-                {
-                    var path = LocateObjectExtensionsFilePath();
-                    _objectExtensionsSource = File.ReadAllText(path, Encoding.UTF8);
-                }
-            }
-
-            return _objectExtensionsSource;
-        }
-
-        private static string LocateObjectExtensionsFilePath()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory != null)
-            {
-                var candidate = Path.Combine(directory.FullName, "MonacoRoslynCompletionProvider", "Extensions", "ObjectExtengsion.cs");
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                var alternative = Path.Combine(directory.FullName, "Extensions", "ObjectExtengsion.cs");
-                if (File.Exists(alternative))
-                {
-                    return alternative;
-                }
-
-                directory = directory.Parent;
-            }
-
-            throw new FileNotFoundException("Unable to locate MonacoRoslynCompletionProvider/Extensions/ObjectExtengsion.cs for publish runtime extensions.");
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
