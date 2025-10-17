@@ -1,11 +1,9 @@
 using Avalonia.Controls;
-using Avalonia.Threading;
 using AvaloniaWebView;
 using SharpPad.Desktop.Interop;
 using SharpPad.Desktop.ViewModels;
 using WebViewCore.Events;
 using System;
-using System.Threading.Tasks;
 
 namespace SharpPad.Desktop.Views;
 

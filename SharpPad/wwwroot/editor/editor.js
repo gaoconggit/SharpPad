@@ -140,10 +140,83 @@ Provide only the code to insert at the cursor position.`
         // 初始化 Code Actions Provider
         this.codeActionProvider = new CodeActionProvider(this.editor);
 
+        // 适配桌面端 WebView 缺失系统菜单时的快捷键
+        this.setupDesktopShortcuts();
 
         return this.editor;
     }
 
+    setupDesktopShortcuts() {
+        const platform = navigator?.platform || '';
+        const isMacLike = platform.includes('Mac') || platform.includes('iPad') || platform.includes('iPhone');
+        if (!isMacLike || typeof monaco === 'undefined' || !this.editor) {
+            return;
+        }
+
+        this.editor.onKeyDown(event => {
+            if (!event.metaKey) {
+                return;
+            }
+
+            const key = event.browserEvent?.key?.toLowerCase();
+            if (!key) {
+                return;
+            }
+
+            const trigger = actionId => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.editor.trigger('desktop-shortcut', actionId);
+            };
+
+            switch (key) {
+                case 'z':
+                    if (event.shiftKey) {
+                        trigger('redo');
+                    } else {
+                        trigger('undo');
+                    }
+                    break;
+                case 'x':
+                    trigger('editor.action.clipboardCutAction');
+                    document.execCommand('cut');
+                    break;
+                case 'c':
+                    trigger('editor.action.clipboardCopyAction');
+                    document.execCommand('copy');
+                    break;
+                case 'v':
+                    trigger('editor.action.clipboardPasteAction');
+                    if (navigator.clipboard?.readText) {
+                        navigator.clipboard.readText()
+                            .then(text => {
+                                if (typeof text === 'string') {
+                                    const selection = this.editor.getSelection();
+                                    const model = this.editor.getModel();
+                                    if (model && selection) {
+                                        this.editor.executeEdits('desktop-shortcut', [{
+                                            range: selection,
+                                            text,
+                                            forceMoveMarkers: true
+                                        }]);
+                                    } else {
+                                        this.editor.trigger('desktop-shortcut', 'editor.action.clipboardPasteAction');
+                                    }
+                                }
+                            })
+                            .catch(() => {
+                                this.editor.trigger('desktop-shortcut', 'editor.action.clipboardPasteAction');
+                            });
+                    }
+                    break;
+                case 'a':
+                    trigger('editor.action.selectAll');
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
 
     setupFullscreen() {
         // 创建全屏按钮
