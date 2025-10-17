@@ -73,6 +73,9 @@ async function initializeApp() {
         desktopBridge.onceHostReady(() => {
             console.log('Desktop bridge ready');
             desktopBridge.send({ type: 'ping' });
+
+            // Setup GitHub link to open in system browser
+            setupGitHubLinkHandler();
         });
 
         desktopBridge.onMessage(message => {
@@ -311,6 +314,22 @@ function loadSystemSettings() {
     } catch (error) {
         console.error('加载系统设置出错:', error);
     }
+}
+
+// 设置GitHub链接在桌面应用中使用系统浏览器打开
+function setupGitHubLinkHandler() {
+    const githubLink = document.getElementById('githubLink');
+    if (!githubLink) {
+        return;
+    }
+
+    githubLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        const url = githubLink.getAttribute('href');
+        if (url && desktopBridge.isAvailable) {
+            desktopBridge.openExternalUrl(url);
+        }
+    });
 }
 
 // 确保在DOM完全加载后再启动应用

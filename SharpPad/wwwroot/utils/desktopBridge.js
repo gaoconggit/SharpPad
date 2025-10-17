@@ -158,6 +158,23 @@ const desktopBridge = {
             console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
         }
         return posted;
+    },
+    openExternalUrl(url) {
+        if (typeof url !== 'string' || url.trim().length === 0) {
+            console.warn('Desktop bridge: 缺少有效的URL。');
+            return false;
+        }
+
+        const payload = {
+            type: 'open-external-url',
+            url: url.trim()
+        };
+
+        const posted = sendToHost(payload);
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
+        }
+        return posted;
     }
 };
 

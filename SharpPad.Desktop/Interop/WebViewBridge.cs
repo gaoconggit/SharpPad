@@ -66,9 +66,13 @@ internal sealed class WebViewBridge : IDisposable
                 case "pick-and-upload":
                     await HandlePickAndUploadAsync(root);
                     break;
-                
+
                 case "download-file":
                     await HandleDownloadFileAsync(root);
+                    break;
+
+                case "open-external-url":
+                    HandleOpenExternalUrl(root);
                     break;
 
                 default:
@@ -213,6 +217,58 @@ internal sealed class WebViewBridge : IDisposable
             message = result.Error,
             context = contextPayload
         });
+    }
+
+    private void HandleOpenExternalUrl(JsonElement root)
+    {
+        if (!root.TryGetProperty("url", out var urlProperty) ||
+            urlProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "open-external-url-result",
+                success = false,
+                message = "URL无效。"
+            });
+            return;
+        }
+
+        var url = urlProperty.GetString();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Send(new
+            {
+                type = "open-external-url-result",
+                success = false,
+                message = "URL为空。"
+            });
+            return;
+        }
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+
+            Send(new
+            {
+                type = "open-external-url-result",
+                success = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Send(new
+            {
+                type = "open-external-url-result",
+                success = false,
+                message = $"打开URL失败: {ex.Message}"
+            });
+        }
     }
 
     private object? ExtractContext(JsonElement root)
