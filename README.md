@@ -15,7 +15,7 @@
 
 ## 演示站点:
 
- - https://try.dotnet10.com
+ - https://try.dotnet10.com (老版本)
 ## 0.2.0 版本前快速体验
 1. 下载 release 包
 2. 解压后,找到 SharpPad.exe 双击运行
@@ -88,6 +88,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
