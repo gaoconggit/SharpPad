@@ -15,6 +15,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Text.RegularExpressions;
 using MonacoRoslynCompletionProvider;
 
 namespace MonacoRoslynCompletionProvider.Api
@@ -29,6 +30,81 @@ namespace MonacoRoslynCompletionProvider.Api
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
         private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
         private static readonly Lazy<string> _objectExtensionsSource = new(LoadObjectExtensionsFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
+        private static readonly Regex ConsoleReadKeyPattern = new(@"(?<!\w)(?:System\.)?Console\.ReadKey(?=\s*\()", RegexOptions.Compiled);
+        private const string ConsoleReadKeyShimSource = @"
+using System;
+using System.Collections.Generic;
+
+namespace SharpPadRuntime
+{
+    internal static class ConsoleReadKeyShim
+    {
+        private static readonly object BufferLock = new();
+        private static readonly Queue<char> BufferedChars = new();
+
+        public static ConsoleKeyInfo ReadKey()
+        {
+            return ReadKey(intercept: false);
+        }
+
+        public static ConsoleKeyInfo ReadKey(bool intercept)
+        {
+            lock (BufferLock)
+            {
+                if (BufferedChars.Count == 0)
+                {
+                    var line = Console.ReadLine();
+                    if (line == null)
+                    {
+                        return new ConsoleKeyInfo('\0', ConsoleKey.NoName, false, false, false);
+                    }
+
+                    foreach (var ch in line)
+                    {
+                        BufferedChars.Enqueue(ch);
+                    }
+
+                    BufferedChars.Enqueue('\n');
+                }
+
+                var nextChar = BufferedChars.Dequeue();
+
+                if (!intercept && nextChar != '\0')
+                {
+                    Console.Write(nextChar);
+                }
+
+                return new ConsoleKeyInfo(nextChar, MapToConsoleKey(nextChar), shift: false, alt: false, control: false);
+            }
+        }
+
+        private static ConsoleKey MapToConsoleKey(char value)
+        {
+            if (value == '\r' || value == '\n')
+            {
+                return ConsoleKey.Enter;
+            }
+
+            if (value >= '0' && value <= '9')
+            {
+                return ConsoleKey.D0 + (value - '0');
+            }
+
+            if (value >= 'A' && value <= 'Z')
+            {
+                return ConsoleKey.A + (value - 'A');
+            }
+
+            if (value >= 'a' && value <= 'z')
+            {
+                return ConsoleKey.A + (value - 'a');
+            }
+
+            return ConsoleKey.NoName;
+        }
+    }
+}
+";
 
         private static string NormalizeProjectType(string type)
         {
@@ -79,6 +155,31 @@ namespace MonacoRoslynCompletionProvider.Api
 
             using var reader = new StreamReader(stream, Encoding.UTF8);
             return reader.ReadToEnd();
+        }
+
+        private static string ApplyConsoleReadKeyFallback(string source)
+        {
+            if (string.IsNullOrEmpty(source))
+            {
+                return source ?? string.Empty;
+            }
+
+            if (!ConsoleReadKeyPattern.IsMatch(source))
+            {
+                return source;
+            }
+
+            return ConsoleReadKeyPattern.Replace(source, "SharpPadRuntime.ConsoleReadKeyShim.ReadKey");
+        }
+
+        private static SyntaxTree CreateConsoleReadKeyShim(CSharpParseOptions parseOptions)
+        {
+            if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
+
+            return CSharpSyntaxTree.ParseText(
+                ConsoleReadKeyShimSource,
+                parseOptions,
+                path: "__ConsoleReadKeyShim.cs");
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
@@ -339,12 +440,14 @@ namespace MonacoRoslynCompletionProvider.Api
                 var syntaxTrees = new List<SyntaxTree>();
                 foreach (var file in files)
                 {
+                    var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
                     var syntaxTree = CSharpSyntaxTree.ParseText(
-                        file.Content,
+                        processedSource,
                         parseOptions,
                         path: file.FileName);
                     syntaxTrees.Add(syntaxTree);
                 }
+                syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
 
                 // Collect references
                 var references = new List<MetadataReference>();
@@ -522,10 +625,12 @@ namespace MonacoRoslynCompletionProvider.Api
             foreach (var file in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var sourceText = SourceText.From(file.Content ?? string.Empty, Encoding.UTF8);
+                var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                var sourceText = SourceText.From(processedSource, Encoding.UTF8);
                 var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, parseOptions, path: file.FileName);
                 syntaxTrees.Add(syntaxTree);
             }
+            syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
 
             var references = new List<MetadataReference>();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
