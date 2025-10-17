@@ -67,7 +67,7 @@ namespace MonacoRoslynCompletionProvider
             TryAddType(typeof(System.Security.Cryptography.HashAlgorithm));
             TryAddType(typeof(System.Net.Mail.MailAddress));
             TryAddType(typeof(Microsoft.Net.Http.Headers.MediaTypeHeaderValue));
-            TryAddType(typeof(ObjectExtengsion));
+            TryAddType(typeof(ObjectExtension));
             TryAddType(typeof(System.Diagnostics.Process));
             TryAddType(typeof(ParallelEnumerable));
             TryAddType(typeof(Uri));

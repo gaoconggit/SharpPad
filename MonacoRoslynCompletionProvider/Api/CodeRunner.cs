@@ -27,8 +27,8 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly object ConsoleLock = new();
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
-        private static readonly object RuntimeExtensionsLock = new();
-        private static string _objectExtensionsSource = string.Empty;
+        private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
+        private static readonly Lazy<string> _objectExtensionsSource = new(LoadObjectExtensionsFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
 
         private static string NormalizeProjectType(string type)
         {
@@ -65,33 +65,16 @@ namespace MonacoRoslynCompletionProvider.Api
             };
         }
 
-        private static string GetObjectExtensionsSource()
-        {
-            if (!string.IsNullOrEmpty(_objectExtensionsSource))
-            {
-                return _objectExtensionsSource;
-            }
-
-            lock (RuntimeExtensionsLock)
-            {
-                if (string.IsNullOrEmpty(_objectExtensionsSource))
-                {
-                    _objectExtensionsSource = LoadObjectExtensionsFromEmbeddedResource();
-                }
-            }
-
-            return _objectExtensionsSource;
-        }
+        private static string GetObjectExtensionsSource() => _objectExtensionsSource.Value;
 
         private static string LoadObjectExtensionsFromEmbeddedResource()
         {
             var assembly = typeof(CodeRunner).Assembly;
-            var resourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtengsion.cs";
 
-            using var stream = assembly.GetManifestResourceStream(resourceName);
+            using var stream = assembly.GetManifestResourceStream(ObjectExtensionsResourceName);
             if (stream == null)
             {
-                throw new FileNotFoundException($"Unable to locate embedded resource: {resourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
+                throw new FileNotFoundException($"Unable to locate embedded resource: {ObjectExtensionsResourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
             }
 
             using var reader = new StreamReader(stream, Encoding.UTF8);
