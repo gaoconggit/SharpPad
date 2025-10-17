@@ -43,7 +43,7 @@
 3. 使用 `Ctrl + Enter` 运行 "Hello World"。
 
 ## 快捷键
-
+# win
 - `Ctrl + Enter` 运行代码
 - `Alt + C` 清空输出信息
 - `Ctrl + J` 代码提示
@@ -53,6 +53,17 @@
 - `Ctrl + Shift + Space` 手动触发GPT自动补全
 - `Ctrl + Shift + K` AI代码编辑
 - `Ctrl + D` 复制上一行到下一行
+
+# mac
+
+- `Cmd + Enter` 运行代码
+- `Ctrl + Option + C` 清空输出信息
+- `Cmd + J` 代码提示
+- `Cmd + K` `Cmd + D` 格式化代码
+- `Cmd + S` 保存代码
+- `Cmd + Shift + Space` 手动触发GPT自动补全
+- `Cmd + Shift + K` AI代码编辑
+- `Cmd + D` 复制上一行到下一行
 
 ## 特性
 
@@ -88,6 +99,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
