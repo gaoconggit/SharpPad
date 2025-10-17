@@ -77,6 +77,7 @@
 
 - 进行中的任务
   - 原生断点调试
+  - 支持 Avalonia 项目类型(macos桌面应用)
 
     
   
@@ -87,6 +88,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
