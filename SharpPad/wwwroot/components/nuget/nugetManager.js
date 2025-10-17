@@ -1180,20 +1180,9 @@ export class NugetManager {
             return cached.versions;
         }
 
-        const activeSource = this.getActiveSource(sourceKey);
-        const apiEndpoint = activeSource?.apiUrl || DEFAULT_PACKAGE_SOURCES[0].apiUrl;
-        if (!apiEndpoint) {
-            throw new Error('当前包源缺少版本查询地址');
-        }
+        // Always use proxy to avoid CORS issues
+        const versions = await this.fetchPackageVersionsViaProxy(packageId, sourceKey);
 
-        const baseUrl = apiEndpoint.endsWith('/') ? apiEndpoint.slice(0, -1) : apiEndpoint;
-        const lowerId = packageId.toLowerCase();
-        const response = await fetch(`${baseUrl}/${lowerId}/index.json`);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        const payload = await response.json();
-        const versions = Array.isArray(payload.versions) ? payload.versions : [];
         this.latestVersionCache.set(cacheKey, {
             latestVersion: versions.at(-1) || null,
             versions
@@ -1214,6 +1203,32 @@ export class NugetManager {
             versions
         });
         return latest;
+    }
+
+    async fetchPackageVersionsViaProxy(packageId, sourceKey = this.getSelectedPackageSource()) {
+        const params = new URLSearchParams({ packageId });
+        if (sourceKey) {
+            params.set("sourceKey", sourceKey);
+        }
+
+        const response = await fetch(`/api/NugetProxy/versions?${params.toString()}`, {
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            throw new Error(`代理请求失败 (HTTP ${response.status})`);
+        }
+
+        const payload = await response.json();
+        if (payload?.code !== 0) {
+            throw new Error(payload?.message || "代理请求失败");
+        }
+
+        const versions = Array.isArray(payload?.data) ? payload.data : [];
+        if (versions.length === 0) {
+            console.warn("NuGet proxy returned empty version list for", packageId, sourceKey);
+        }
+        return versions;
     }
 
     async installOrUpdatePackage(packageId, targetVersion, installedVersion) {
