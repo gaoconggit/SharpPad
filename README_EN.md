@@ -6,10 +6,28 @@ A lightweight tool for quickly validating C# code snippets, built with Roslyn an
 
 ![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
 
-## Quick Start
+## PC Version Recommended
+**The PC version provides a better experience. Starting from version 0.2.0, only the PC version is provided.**
+
+### Quick Start
+1. Download the Windows or macOS release package
+2. Extract and run SharpPad.Desktop.exe
+3. Open your browser and navigate to: http://localhost:5090
+4. Enjoy!
+
+## Demo Site
+- https://try.dotnet10.com
+
+### Pre-0.2.0 Quick Start (Legacy)
 1. Download the release package
 2. Extract and run SharpPad.exe
 3. Open your browser and navigate to the ip:port shown in the console
+
+## Docker Compose
+In the project root directory:
+1. Run new service: `docker compose up -d`
+2. Update service: `docker compose build sharppad && docker compose down && docker compose up -d`
+3. Stop service: `docker compose down`
 
 ## Sample Code Reference
 https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
@@ -49,11 +67,19 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 - Multiple model switching
 - Theme switching
 - Current directory only view
+- C# version selection support
+- Mobile-friendly UI
+- Visual Studio breakpoint debugging integration (see [Debugger.md](https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md))
+- Windows and macOS PC clients
+- NuGet package management page
+- Multi-file support
+- WinForms application execution support
 
 ## Planned Features
 
 - Work in Progress
-  - Apply AI-generated code to editor
+  - Native breakpoint debugging
+  - File import/export on macOS
  
 ## Project Acknowledgment
 
