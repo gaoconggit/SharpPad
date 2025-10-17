@@ -179,7 +179,8 @@ namespace SharpPadRuntime
             return CSharpSyntaxTree.ParseText(
                 ConsoleReadKeyShimSource,
                 parseOptions,
-                path: "__ConsoleReadKeyShim.cs");
+                path: "__ConsoleReadKeyShim.cs",
+                encoding: Encoding.UTF8);
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
