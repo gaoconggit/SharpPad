@@ -84,3 +84,7 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 ## Project Acknowledgment
 
 - Thanks to [monacopilot](https://github.com/arshad-yaseen/monacopilot) for GPT auto-completion functionality.
+
+##
+[![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
