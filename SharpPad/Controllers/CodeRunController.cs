@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using MonacoRoslynCompletionProvider;
 using MonacoRoslynCompletionProvider.Api;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.IO.Compression;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Channels;
-using System.IO.Compression;
-using System.Collections.Concurrent;
 using static MonacoRoslynCompletionProvider.Api.CodeRunner;
 
 namespace SharpPad.Controllers
@@ -20,7 +22,11 @@ namespace SharpPad.Controllers
         [HttpPost("run")]
         public async Task Run([FromBody] MultiFileCodeRunRequest request)
         {
-            string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+            var (packages, nugetPackages) = PreparePackages(request?.Packages ?? Enumerable.Empty<Package>(), request?.ProjectType);
+            if (request != null)
+            {
+                request.Packages = packages;
+            }
 
             // 设置响应头，允许流式输出
             Response.Headers.TryAdd("Content-Type", "text/event-stream;charset=utf-8");
@@ -116,6 +122,18 @@ namespace SharpPad.Controllers
                 }
                 cts?.Dispose();
             }
+        }
+
+        private static (List<Package> Packages, string Specification) PreparePackages(IEnumerable<Package> packages, string projectType)
+        {
+            var (resolved, specification) = CodeRunner.PreparePackageReferences(packages, projectType);
+
+            if (!string.IsNullOrWhiteSpace(specification))
+            {
+                CodeRunner.DownloadPackage(specification);
+            }
+
+            return (resolved, specification);
         }
 
         private async Task OnOutputAsync(string output, ChannelWriter<string> writer, CancellationToken token)
@@ -246,7 +264,11 @@ namespace SharpPad.Controllers
                 // 创建处理 Channel 的任务
                 var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
 
-                string nugetPackages = string.Join(" ", request?.Packages?.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
+                var (packages, nugetPackages) = PreparePackages(request?.Packages ?? Enumerable.Empty<Package>(), request?.ProjectType);
+                if (request != null)
+                {
+                    request.Packages = packages;
+                }
 
                 ExeBuildResult result;
 

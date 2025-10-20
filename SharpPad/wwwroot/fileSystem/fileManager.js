@@ -68,7 +68,7 @@ class FileManager {
             return allowed[0] || fallback;
         }
 
-        const allowedFallback = ['console', 'winforms', 'webapi'];
+        const allowedFallback = ['console', 'winforms', 'avalonia', 'webapi'];
         if (candidate && allowedFallback.includes(candidate)) {
             return candidate;
         }

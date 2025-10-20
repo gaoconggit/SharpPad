@@ -124,6 +124,11 @@ namespace SharpPadRuntime
                 return "winforms";
             }
 
+            if (filtered.Contains("avalonia"))
+            {
+                return "avalonia";
+            }
+
             if (filtered.Contains("aspnet") || filtered.Contains("webapi") || filtered == "web")
             {
                 return "webapi";
@@ -132,12 +137,28 @@ namespace SharpPadRuntime
             return "console";
         }
 
-        private static (OutputKind OutputKind, bool RequiresStaThread) GetRunBehavior(string projectType)
+        private readonly struct RunBehavior
         {
-            return NormalizeProjectType(projectType) switch
+            public RunBehavior(OutputKind outputKind, bool requiresStaThread, bool allowNonWindows)
             {
-                "winforms" => (OutputKind.WindowsApplication, true),
-                _ => (OutputKind.ConsoleApplication, false)
+                OutputKind = outputKind;
+                RequiresStaThread = requiresStaThread;
+                AllowNonWindows = allowNonWindows;
+            }
+
+            public OutputKind OutputKind { get; }
+            public bool RequiresStaThread { get; }
+            public bool AllowNonWindows { get; }
+        }
+
+        private static RunBehavior GetRunBehavior(string projectType)
+        {
+            var normalized = NormalizeProjectType(projectType);
+            return normalized switch
+            {
+                "winforms" => new RunBehavior(OutputKind.WindowsApplication, requiresStaThread: true, allowNonWindows: false),
+                "avalonia" => new RunBehavior(OutputKind.WindowsApplication, requiresStaThread: true, allowNonWindows: true),
+                _ => new RunBehavior(OutputKind.ConsoleApplication, requiresStaThread: false, allowNonWindows: true)
             };
         }
 
@@ -373,15 +394,16 @@ namespace SharpPadRuntime
 
             var normalizedProjectType = NormalizeProjectType(projectType);
             var runBehavior = GetRunBehavior(projectType);
-            
+
             // 检测是否需要 WinForms 支持
             if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
             {
                 // 自动检测到 WinForms 代码时启用所需的运行时设置
-                runBehavior = (OutputKind.WindowsApplication, true);
+                runBehavior = new RunBehavior(OutputKind.WindowsApplication, requiresStaThread: true, allowNonWindows: false);
+                normalizedProjectType = "winforms";
             }
 
-            if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
+            if (!runBehavior.AllowNonWindows && !OperatingSystem.IsWindows())
             {
                 await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
                 result.Error = WindowsFormsHostRequirementMessage;
@@ -427,6 +449,11 @@ namespace SharpPadRuntime
 
             try
             {
+                if (!string.IsNullOrWhiteSpace(nuget))
+                {
+                    DownloadNugetPackages.DownloadAllPackages(nuget);
+                }
+
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
                 loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
 
@@ -614,7 +641,15 @@ namespace SharpPadRuntime
             // 检测是否需要 WinForms 支持
             if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
             {
-                runBehavior = (OutputKind.WindowsApplication, true);
+                runBehavior = new RunBehavior(OutputKind.WindowsApplication, requiresStaThread: true, allowNonWindows: false);
+                normalizedProjectType = "winforms";
+            }
+
+            if (!runBehavior.AllowNonWindows && !OperatingSystem.IsWindows())
+            {
+                await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
+                result.Error = WindowsFormsHostRequirementMessage;
+                return result;
             }
 
             var parseOptions = new CSharpParseOptions(
@@ -644,13 +679,19 @@ namespace SharpPadRuntime
 
             EnsureStandardLibraryReferences(references);
 
-            if (runBehavior.OutputKind == OutputKind.WindowsApplication)
+            if (runBehavior.OutputKind == OutputKind.WindowsApplication && normalizedProjectType == "winforms")
             {
                 EnsureWinFormsAssembliesLoaded();
                 TryAddWinFormsReferences(references);
             }
 
             var packageReferenceMap = BuildPackageReferenceMap(nuget, normalizedProjectType);
+
+            if (!string.IsNullOrWhiteSpace(nuget))
+            {
+                DownloadNugetPackages.DownloadAllPackages(nuget);
+            }
+
             var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
             foreach (var package in nugetAssemblies)
             {
@@ -1270,6 +1311,12 @@ namespace SharpPadRuntime
             {
                 switch (normalizedProjectType)
                 {
+                    case "avalonia":
+                        Add("Avalonia", "11.3.4");
+                        Add("Avalonia.Desktop", "11.3.4");
+                        Add("Avalonia.Themes.Fluent", "11.3.4");
+                        Add("Avalonia.ReactiveUI", "11.3.4");
+                        break;
                     case "aspnetcore":
                     case "aspnetcorewebapi":
                     case "webapi":
@@ -1285,6 +1332,95 @@ namespace SharpPadRuntime
 
             AddDefaultPackages();
             return map;
+        }
+
+        public static IReadOnlyList<Package> GetDefaultPackages(string projectType)
+        {
+            var normalizedProjectType = NormalizeProjectType(projectType);
+            var map = BuildPackageReferenceMap(string.Empty, normalizedProjectType);
+            return map
+                .Select(entry => new Package(entry.Key, entry.Value ?? string.Empty))
+                .ToList();
+        }
+
+        public static (List<Package> Packages, string Specification) PreparePackageReferences(IEnumerable<Package>? packages, string projectType)
+        {
+            var specificationInput = CreatePackageSpecification(packages);
+            var normalizedProjectType = NormalizeProjectType(projectType);
+            var referenceMap = BuildPackageReferenceMap(specificationInput, normalizedProjectType);
+            var specification = BuildPackageSpecificationString(referenceMap);
+            var packageList = referenceMap
+                .Select(entry => new Package(entry.Key, entry.Value ?? string.Empty))
+                .ToList();
+
+            return (packageList, specification);
+        }
+
+        private static string CreatePackageSpecification(IEnumerable<Package>? packages)
+        {
+            if (packages == null)
+            {
+                return string.Empty;
+            }
+
+            var segments = new List<string>();
+
+            foreach (var package in packages)
+            {
+                if (package == null || string.IsNullOrWhiteSpace(package.Id))
+                {
+                    continue;
+                }
+
+                var builder = new StringBuilder();
+                builder.Append(package.Id.Trim());
+
+                var version = NormalizePackageVersion(package.Version);
+                if (!string.IsNullOrWhiteSpace(version))
+                {
+                    builder.Append(',');
+                    builder.Append(version);
+                }
+
+                builder.Append(';');
+                segments.Add(builder.ToString());
+            }
+
+            if (segments.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(" ", segments.Select(segment => $"{segment}{Environment.NewLine}"));
+        }
+
+        private static string BuildPackageSpecificationString(IDictionary<string, string?> map)
+        {
+            if (map == null || map.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            foreach (var entry in map.OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key))
+                {
+                    continue;
+                }
+
+                builder.Append(entry.Key);
+                if (!string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    builder.Append(',');
+                    builder.Append(entry.Value);
+                }
+
+                builder.Append(';');
+                builder.Append(Environment.NewLine);
+            }
+
+            return builder.ToString();
         }
 
         private static string? NormalizePackageVersion(string? version)

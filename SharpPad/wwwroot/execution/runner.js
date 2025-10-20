@@ -294,6 +294,8 @@ export class CodeRunner {
         switch ((projectType || '').toLowerCase()) {
             case 'winforms':
                 return 'WinForms 桌面';
+            case 'avalonia':
+                return 'Avalonia 桌面';
             case 'webapi':
                 return 'ASP.NET Core Web API';
             default:
