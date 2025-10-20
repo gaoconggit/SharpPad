@@ -31,7 +31,8 @@
 							 Opacity="{Binding WebViewOpacity}"
 							 Background="#1E1E1E"
 					 NavigationStarting="OnNavigationStarting"
-					 NavigationCompleted="OnNavigationCompleted">
+					 NavigationCompleted="OnNavigationCompleted"
+					 WebViewNewWindowRequested="OnNewWindowRequested">
 			</WebView>
 		</Border>
 

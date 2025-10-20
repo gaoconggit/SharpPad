@@ -4,6 +4,7 @@ using SharpPad.Desktop.Interop;
 using SharpPad.Desktop.ViewModels;
 using WebViewCore.Events;
 using System;
+using WebViewCore.Enums;
 
 namespace SharpPad.Desktop.Views;
 
@@ -45,5 +46,33 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
         _bridge.Dispose();
+    }
+
+    private void OnNewWindowRequested(object? sender, WebViewNewWindowEventArgs e)
+    {
+        // 获取当前应用的基础URL
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            var appBaseUrl = viewModel.WebUrl;
+            var navigationUrl = e.Url?.ToString() ?? string.Empty;
+
+            // 如果导航URL不是空的，并且不是应用的基础URL（或其子路径）
+            if (!string.IsNullOrEmpty(navigationUrl) &&
+                !string.IsNullOrEmpty(appBaseUrl) &&
+                Uri.TryCreate(appBaseUrl, UriKind.Absolute, out var appUri) &&
+                Uri.TryCreate(navigationUrl, UriKind.Absolute, out var navUri))
+            {
+                // 如果是外部链接（不同的host或scheme）
+                if (navUri.Host != appUri.Host || navUri.Scheme != appUri.Scheme)
+                {
+                    // 取消WebView导航
+                    if (Uri.TryCreate(appBaseUrl, UriKind.Absolute, out var tempAppUri))
+                    {
+                        e.Url = tempAppUri;
+                        e.UrlLoadingStrategy = UrlRequestStrategy.OpenExternally;
+                    }
+                }
+            }
+        }
     }
 }
