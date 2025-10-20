@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,21 +68,21 @@ namespace System
             }
 
             // Handle complex objects
-            return DumpComplexObject(value, depth, maxDepth, visited);
-        }
-
-        private static string FormatPrimitiveValue(object value)
+                    private static string FormatPrimitiveValue(object value)
         {
             return value switch
             {
                 null => "*null*",
-                string s => $"\"{s}\"",
+                string s => s,
                 char c => $"'{c}'",
                 DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss"),
                 DateTimeOffset dto => dto.ToString("yyyy-MM-dd HH:mm:ss zzz"),
                 TimeSpan ts => ts.ToString(),
                 Guid g => g.ToString(),
                 bool b => b.ToString().ToLower(),
+                _ => value.ToString()
+            };
+        }ToString().ToLower(),
                 _ => value.ToString()
             };
         }
