@@ -76,7 +76,7 @@ namespace System
             return value switch
             {
                 null => "*null*",
-                string s => $"\"{s}\"",
+                string s => s,
                 char c => $"'{c}'",
                 DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss"),
                 DateTimeOffset dto => dto.ToString("yyyy-MM-dd HH:mm:ss zzz"),
