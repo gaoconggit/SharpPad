@@ -129,6 +129,11 @@ namespace SharpPadRuntime
                 return "webapi";
             }
 
+            if (filtered.Contains("avalonia"))
+            {
+                return "avalonia";
+            }
+
             return "console";
         }
 
@@ -137,6 +142,7 @@ namespace SharpPadRuntime
             return NormalizeProjectType(projectType) switch
             {
                 "winforms" => (OutputKind.WindowsApplication, true),
+                "avalonia" => (OutputKind.WindowsApplication, true),
                 _ => (OutputKind.ConsoleApplication, false)
             };
         }

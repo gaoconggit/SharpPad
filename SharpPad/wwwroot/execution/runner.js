@@ -296,6 +296,8 @@ export class CodeRunner {
                 return 'WinForms 桌面';
             case 'webapi':
                 return 'ASP.NET Core Web API';
+            case 'avalonia':
+                return 'Avalonia 桌面';
             default:
                 return 'Console 应用';
         }
