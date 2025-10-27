@@ -1218,7 +1218,7 @@ class FileManager {
         findFolder(files);
     }
 
-    importFolder() {
+    async importFolder() {
         const menu = document.getElementById('folderContextMenu');
         const targetFolderId = menu?.getAttribute('data-folder-id');
         if (menu) {
@@ -1234,6 +1234,119 @@ class FileManager {
             return;
         }
 
+        // 询问用户选择导入方式
+        const importMethod = await this.selectImportMethod();
+        if (!importMethod) {
+            return; // 用户取消
+        }
+
+        if (importMethod === 'url') {
+            await this.importFromUrl(targetFolderId);
+        } else {
+            await this.importFromFile(targetFolderId);
+        }
+    }
+
+    async selectImportMethod() {
+        return new Promise((resolve) => {
+            const dialog = document.createElement('div');
+            dialog.className = 'modal';
+            dialog.style.display = 'block';
+            dialog.innerHTML = `
+                <div class="modal-content" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2>选择导入方式</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button id="importFromFileBtn" class="save-button" style="width: 100%; padding: 12px;">
+                                📁 从本地文件导入
+                            </button>
+                            <button id="importFromUrlBtn" class="save-button" style="width: 100%; padding: 12px;">
+                                🌐 从 URL 导入
+                            </button>
+                            <button id="importCancelBtn" class="ai-edit-cancel" style="width: 100%; padding: 12px;">
+                                取消
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            const cleanup = () => {
+                document.body.removeChild(dialog);
+            };
+
+            dialog.querySelector('#importFromFileBtn').addEventListener('click', () => {
+                cleanup();
+                resolve('file');
+            });
+
+            dialog.querySelector('#importFromUrlBtn').addEventListener('click', () => {
+                cleanup();
+                resolve('url');
+            });
+
+            dialog.querySelector('#importCancelBtn').addEventListener('click', () => {
+                cleanup();
+                resolve(null);
+            });
+        });
+    }
+
+    async importFromUrl(targetFolderId) {
+        try {
+            const url = await customPrompt('请输入 JSON 文件的 URL:', 'https://');
+            if (!url || !url.trim()) {
+                return;
+            }
+
+            const trimmedUrl = url.trim();
+
+            // 简单的 URL 验证
+            if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+                showNotification('请输入有效的 URL (必须以 http:// 或 https:// 开头)', 'error');
+                return;
+            }
+
+            showNotification('正在从 URL 获取数据...', 'info');
+
+            // 使用 fetch 获取 URL 内容
+            const response = await fetch(trimmedUrl);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (contentType && !contentType.includes('application/json') && !contentType.includes('text/')) {
+                showNotification('警告: 该 URL 可能不是 JSON 文件', 'warning');
+            }
+
+            const jsonContent = await response.text();
+
+            if (!jsonContent || jsonContent.trim().length === 0) {
+                throw new Error('URL 返回的内容为空');
+            }
+
+            await this.applyImportedFolderData(targetFolderId, jsonContent);
+        } catch (error) {
+            console.error('从 URL 导入失败:', error);
+
+            let errorMessage = '从 URL 导入失败: ';
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                errorMessage += '网络请求失败，请检查 URL 是否正确或存在跨域限制';
+            } else {
+                errorMessage += error.message;
+            }
+
+            showNotification(errorMessage, 'error');
+        }
+    }
+
+    async importFromFile(targetFolderId) {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.json';
