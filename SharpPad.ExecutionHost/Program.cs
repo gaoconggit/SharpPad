@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,17 +30,32 @@ namespace SharpPad.ExecutionHost
                 return 1;
             }
 
-            try
+            string? nativeProbeDirectory = null;
+            if (!string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory))
             {
-                if (!string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory))
+                try
                 {
                     Directory.SetCurrentDirectory(options.WorkingDirectory);
                 }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Failed to set working directory: {ex.Message}");
+                }
+
+                ConfigureNativeLibraryProbing(options.WorkingDirectory);
+                nativeProbeDirectory = options.WorkingDirectory;
             }
-            catch (Exception ex)
+
+            if (string.IsNullOrEmpty(nativeProbeDirectory))
             {
-                Console.Error.WriteLine($"Failed to set working directory: {ex.Message}");
+                var assemblyDirectory = Path.GetDirectoryName(options.AssemblyPath);
+                if (!string.IsNullOrEmpty(assemblyDirectory) && Directory.Exists(assemblyDirectory))
+                {
+                    nativeProbeDirectory = assemblyDirectory;
+                }
             }
+
+            RegisterNativeLibraryResolvers(nativeProbeDirectory);
 
             using var console = new ConsoleRedirection(InputPromptMessage);
             var loadContext = new ExecutionLoadContext(Path.GetDirectoryName(options.AssemblyPath));
@@ -71,6 +87,254 @@ namespace SharpPad.ExecutionHost
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                 }
+            }
+        }
+
+        private static void ConfigureNativeLibraryProbing(string workingDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                return;
+            }
+
+            EnsurePathIncludes(workingDirectory);
+            TrySetEnvironmentVariable("SKIA_SHARP_NATIVE_LIBRARY_PATH", workingDirectory);
+            TrySetEnvironmentVariable("HARFBUZZ_SHARP_NATIVE_LIBRARY_PATH", workingDirectory);
+        }
+
+        private static void EnsurePathIncludes(string workingDirectory)
+        {
+            try
+            {
+                var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+                var segments = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var segment in segments)
+                {
+                    if (string.Equals(segment, workingDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+                }
+
+                var updatedPath = string.IsNullOrEmpty(currentPath)
+                    ? workingDirectory
+                    : $"{workingDirectory}{Path.PathSeparator}{currentPath}";
+
+                Environment.SetEnvironmentVariable("PATH", updatedPath);
+            }
+            catch
+            {
+                // Ignore failures per process PATH updates are best-effort only.
+            }
+        }
+
+        private static void TrySetEnvironmentVariable(string name, string value)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+                {
+                    return;
+                }
+
+                var current = Environment.GetEnvironmentVariable(name);
+                if (string.IsNullOrWhiteSpace(current))
+                {
+                    Environment.SetEnvironmentVariable(name, value);
+                }
+            }
+            catch
+            {
+                // Environment updates are best-effort.
+            }
+        }
+
+        private static void RegisterNativeLibraryResolvers(string? workingDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                return;
+            }
+
+            void ConfigureForAssembly(Assembly assembly)
+            {
+                var name = assembly?.GetName().Name;
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return;
+                }
+
+                if (string.Equals(name, "SkiaSharp", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, "HarfBuzzSharp", StringComparison.OrdinalIgnoreCase))
+                {
+                    TrySetDllImportResolver(assembly!, workingDirectory);
+                }
+            }
+
+            AppDomain.CurrentDomain.AssemblyLoad += (_, args) => ConfigureForAssembly(args.LoadedAssembly);
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                ConfigureForAssembly(assembly);
+            }
+        }
+
+        private static void TrySetDllImportResolver(Assembly assembly, string workingDirectory)
+        {
+            try
+            {
+                NativeLibrary.SetDllImportResolver(assembly, (libraryName, _, _) =>
+                {
+                    if (TryResolveNativeLibraryHandle(workingDirectory, libraryName, out var handle))
+                    {
+                        return handle;
+                    }
+
+                    return IntPtr.Zero;
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // Resolver already configured for this assembly.
+            }
+        }
+
+        private static bool TryResolveNativeLibraryHandle(string workingDirectory, string libraryName, out IntPtr handle)
+        {
+            handle = IntPtr.Zero;
+
+            if (string.IsNullOrWhiteSpace(workingDirectory) || string.IsNullOrWhiteSpace(libraryName))
+            {
+                return false;
+            }
+
+            foreach (var candidate in EnumerateNativeLibraryCandidates(workingDirectory, libraryName))
+            {
+                if (!File.Exists(candidate))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (NativeLibrary.TryLoad(candidate, out handle))
+                    {
+                        return true;
+                    }
+                }
+                catch
+                {
+                    // Ignore load failures; fallback to default probing behaviour.
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<string> EnumerateNativeLibraryCandidates(string workingDirectory, string libraryName)
+        {
+            if (string.IsNullOrWhiteSpace(workingDirectory) || string.IsNullOrWhiteSpace(libraryName))
+            {
+                yield break;
+            }
+
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var trimmed = libraryName.Trim();
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                names.Add(trimmed);
+                var withoutExtension = Path.GetFileNameWithoutExtension(trimmed);
+                if (!string.IsNullOrEmpty(withoutExtension))
+                {
+                    names.Add(withoutExtension);
+                    if (!withoutExtension.StartsWith("lib", StringComparison.OrdinalIgnoreCase))
+                    {
+                        names.Add("lib" + withoutExtension);
+                    }
+                }
+            }
+
+            var extensions = GetNativeLibraryExtensions();
+            var yielded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var name in names)
+            {
+                var hasExtension = !string.IsNullOrEmpty(Path.GetExtension(name));
+                if (hasExtension)
+                {
+                    var directPath = Path.Combine(workingDirectory, name);
+                    if (yielded.Add(directPath))
+                    {
+                        yield return directPath;
+                    }
+                    continue;
+                }
+
+                foreach (var extension in extensions)
+                {
+                    var candidate = Path.Combine(workingDirectory, name + extension);
+                    if (yielded.Add(candidate))
+                    {
+                        yield return candidate;
+                    }
+                }
+            }
+
+            foreach (var file in EnumerateFilesSafe(workingDirectory))
+            {
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrEmpty(fileNameWithoutExtension))
+                {
+                    continue;
+                }
+
+                foreach (var name in names)
+                {
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        continue;
+                    }
+
+                    var targetName = Path.GetFileNameWithoutExtension(name);
+                    if (!string.IsNullOrEmpty(targetName) &&
+                        string.Equals(fileNameWithoutExtension, targetName, StringComparison.OrdinalIgnoreCase) &&
+                        yielded.Add(file))
+                    {
+                        yield return file;
+                    }
+                }
+            }
+        }
+
+        private static string[] GetNativeLibraryExtensions()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new[] { ".dll" };
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                return new[] { ".dylib", ".so" };
+            }
+
+            return new[] { ".so", ".dll" };
+        }
+
+        private static IEnumerable<string> EnumerateFilesSafe(string directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return Array.Empty<string>();
+            }
+
+            try
+            {
+                return Directory.GetFiles(directory, "*", SearchOption.AllDirectories);
+            }
+            catch
+            {
+                return Array.Empty<string>();
             }
         }
     }
@@ -165,13 +429,26 @@ namespace SharpPad.ExecutionHost
 
     internal sealed class ExecutionLoadContext : AssemblyLoadContext
     {
+        private static readonly bool NativeLoadDebugEnabled =
+            string.Equals(Environment.GetEnvironmentVariable("SHARPPAD_DEBUG_NATIVELOAD"), "1", StringComparison.OrdinalIgnoreCase);
+
         private readonly Dictionary<string, string> _managedAssemblies;
         private readonly Dictionary<string, string> _nativeLibraries;
+        private readonly List<string> _nativeSearchPaths;
+
+        private static void DebugLog(string message)
+        {
+            if (NativeLoadDebugEnabled && !string.IsNullOrEmpty(message))
+            {
+                Console.Error.WriteLine(message);
+            }
+        }
 
         public ExecutionLoadContext(string? assemblyDirectory) : base(isCollectible: true)
         {
             _managedAssemblies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _nativeLibraries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _nativeSearchPaths = new List<string>();
 
             void RegisterAssembly(string key, string file)
             {
@@ -199,7 +476,10 @@ namespace SharpPad.ExecutionHost
                     if (!string.IsNullOrEmpty(assemblyName?.FullName))
                     {
                         RegisterAssembly(assemblyName.FullName, file);
-                        RegisterAssembly(assemblyName.Name, file);
+                        if (!string.IsNullOrEmpty(assemblyName.Name))
+                        {
+                            RegisterAssembly(assemblyName.Name, file);
+                        }
                     }
                 }
                 catch
@@ -210,6 +490,9 @@ namespace SharpPad.ExecutionHost
 
             if (!string.IsNullOrWhiteSpace(assemblyDirectory) && Directory.Exists(assemblyDirectory))
             {
+                // Add root directory to native search paths
+                _nativeSearchPaths.Add(assemblyDirectory);
+
                 foreach (var file in Directory.EnumerateFiles(assemblyDirectory, "*.*", SearchOption.AllDirectories))
                 {
                     var extension = Path.GetExtension(file);
@@ -225,6 +508,8 @@ namespace SharpPad.ExecutionHost
                     {
                         var fileName = Path.GetFileName(file);
                         var nameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                        var fileDirectory = Path.GetDirectoryName(file);
+
                         if (!string.IsNullOrEmpty(nameWithoutExtension))
                         {
                             _nativeLibraries[nameWithoutExtension] = file;
@@ -233,6 +518,12 @@ namespace SharpPad.ExecutionHost
                         if (!string.IsNullOrEmpty(fileName))
                         {
                             _nativeLibraries[fileName] = file;
+                        }
+
+                        // Track unique directories containing native libraries
+                        if (!string.IsNullOrEmpty(fileDirectory) && !_nativeSearchPaths.Contains(fileDirectory))
+                        {
+                            _nativeSearchPaths.Add(fileDirectory);
                         }
                     }
                 }
@@ -293,18 +584,91 @@ namespace SharpPad.ExecutionHost
                 return IntPtr.Zero;
             }
 
-            if (_nativeLibraries.TryGetValue(unmanagedDllName, out var directPath) && File.Exists(directPath))
+            DebugLog($"[DEBUG] Loading native DLL: {unmanagedDllName}");
+            DebugLog($"[DEBUG] Native search paths count: {_nativeSearchPaths.Count}");
+            DebugLog($"[DEBUG] Native libraries dictionary count: {_nativeLibraries.Count}");
+
+            // Generate all possible name variations
+            var nameVariations = new List<string> { unmanagedDllName };
+
+            // Add version with .dll extension
+            if (!unmanagedDllName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             {
-                return LoadUnmanagedDllFromPath(directPath);
+                nameVariations.Add(unmanagedDllName + ".dll");
             }
 
-            var withExtension = unmanagedDllName + ".dll";
-            if (_nativeLibraries.TryGetValue(withExtension, out var dllPath) && File.Exists(dllPath))
+            // Add version with "lib" prefix if not already present
+            if (!unmanagedDllName.StartsWith("lib", StringComparison.OrdinalIgnoreCase))
             {
-                return LoadUnmanagedDllFromPath(dllPath);
+                nameVariations.Add("lib" + unmanagedDllName);
+                nameVariations.Add("lib" + unmanagedDllName + ".dll");
             }
 
-            return base.LoadUnmanagedDll(unmanagedDllName);
+            DebugLog($"[DEBUG] Trying name variations: {string.Join(", ", nameVariations)}");
+
+            // Try dictionary lookup with all name variations
+            foreach (var name in nameVariations)
+            {
+                if (_nativeLibraries.TryGetValue(name, out var path) && File.Exists(path))
+                {
+                    DebugLog($"[DEBUG] Found in dictionary: {name} -> {path}");
+                    try
+                    {
+                        if (NativeLibrary.TryLoad(path, out var handle))
+                        {
+                            DebugLog($"[DEBUG] Successfully loaded: {path}");
+                            return handle;
+                        }
+                        DebugLog($"[DEBUG] NativeLibrary.TryLoad failed for: {path}");
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLog($"[DEBUG] Exception loading {path}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Search through all native search paths with all name variations
+            foreach (var searchPath in _nativeSearchPaths)
+            {
+                foreach (var name in nameVariations)
+                {
+                    var candidatePath = Path.Combine(searchPath, name);
+                    if (File.Exists(candidatePath))
+                    {
+                        DebugLog($"[DEBUG] Found in search path: {candidatePath}");
+                        try
+                        {
+                            if (NativeLibrary.TryLoad(candidatePath, out var handle))
+                            {
+                                DebugLog($"[DEBUG] Successfully loaded: {candidatePath}");
+                                return handle;
+                            }
+                            DebugLog($"[DEBUG] NativeLibrary.TryLoad failed for: {candidatePath}");
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLog($"[DEBUG] Exception loading {candidatePath}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            DebugLog($"[DEBUG] Trying base.LoadUnmanagedDll for: {unmanagedDllName}");
+            try
+            {
+                var result = base.LoadUnmanagedDll(unmanagedDllName);
+                if (result != IntPtr.Zero)
+                {
+                    DebugLog($"[DEBUG] base.LoadUnmanagedDll succeeded");
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"[DEBUG] base.LoadUnmanagedDll failed: {ex.Message}");
+                return IntPtr.Zero;
+            }
         }
     }
 

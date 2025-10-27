@@ -16,6 +16,7 @@ using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using MonacoRoslynCompletionProvider;
 
 namespace MonacoRoslynCompletionProvider.Api
@@ -129,6 +130,11 @@ namespace SharpPadRuntime
                 return "webapi";
             }
 
+            if (filtered.Contains("avalonia"))
+            {
+                return "avalonia";
+            }
+
             return "console";
         }
 
@@ -137,6 +143,7 @@ namespace SharpPadRuntime
             return NormalizeProjectType(projectType) switch
             {
                 "winforms" => (OutputKind.WindowsApplication, true),
+                "avalonia" => (OutputKind.WindowsApplication, true),
                 _ => (OutputKind.ConsoleApplication, false)
             };
         }
@@ -696,32 +703,23 @@ namespace SharpPadRuntime
                     }
                 }
 
-                var copiedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var copiedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var packageRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var package in nugetAssemblies)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var destination = Path.Combine(workingDirectory, Path.GetFileName(package.Path));
-                    if (string.Equals(package.Path, destination, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
+                    CopyAssemblyFile(package.Path, workingDirectory, copiedFiles);
 
-                    if (!copiedFiles.Add(destination))
+                    var packageRoot = TryGetPackageRootDirectory(package.Path);
+                    if (!string.IsNullOrWhiteSpace(packageRoot))
                     {
-                        continue;
-                    }
-
-                    try
-                    {
-                        File.Copy(package.Path, destination, overwrite: true);
-                    }
-                    catch
-                    {
-                        // ignore copy failures; the execution host may still resolve assemblies from their original locations
+                        packageRoots.Add(packageRoot);
                     }
                 }
 
+                var resolvedPackageRoots = ResolvePackageRoots(packageRoots, packageReferenceMap);
+                CopyNativeAssetsFromPackages(resolvedPackageRoots, workingDirectory, copiedFiles);
                 CopyHostAssembliesForExecution(workingDirectory, copiedFiles);
                 CopyAssembliesForPackages(packageReferenceMap.Keys, workingDirectory, copiedFiles);
 
@@ -1376,7 +1374,7 @@ namespace SharpPadRuntime
             }
         }
 
-        private static void CopyAssembliesForPackages(IEnumerable<string> packageIds, string workingDirectory, HashSet<string> copiedFiles)
+        private static void CopyAssembliesForPackages(IEnumerable<string> packageIds, string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             if (packageIds == null)
             {
@@ -1389,7 +1387,378 @@ namespace SharpPadRuntime
             }
         }
 
-        private static void CopyAssemblyByName(string assemblyName, string workingDirectory, HashSet<string> copiedFiles)
+        private static string? TryGetPackageRootDirectory(string assemblyPath)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyPath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var directory = Path.GetDirectoryName(assemblyPath);
+                if (string.IsNullOrEmpty(directory))
+                {
+                    return null;
+                }
+
+                var current = new DirectoryInfo(directory);
+                while (current?.Parent != null)
+                {
+                    var parentName = current.Parent.Name;
+                    if (string.Equals(parentName, "lib", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(parentName, "ref", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(parentName, "runtimes", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(parentName, "build", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return current.Parent.Parent?.FullName;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+            catch
+            {
+                // ignore path probing failures
+            }
+
+            return null;
+        }
+
+        private static IReadOnlyList<string> ResolvePackageRoots(IEnumerable<string> initialRoots, Dictionary<string, string?> packageReferenceMap)
+        {
+            var resolved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var ordered = new List<string>();
+            var queue = new Queue<string>();
+
+            void Enqueue(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    return;
+                }
+
+                string normalized;
+                try
+                {
+                    normalized = Path.GetFullPath(path);
+                }
+                catch
+                {
+                    return;
+                }
+
+                if (!Directory.Exists(normalized))
+                {
+                    return;
+                }
+
+                if (resolved.Add(normalized))
+                {
+                    queue.Enqueue(normalized);
+                    ordered.Add(normalized);
+                }
+            }
+
+            if (initialRoots != null)
+            {
+                foreach (var root in initialRoots)
+                {
+                    Enqueue(root);
+                }
+            }
+
+            if (packageReferenceMap != null)
+            {
+                foreach (var kvp in packageReferenceMap)
+                {
+                    TryDownloadPackage(kvp.Key, kvp.Value);
+
+                    var packageDirectory = DownloadNugetPackages.TryGetPackageDirectory(kvp.Key, kvp.Value);
+                    if (string.IsNullOrWhiteSpace(packageDirectory))
+                    {
+                        packageDirectory = DownloadNugetPackages.TryGetPackageDirectory(kvp.Key);
+                    }
+
+                    Enqueue(packageDirectory);
+                }
+            }
+
+            var processedDependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+
+                foreach (var dependency in TryEnumeratePackageDependencies(current))
+                {
+                    if (string.IsNullOrWhiteSpace(dependency.Id))
+                    {
+                        continue;
+                    }
+
+                    var dependencyKey = string.IsNullOrWhiteSpace(dependency.Version)
+                        ? dependency.Id
+                        : $"{dependency.Id}@{dependency.Version}";
+
+                    if (!processedDependencies.Add(dependencyKey))
+                    {
+                        continue;
+                    }
+
+                    TryDownloadPackage(dependency.Id, dependency.Version);
+
+                    var dependencyDirectory = DownloadNugetPackages.TryGetPackageDirectory(dependency.Id, dependency.Version);
+                    if (string.IsNullOrWhiteSpace(dependencyDirectory))
+                    {
+                        dependencyDirectory = DownloadNugetPackages.TryGetPackageDirectory(dependency.Id);
+                    }
+
+                    Enqueue(dependencyDirectory);
+                }
+            }
+
+            return ordered;
+        }
+
+        private static void TryDownloadPackage(string packageId, string? version)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                return;
+            }
+
+            try
+            {
+                DownloadNugetPackages.DownloadPackage(packageId, version ?? string.Empty);
+            }
+            catch
+            {
+                // ignore download failures; resolution will fall back to existing cache
+            }
+        }
+
+        private static IEnumerable<(string Id, string? Version)> TryEnumeratePackageDependencies(string packageRoot)
+        {
+            if (string.IsNullOrWhiteSpace(packageRoot) || !Directory.Exists(packageRoot))
+            {
+                return Array.Empty<(string, string?)>();
+            }
+
+            try
+            {
+                var nuspecPath = Directory.EnumerateFiles(packageRoot, "*.nuspec", SearchOption.TopDirectoryOnly).FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(nuspecPath))
+                {
+                    return Array.Empty<(string, string?)>();
+                }
+
+                var document = XDocument.Load(nuspecPath);
+                var root = document.Root;
+                if (root == null)
+                {
+                    return Array.Empty<(string, string?)>();
+                }
+
+                var ns = root.GetDefaultNamespace();
+                var dependencyNodes = ns == XNamespace.None
+                    ? document.Descendants("dependency")
+                    : document.Descendants(ns + "dependency");
+
+                var results = new List<(string, string?)>();
+
+                foreach (var node in dependencyNodes)
+                {
+                    var id = node.Attribute("id")?.Value ?? node.Attribute("Id")?.Value;
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    var version = node.Attribute("version")?.Value ?? node.Attribute("Version")?.Value;
+                    results.Add((id, NormalizeDependencyVersion(version)));
+                }
+
+                return results;
+            }
+            catch
+            {
+                return Array.Empty<(string, string?)>();
+            }
+        }
+
+        private static string? NormalizeDependencyVersion(string? versionSpec)
+        {
+            if (string.IsNullOrWhiteSpace(versionSpec))
+            {
+                return null;
+            }
+
+            var trimmed = versionSpec.Trim();
+            if (trimmed.Length == 0)
+            {
+                return null;
+            }
+
+            if (trimmed.StartsWith("[", StringComparison.Ordinal) || trimmed.StartsWith("(", StringComparison.Ordinal))
+            {
+                var span = trimmed.TrimStart('[', '(').TrimEnd(']', ')');
+                var commaIndex = span.IndexOf(',');
+                if (commaIndex >= 0)
+                {
+                    span = span[..commaIndex];
+                }
+
+                return NormalizePackageVersion(span);
+            }
+
+            return NormalizePackageVersion(trimmed);
+        }
+
+        private static void CopyNativeAssetsFromPackages(IEnumerable<string> packageRoots, string workingDirectory, Dictionary<string, string> copiedFiles)
+        {
+            if (packageRoots == null)
+            {
+                return;
+            }
+
+            foreach (var packageRoot in packageRoots)
+            {
+                CopyNativeAssetsFromPackage(packageRoot, workingDirectory, copiedFiles);
+            }
+        }
+
+        private static void CopyNativeAssetsFromPackage(string packageRoot, string workingDirectory, Dictionary<string, string> copiedFiles)
+        {
+            if (string.IsNullOrWhiteSpace(packageRoot) || !Directory.Exists(packageRoot))
+            {
+                return;
+            }
+
+            var candidateDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var rid in GetRuntimeFallbackIdentifiers())
+            {
+                if (string.IsNullOrWhiteSpace(rid))
+                {
+                    continue;
+                }
+
+                var runtimeRoot = Path.Combine(packageRoot, "runtimes", rid);
+                if (!Directory.Exists(runtimeRoot))
+                {
+                    continue;
+                }
+
+                var nativeDir = Path.Combine(runtimeRoot, "native");
+                if (Directory.Exists(nativeDir))
+                {
+                    candidateDirectories.Add(nativeDir);
+                }
+
+                var libDir = Path.Combine(runtimeRoot, "lib");
+                if (Directory.Exists(libDir))
+                {
+                    foreach (var tfmDir in Directory.EnumerateDirectories(libDir, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        candidateDirectories.Add(tfmDir);
+                    }
+                }
+            }
+
+            var rootNative = Path.Combine(packageRoot, "native");
+            if (Directory.Exists(rootNative))
+            {
+                candidateDirectories.Add(rootNative);
+            }
+
+            foreach (var directory in candidateDirectories)
+            {
+                CopyNativeFilesFromDirectory(directory, workingDirectory, copiedFiles);
+            }
+        }
+
+        private static void CopyNativeFilesFromDirectory(string sourceDirectory, string workingDirectory, Dictionary<string, string> copiedFiles)
+        {
+            if (string.IsNullOrWhiteSpace(sourceDirectory) || !Directory.Exists(sourceDirectory))
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+                {
+                    if (!IsNativeLibraryPath(file))
+                    {
+                        continue;
+                    }
+
+                    CopyAssemblyFile(file, workingDirectory, copiedFiles);
+                }
+            }
+            catch
+            {
+                // ignore native asset copy failures
+            }
+        }
+
+        private static bool IsNativeLibraryPath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return false;
+            }
+
+            var extension = Path.GetExtension(filePath);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                return false;
+            }
+
+            return extension.Equals(".dll", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".so", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".dylib", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".a", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static IEnumerable<string> GetRuntimeFallbackIdentifiers()
+        {
+            var order = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void Add(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value) || !seen.Add(value))
+                {
+                    return;
+                }
+
+                order.Add(value);
+            }
+
+            Add(GetRuntimeIdentifier());
+
+            if (OperatingSystem.IsWindows())
+            {
+                Add("win");
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                Add("osx");
+                Add("unix");
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                Add("linux");
+                Add("unix");
+            }
+
+            Add("any");
+
+            return order;
+        }
+
+        private static void CopyAssemblyByName(string assemblyName, string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             if (string.IsNullOrWhiteSpace(assemblyName))
             {
@@ -1434,7 +1803,7 @@ namespace SharpPadRuntime
             }
         }
 
-        private static void CopyHostAssembliesForExecution(string workingDirectory, HashSet<string> copiedFiles)
+        private static void CopyHostAssembliesForExecution(string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             var baseDirectory = AppContext.BaseDirectory;
             if (string.IsNullOrWhiteSpace(baseDirectory))
@@ -1483,7 +1852,7 @@ namespace SharpPadRuntime
             }
         }
 
-        private static void CopyAssemblyFile(string sourcePath, string workingDirectory, HashSet<string> copiedFiles)
+        private static void CopyAssemblyFile(string sourcePath, string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
             {
@@ -1497,18 +1866,27 @@ namespace SharpPadRuntime
             }
 
             var destination = Path.Combine(workingDirectory, fileName);
-            if (!copiedFiles.Add(destination))
+            var hasExisting = copiedFiles.TryGetValue(destination, out var existingSource);
+            if (hasExisting && string.Equals(existingSource, sourcePath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
             try
             {
-                File.Copy(sourcePath, destination, overwrite: true);
+                if (!string.Equals(sourcePath, destination, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(sourcePath, destination, overwrite: true);
+                }
+
+                copiedFiles[destination] = sourcePath;
             }
             catch
             {
-                copiedFiles.Remove(destination);
+                if (!hasExisting)
+                {
+                    copiedFiles.Remove(destination);
+                }
             }
         }
 

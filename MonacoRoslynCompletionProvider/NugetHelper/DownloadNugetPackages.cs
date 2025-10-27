@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 
 namespace monacoEditorCSharp.DataHelpers
 {
@@ -15,6 +16,30 @@ namespace monacoEditorCSharp.DataHelpers
         private static readonly string installationDirectory;
         private static readonly HttpClient httpClient = new HttpClient();
         private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars();
+        private static readonly HashSet<string> LibraryExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".dll",
+            ".so",
+            ".dylib",
+            ".a",
+            ".targets",
+            ".props"
+        };
+
+        private static readonly string[] PreferredTfms =
+        {
+            "net9.0",
+            "net8.0",
+            "net7.0",
+            "net6.0",
+            "net5.0",
+            "netcoreapp3.1",
+            "netcoreapp3.0",
+            "netstandard2.1",
+            "netstandard2.0"
+        };
+
+        private static readonly HashSet<string> PreferredRuntimeIdentifiers = BuildPreferredRuntimeIdentifiers();
 
         static DownloadNugetPackages()
         {
@@ -179,7 +204,7 @@ namespace monacoEditorCSharp.DataHelpers
                         }
                     }
 
-                    ZipFile.ExtractToDirectory(packageFile, packageVersionDirectory, true);
+                    ExtractPackageArchive(packageFile, packageVersionDirectory);
                     downloadSuccessful = true;
                     break; // Success, no need to try other sources
                 }
@@ -278,7 +303,12 @@ namespace monacoEditorCSharp.DataHelpers
             try
             {
                 return Directory.Exists(directory) &&
-                       Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories).Any();
+                       Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories)
+                           .Any(file =>
+                           {
+                               var extension = Path.GetExtension(file);
+                               return !string.IsNullOrEmpty(extension) && LibraryExtensions.Contains(extension);
+                           });
             }
             catch
             {
@@ -345,6 +375,307 @@ namespace monacoEditorCSharp.DataHelpers
                 .FirstOrDefault();
 
             return latestVersionDirectory;
+        }
+
+        public static string? TryGetPackageDirectory(string packageName, string version = null)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return null;
+            }
+
+            try
+            {
+                var resolved = ResolvePackageDirectory(packageName, version);
+                if (string.IsNullOrWhiteSpace(resolved) || !Directory.Exists(resolved))
+                {
+                    return null;
+                }
+
+                var packageRoot = GetPackageRootDirectory(packageName);
+                if (string.Equals(resolved, packageRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var latest = Directory.GetDirectories(resolved)
+                            .Select(dir => new DirectoryInfo(dir))
+                            .Where(info => info.Exists)
+                            .OrderByDescending(info => info.LastWriteTimeUtc)
+                            .Select(info => info.FullName)
+                            .FirstOrDefault(dir => HasAssemblies(dir) || Directory.Exists(Path.Combine(dir, "runtimes")));
+
+                        if (!string.IsNullOrEmpty(latest))
+                        {
+                            return latest;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore enumeration failures and fall back to resolved path.
+                    }
+                }
+
+                return resolved;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void ExtractPackageArchive(string packageFile, string destinationDirectory)
+        {
+            if (TryExtractPackageSelective(packageFile, destinationDirectory))
+            {
+                return;
+            }
+
+            TryDeleteDirectory(destinationDirectory);
+            Directory.CreateDirectory(destinationDirectory);
+            ZipFile.ExtractToDirectory(packageFile, destinationDirectory, true);
+        }
+
+        private static bool TryExtractPackageSelective(string packageFile, string destinationDirectory)
+        {
+            try
+            {
+                Directory.CreateDirectory(destinationDirectory);
+                var basePath = Path.GetFullPath(destinationDirectory);
+                var extractedAny = false;
+
+                using var archive = ZipFile.OpenRead(packageFile);
+                foreach (var entry in archive.Entries)
+                {
+                    if (string.IsNullOrEmpty(entry.Name))
+                    {
+                        continue;
+                    }
+
+                    if (!ShouldExtractEntry(entry))
+                    {
+                        continue;
+                    }
+
+                    var normalizedPath = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                    var targetPath = Path.Combine(destinationDirectory, normalizedPath);
+                    var fullTargetPath = Path.GetFullPath(targetPath);
+                    if (!fullTargetPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var directory = Path.GetDirectoryName(fullTargetPath);
+                    if (!string.IsNullOrEmpty(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    entry.ExtractToFile(fullTargetPath, overwrite: true);
+                    extractedAny = true;
+                }
+
+                if (!extractedAny)
+                {
+                    return false;
+                }
+
+                return HasAssemblies(destinationDirectory) ||
+                       Directory.EnumerateFiles(destinationDirectory, "*.*", SearchOption.AllDirectories).Any();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Selective extraction failed for {Path.GetFileName(packageFile)}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool ShouldExtractEntry(ZipArchiveEntry entry)
+        {
+            var fullName = entry.FullName.Replace('\\', '/');
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                return false;
+            }
+
+            if (fullName.StartsWith("[Content_Types].xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (fullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (fullName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase) ||
+                fullName.StartsWith("ref/", StringComparison.OrdinalIgnoreCase))
+            {
+                var segments = fullName.Split('/');
+                if (segments.Length < 3)
+                {
+                    return false;
+                }
+
+                return ShouldKeepTfm(segments[1]) && IsInterestingFile(entry.Name);
+            }
+
+            if (fullName.StartsWith("runtimes/", StringComparison.OrdinalIgnoreCase))
+            {
+                var segments = fullName.Split('/');
+                if (segments.Length < 3)
+                {
+                    return false;
+                }
+
+                var rid = segments[1];
+                if (!ShouldKeepRid(rid))
+                {
+                    return false;
+                }
+
+                if (segments.Length >= 4 &&
+                    (segments[2].Equals("lib", StringComparison.OrdinalIgnoreCase) ||
+                     segments[2].Equals("ref", StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (!ShouldKeepTfm(segments[3]))
+                    {
+                        return false;
+                    }
+                }
+
+                return IsInterestingFile(entry.Name);
+            }
+
+            if (fullName.StartsWith("analyzers/", StringComparison.OrdinalIgnoreCase))
+            {
+                return entry.Name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (fullName.StartsWith("build/", StringComparison.OrdinalIgnoreCase) ||
+                fullName.StartsWith("buildTransitive/", StringComparison.OrdinalIgnoreCase))
+            {
+                return entry.Name.EndsWith(".props", StringComparison.OrdinalIgnoreCase) ||
+                       entry.Name.EndsWith(".targets", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (!fullName.Contains('/'))
+            {
+                return IsInterestingFile(entry.Name);
+            }
+
+            return false;
+        }
+
+        private static bool ShouldKeepRid(string rid)
+        {
+            if (string.IsNullOrWhiteSpace(rid))
+            {
+                return false;
+            }
+
+            return PreferredRuntimeIdentifiers.Contains(rid);
+        }
+
+        private static bool ShouldKeepTfm(string tfm)
+        {
+            if (string.IsNullOrWhiteSpace(tfm))
+            {
+                return false;
+            }
+
+            var normalized = tfm.ToLowerInvariant();
+            if (PreferredTfms.Any(t => normalized.StartsWith(t, StringComparison.Ordinal)))
+            {
+                return true;
+            }
+
+            if (normalized.StartsWith("netstandard2.", StringComparison.Ordinal) ||
+                normalized.StartsWith("netcoreapp3.", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (normalized.StartsWith("net", StringComparison.Ordinal))
+            {
+                for (int i = 0; i < PreferredTfms.Length; i++)
+                {
+                    var candidate = PreferredTfms[i];
+                    var dashIndex = candidate.IndexOf('-');
+                    var candidatePrefix = dashIndex > 0 ? candidate[..dashIndex] : candidate;
+                    if (normalized.StartsWith(candidatePrefix, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsInterestingFile(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            var extension = Path.GetExtension(fileName);
+            if (string.IsNullOrEmpty(extension))
+            {
+                return false;
+            }
+
+            if (LibraryExtensions.Contains(extension))
+            {
+                return true;
+            }
+
+            return extension.Equals(".xml", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".json", StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".pdb", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static HashSet<string> BuildPreferredRuntimeIdentifiers()
+        {
+            var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void Add(string value)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    identifiers.Add(value.Trim());
+                }
+            }
+
+            var currentRid = RuntimeInformation.RuntimeIdentifier;
+            if (!string.IsNullOrWhiteSpace(currentRid))
+            {
+                Add(currentRid);
+
+                var segments = currentRid.Split('-', StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 1; i < segments.Length; i++)
+                {
+                    Add(string.Join('-', segments.Take(i)));
+                }
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                Add("win");
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                Add("osx");
+                Add("unix");
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                Add("linux");
+                Add("unix");
+            }
+
+            Add("any");
+            return identifiers;
         }
 
         private static string SanitizePathSegment(string value, string fallback)
