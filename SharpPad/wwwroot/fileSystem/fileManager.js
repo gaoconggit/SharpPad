@@ -44,8 +44,51 @@ class FileManager {
             addFolderBtn.addEventListener('click', () => this.addFolder());
         }
 
+        // 文件列表折叠/展开按钮监听
+        const toggleFileListBtn = document.getElementById('toggleFileList');
+        if (toggleFileListBtn) {
+            toggleFileListBtn.addEventListener('click', () => this.toggleFileList());
+        }
+
+        // 恢复文件列表按钮监听
+        const restoreFileListBtn = document.querySelector('.restore-filelist');
+        if (restoreFileListBtn) {
+            restoreFileListBtn.addEventListener('click', () => this.toggleFileList());
+        }
+
+        // 初始化文件列表状态
+        this.initializeFileListState();
+
         // 初始化右键菜单事件
         this.initializeContextMenus();
+    }
+
+    initializeFileListState() {
+        const fileList = document.getElementById('fileList');
+        const minimizedButton = document.querySelector('.minimized-filelist-button');
+        const isCollapsed = localStorage.getItem('fileListCollapsed') === 'true';
+
+        if (isCollapsed && fileList && minimizedButton) {
+            fileList.classList.add('collapsed');
+            minimizedButton.style.display = 'block';
+        }
+    }
+
+    toggleFileList() {
+        const fileList = document.getElementById('fileList');
+        const minimizedButton = document.querySelector('.minimized-filelist-button');
+
+        if (!fileList || !minimizedButton) return;
+
+        const isCollapsed = fileList.classList.toggle('collapsed');
+
+        if (isCollapsed) {
+            minimizedButton.style.display = 'block';
+            localStorage.setItem('fileListCollapsed', 'true');
+        } else {
+            minimizedButton.style.display = 'none';
+            localStorage.setItem('fileListCollapsed', 'false');
+        }
     }
 
     normalizeProjectType(projectType) {
