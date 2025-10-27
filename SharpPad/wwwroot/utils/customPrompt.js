@@ -53,12 +53,12 @@ class CustomPrompt {
             }
         });
 
-        // 点击背景关闭
-        this.dialog.addEventListener('click', (e) => {
-            if (e.target === this.dialog) {
-                this.cancelBtn.click();
-            }
-        });
+        // 移除点击背景关闭功能 - 防止误触
+        // this.dialog.addEventListener('click', (e) => {
+        //     if (e.target === this.dialog) {
+        //         this.cancelBtn.click();
+        //     }
+        // });
     }
 
     show(message, defaultValue = '') {
@@ -161,12 +161,12 @@ class CustomConfirm {
             }
         });
 
-        // 点击背景关闭
-        this.dialog.addEventListener('click', (e) => {
-            if (e.target === this.dialog) {
-                this.cancelBtn.click();
-            }
-        });
+        // 移除点击背景关闭功能 - 防止误触
+        // this.dialog.addEventListener('click', (e) => {
+        //     if (e.target === this.dialog) {
+        //         this.cancelBtn.click();
+        //     }
+        // });
     }
 
     show(message) {

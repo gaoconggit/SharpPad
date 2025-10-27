@@ -221,11 +221,12 @@ export class NugetManager {
         }
 
         if (this.sourceModal) {
-            this.sourceModal.addEventListener("click", (event) => {
-                if (event.target === this.sourceModal) {
-                    this.closeSourceManager();
-                }
-            });
+            // 移除点击背景关闭功能 - 防止误触
+            // this.sourceModal.addEventListener("click", (event) => {
+            //     if (event.target === this.sourceModal) {
+            //         this.closeSourceManager();
+            //     }
+            // });
         }
 
         if (this.sourceForm) {
@@ -235,11 +236,12 @@ export class NugetManager {
             });
         }
 
-        this.dialog.addEventListener("click", (event) => {
-            if (event.target === this.dialog) {
-                this.close();
-            }
-        });
+        // 移除点击背景关闭功能 - 防止误触
+        // this.dialog.addEventListener("click", (event) => {
+        //     if (event.target === this.dialog) {
+        //         this.close();
+        //     }
+        // });
 
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape") {
