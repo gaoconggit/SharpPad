@@ -2,6 +2,7 @@
 import { showNotification, DEFAULT_CODE, PROJECT_TYPE_CHANGE_EVENT } from '../utils/common.js';
 import { customPrompt, customConfirm } from '../utils/customPrompt.js';
 import desktopBridge from '../utils/desktopBridge.js';
+import { fileListResizer } from './fileListResizer.js';
 
 class FileManager {
     constructor() {
@@ -71,6 +72,12 @@ class FileManager {
         if (isCollapsed && fileList && minimizedButton) {
             fileList.classList.add('collapsed');
             minimizedButton.style.display = 'block';
+        } else if (minimizedButton) {
+            minimizedButton.style.display = 'none';
+        }
+
+        if (fileListResizer && typeof fileListResizer.updateContainerWidth === 'function') {
+            fileListResizer.updateContainerWidth();
         }
     }
 
@@ -88,6 +95,10 @@ class FileManager {
         } else {
             minimizedButton.style.display = 'none';
             localStorage.setItem('fileListCollapsed', 'false');
+        }
+
+        if (fileListResizer && typeof fileListResizer.updateContainerWidth === 'function') {
+            fileListResizer.updateContainerWidth();
         }
     }
 

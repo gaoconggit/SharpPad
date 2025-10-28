@@ -1,5 +1,7 @@
 import { extractDirectiveReferences, buildMultiFileContext } from './multiFileHelper.js';
 
+const COLLAPSED_FILE_LIST_OFFSET = 48;
+
 export const PROJECT_TYPE_CHANGE_EVENT = 'sharppad:projectTypeChanged';
 
 export function getCurrentProjectType() {
@@ -201,9 +203,19 @@ export function getResponsiveSize(defaultSize, mobileSize) {
 
 // 响应式设置container宽度
 export function setContainerWidth(container, fileListWidth, chatPanelWidth, chatPanelVisible) {
+    if (!container) {
+        return;
+    }
+
+    const fileListElement = document.getElementById('fileList');
+    const isFileListCollapsed = fileListElement?.classList.contains('collapsed');
+    const normalizedFileListWidth = Number.isFinite(fileListWidth) ? fileListWidth : 0;
+    const effectiveFileListWidth = isFileListCollapsed ? 0 : normalizedFileListWidth;
+
     // 使用媒体查询检测移动设备
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse), (max-width: 480px)').matches;
-    
+    const collapsedOffset = isFileListCollapsed && !isMobile ? COLLAPSED_FILE_LIST_OFFSET : 0;
+
     if (isMobile) {
         // 移动设备适配
         if (chatPanelVisible) {
@@ -225,16 +237,34 @@ export function setContainerWidth(container, fileListWidth, chatPanelWidth, chat
         
         // 在移动设备上，文件列表可能会是覆盖式的，而不是并排
         container.style.marginLeft = '0';
+        container.style.marginRight = '0';
     } else {
         // 桌面设备使用原来的布局逻辑
-        if (chatPanelVisible) {
-            container.style.width = `calc(100% - ${fileListWidth}px - ${chatPanelWidth}px)`;
-            container.style.marginRight = `${chatPanelWidth}px`;
-        } else {
-            container.style.width = `calc(100% - ${fileListWidth}px)`;
-            container.style.marginRight = '0';
+        const totalFileListOffset = effectiveFileListWidth + collapsedOffset;
+        const normalizedChatWidth = chatPanelVisible && Number.isFinite(chatPanelWidth)
+            ? chatPanelWidth
+            : 0;
+
+        let outputPanelWidth = 0;
+        const outputPanel = document.getElementById('outputPanel');
+        if (outputPanel) {
+            const outputStyles = window.getComputedStyle(outputPanel);
+            const isVerticalOutput = outputPanel.classList.contains('vertical') && outputStyles.display !== 'none';
+            if (isVerticalOutput) {
+                const parsedWidth = parseInt(outputStyles.width, 10);
+                if (Number.isFinite(parsedWidth)) {
+                    outputPanelWidth = parsedWidth;
+                }
+            }
         }
-        container.style.marginLeft = `${fileListWidth}px`;
+
+        // 考虑垂直输出面板的宽度，避免折叠文件列表时挤压输出区域
+        const totalRightOffset = normalizedChatWidth + outputPanelWidth;
+        const rightOffsetTerm = totalRightOffset > 0 ? ` - ${totalRightOffset}px` : '';
+
+        container.style.width = `calc(100% - ${totalFileListOffset}px${rightOffsetTerm})`;
+        container.style.marginRight = `${totalRightOffset}px`;
+        container.style.marginLeft = `${totalFileListOffset}px`;
         container.style.height = '100vh';
     }
     
