@@ -6,7 +6,6 @@ using SharpPad.Desktop.Services;
 using SharpPad.Desktop.ViewModels;
 using SharpPad.Desktop.Views;
 
-
 namespace SharpPad.Desktop;
 
 public partial class App : Application

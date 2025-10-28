@@ -130,6 +130,13 @@
         </button>
     </div>
     <div class="notification" id="notification"></div>
+    <div id="outOfProcessOverlay" class="out-of-process-overlay" aria-hidden="true" style="display: none;">
+        <div class="overlay-content">
+            <div class="spinner" aria-hidden="true"></div>
+            <div class="overlay-message">正在启动桌面程序...</div>
+            <div class="overlay-subtext">首次运行 Avalonia / WinForms 等项目会先下载依赖并启动外部进程，请耐心等待几秒</div>
+        </div>
+    </div>
     <div id="fileContextMenu" class="context-menu" style="display: none;">
         <div class="context-menu-item"
             onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移
