@@ -25,6 +25,7 @@
 <body class="theme-dark">
     <div id="fileList" style="max-width: 800px; width: 380px; min-width: 340px;">
         <div class="file-list-header">
+            <button id="toggleFileList" title="收起/展开">◀</button>
             <input type="text" id="fileFilter" placeholder="搜索文件...">
             <div style="display: flex; gap: 5px;">
                 <button id="addFolderBtn" title="新建文件夹">📁</button>
@@ -33,6 +34,11 @@
         </div>
         <ul id="fileListItems">
         </ul>
+    </div>
+    <div class="minimized-filelist-button" style="display: none;">
+        <button class="icon-button restore-filelist" title="文件列表">
+            <span style="transform: rotate(180deg);">▶</span>
+        </button>
     </div>
     <div id="container">
         <button class="editor-control-button theme-button" id="themeButton" title="切换主题"></button>

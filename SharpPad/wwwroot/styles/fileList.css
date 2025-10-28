@@ -10,10 +10,16 @@
     left: 0;
     top: 0;
     height: calc(100vh - 200px);
-    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: width, height;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, height, transform;
     display: flex;
     flex-direction: column;
+}
+
+#fileList.collapsed {
+    transform: translateX(-100%);
 }
 
 /* 亮色主题样式 */
@@ -369,8 +375,87 @@ body.theme-light .sort-button:hover {
     color: #0066b8;
 }
 
+/* 文件列表折叠/展开按钮 */
+#toggleFileList {
+    background: none;
+    border: none;
+    color: #cccccc;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+}
+
+#toggleFileList:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+}
+
+body.theme-light #toggleFileList {
+    color: #424242;
+}
+
+body.theme-light #toggleFileList:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 最小化文件列表按钮 */
+.minimized-filelist-button {
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+}
+
+.minimized-filelist-button .icon-button {
+    background: linear-gradient(135deg, #2979ff 0%, #1565c0 100%);
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 0 6px 6px 0;
+    font-size: 16px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.minimized-filelist-button .icon-button:hover {
+    background: linear-gradient(135deg, #2962ff 0%, #1976d2 100%);
+    transform: translateX(5px);
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.4);
+}
+
+.minimized-filelist-button .icon-button:active {
+    transform: translateX(3px);
+}
+
+body.theme-light .minimized-filelist-button .icon-button {
+    background: linear-gradient(135deg, #0066b8 0%, #005a9e 100%);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.theme-light .minimized-filelist-button .icon-button:hover {
+    background: linear-gradient(135deg, #005a9e 0%, #004b87 100%);
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.3);
+}
+
 @media only screen and (max-width: 768px) {
     #fileList {
         display: none;
+    }
+
+    .minimized-filelist-button {
+        display: none !important;
     }
 } 
