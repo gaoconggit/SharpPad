@@ -68,6 +68,11 @@ export class CodeRunner {
         this.currentSessionId = null;
         this.isRunning = false;
         this.isStopping = false;
+        this.outOfProcessOverlay = document.getElementById('outOfProcessOverlay');
+        this.overlayMessageElement = this.outOfProcessOverlay?.querySelector('.overlay-message') ?? null;
+        this.overlaySubtextElement = this.outOfProcessOverlay?.querySelector('.overlay-subtext') ?? null;
+        this.isOutOfProcessRun = false;
+        this.outOfProcessOverlayTimer = null;
         this.initializeProjectTypeSelector();
         this.initializeEventListeners();
     }
@@ -76,6 +81,79 @@ export class CodeRunner {
         this.runButton.addEventListener('click', () => this.runCode(window.editor.getValue()));
         this.stopButton.addEventListener('click', () => this.stopCode());
         this.buildExeButton.addEventListener('click', () => this.buildExe(window.editor.getValue()));
+    }
+
+    isOutOfProcessProjectType(projectType) {
+        const normalized = fileManager.normalizeProjectType(projectType);
+        return normalized === 'avalonia' || normalized === 'winforms' || normalized === 'webapi';
+    }
+
+    getOutOfProcessOverlayText(projectType) {
+        switch (projectType) {
+            case 'avalonia':
+                return {
+                    title: '正在启动 Avalonia 程序...',
+                    detail: '首次运行需要准备渲染依赖并启动外部进程，大约需要 4-6 秒。'
+                };
+            case 'winforms':
+                return {
+                    title: '正在启动 WinForms 应用...',
+                    detail: '正在等待外部进程完成初始化，请保持应用窗口前台。'
+                };
+            case 'webapi':
+                return {
+                    title: '正在启动 Web API 服务...',
+                    detail: '正在发布可执行文件并启动 Kestrel 服务，这可能需要几秒钟。'
+                };
+            default:
+                return {
+                    title: '正在启动外部进程...',
+                    detail: '正在准备运行时环境，请稍候。'
+                };
+        }
+    }
+
+    showOutOfProcessOverlay(projectType) {
+        if (!this.outOfProcessOverlay) {
+            return;
+        }
+
+        const { title, detail } = this.getOutOfProcessOverlayText(projectType);
+
+        if (this.overlayMessageElement) {
+            this.overlayMessageElement.textContent = title;
+        }
+
+        if (this.overlaySubtextElement) {
+            this.overlaySubtextElement.textContent = detail;
+        }
+
+        this.outOfProcessOverlay.style.display = 'block';
+        this.outOfProcessOverlay.setAttribute('aria-hidden', 'false');
+        this.isOutOfProcessRun = true;
+        if (this.outOfProcessOverlayTimer) {
+            clearTimeout(this.outOfProcessOverlayTimer);
+        }
+
+        this.outOfProcessOverlayTimer = setTimeout(() => {
+            this.hideOutOfProcessOverlay();
+        }, 6500);
+    }
+
+    hideOutOfProcessOverlay() {
+        if (!this.outOfProcessOverlay) {
+            this.isOutOfProcessRun = false;
+            return;
+        }
+
+        if (this.outOfProcessOverlayTimer) {
+            clearTimeout(this.outOfProcessOverlayTimer);
+            this.outOfProcessOverlayTimer = null;
+        }
+
+        this.outOfProcessOverlay.style.display = 'none';
+        this.outOfProcessOverlay.setAttribute('aria-hidden', 'true');
+        this.isOutOfProcessRun = false;
     }
 
 
@@ -134,6 +212,7 @@ export class CodeRunner {
             this.runButton.style.display = 'inline-block';
             this.stopButton.style.display = 'none';
             this.stopButton.disabled = false;
+            this.hideOutOfProcessOverlay();
         }
 
         // 如果正在停止，禁用停止按钮
@@ -369,6 +448,11 @@ export class CodeRunner {
         const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         this.setRunningState(true);
+        if (this.isOutOfProcessProjectType(projectType)) {
+            this.showOutOfProcessOverlay(projectType);
+        } else {
+            this.hideOutOfProcessOverlay();
+        }
 
         const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
@@ -380,6 +464,11 @@ export class CodeRunner {
 
         if (missingReferences.length > 0) {
             preRunMessages.push({ type: 'error', text: `未找到引用文件: ${missingReferences.join(', ')}` });
+        }
+
+        if (this.isOutOfProcessRun) {
+            const overlayText = this.getOutOfProcessOverlayText(projectType);
+            preRunMessages.push({ type: 'info', text: `⏳ ${overlayText.detail}` });
         }
 
         let request;
@@ -437,6 +526,9 @@ export class CodeRunner {
                     const data = JSON.parse(line.substring(6));
                     switch (data.type) {
                         case 'output':
+                            if (this.isOutOfProcessRun) {
+                                this.hideOutOfProcessOverlay();
+                            }
                             // 检查是否是输入请求
                             if (data.content.includes('[INPUT REQUIRED]')) {
                                 this.showInputRequest(data.content);
@@ -446,6 +538,7 @@ export class CodeRunner {
                             }
                             break;
                         case 'error':
+                            this.hideOutOfProcessOverlay();
                             this.appendOutput(data.content, 'error');
                             this.notification.textContent = '运行出错';
                             this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';

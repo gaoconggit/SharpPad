@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Emit;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,8 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly Dictionary<string, InteractiveTextReader> LegacyReaders = new();
         private static readonly object ProcessSessionLock = new();
         private static readonly object ConsoleLock = new();
+        private static readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<string>>> PackageRootResolutionCache =
+            new(StringComparer.OrdinalIgnoreCase);
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
         private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
@@ -718,10 +721,26 @@ namespace SharpPadRuntime
                     }
                 }
 
-                var resolvedPackageRoots = ResolvePackageRoots(packageRoots, packageReferenceMap);
-                CopyNativeAssetsFromPackages(resolvedPackageRoots, workingDirectory, copiedFiles);
+                var requiresNativeAssetPreparation =
+                    string.Equals(normalizedProjectType, "avalonia", StringComparison.OrdinalIgnoreCase) ||
+                    packageRoots.Any(PackageRootMayContainNativeAssets);
+                IReadOnlyCollection<string> packagesForAssemblyCopy;
+                if (requiresNativeAssetPreparation)
+                {
+                    var resolvedPackageRoots = ResolvePackageRootsCached(packageRoots, packageReferenceMap);
+                    CopyNativeAssetsFromPackages(resolvedPackageRoots, workingDirectory, copiedFiles);
+                    packagesForAssemblyCopy = SelectPackagesForAssemblyCopy(normalizedProjectType, packageReferenceMap.Keys);
+                }
+                else
+                {
+                    var allPackageIds = packageReferenceMap?.Keys?.ToList();
+                    packagesForAssemblyCopy = allPackageIds != null && allPackageIds.Count > 0
+                        ? allPackageIds
+                        : Array.Empty<string>();
+                }
+
                 CopyHostAssembliesForExecution(workingDirectory, copiedFiles);
-                CopyAssembliesForPackages(packageReferenceMap.Keys, workingDirectory, copiedFiles);
+                CopyAssembliesForPackages(packagesForAssemblyCopy, workingDirectory, copiedFiles);
 
                 var hostAssemblyPath = LocateExecutionHost();
                 cancellationToken.ThrowIfCancellationRequested();
@@ -1374,6 +1393,54 @@ namespace SharpPadRuntime
             }
         }
 
+        private static IReadOnlyCollection<string> SelectPackagesForAssemblyCopy(string normalizedProjectType, IEnumerable<string> packageIds)
+        {
+            if (packageIds == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var ids = packageIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return ids;
+            }
+
+            if (!string.Equals(normalizedProjectType, "avalonia", StringComparison.OrdinalIgnoreCase))
+            {
+                return ids;
+            }
+
+            static bool MatchesRequiredToken(string id)
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return false;
+                }
+
+                var tokens = new[]
+                {
+                    "avalonia",
+                    "skiasharp",
+                    "harfbuzz",
+                    "webview",
+                    "reactiveui",
+                    "dynamicdata",
+                    "splat"
+                };
+
+                return tokens.Any(token => id.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            var filtered = ids.Where(MatchesRequiredToken).ToList();
+            return filtered.Count > 0 ? filtered : ids;
+        }
+
         private static void CopyAssembliesForPackages(IEnumerable<string> packageIds, string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             if (packageIds == null)
@@ -1423,6 +1490,79 @@ namespace SharpPadRuntime
             }
 
             return null;
+        }
+
+        private static IReadOnlyList<string> ResolvePackageRootsCached(IEnumerable<string> packageRoots, Dictionary<string, string?> packageReferenceMap)
+        {
+            var normalizedRoots = NormalizePackageRoots(packageRoots);
+            var referenceTokens = BuildPackageReferenceTokens(packageReferenceMap);
+            var cacheKey = BuildPackageRootCacheKey(normalizedRoots, referenceTokens);
+
+            var cached = PackageRootResolutionCache.GetOrAdd(
+                cacheKey,
+                _ => new Lazy<IReadOnlyList<string>>(
+                    () => ResolvePackageRoots(normalizedRoots, packageReferenceMap),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+
+            return cached.Value;
+        }
+
+        private static IReadOnlyList<string> NormalizePackageRoots(IEnumerable<string> packageRoots)
+        {
+            if (packageRoots == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var sorted = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in packageRoots)
+            {
+                if (string.IsNullOrWhiteSpace(root))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var normalized = Path.GetFullPath(root);
+                    if (Directory.Exists(normalized))
+                    {
+                        sorted.Add(normalized);
+                    }
+                }
+                catch
+                {
+                    // Ignore invalid paths; best-effort normalization only.
+                }
+            }
+
+            return sorted.Count == 0 ? Array.Empty<string>() : sorted.ToList();
+        }
+
+        private static string[] BuildPackageReferenceTokens(Dictionary<string, string?> packageReferenceMap)
+        {
+            if (packageReferenceMap == null || packageReferenceMap.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            return packageReferenceMap
+                .OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(kvp => string.IsNullOrWhiteSpace(kvp.Value) ? kvp.Key : $"{kvp.Key}@{kvp.Value}")
+                .ToArray();
+        }
+
+        private static string BuildPackageRootCacheKey(IReadOnlyList<string> normalizedRoots, string[] referenceTokens)
+        {
+            var rootSection = normalizedRoots != null && normalizedRoots.Count > 0
+                ? string.Join("|", normalizedRoots)
+                : string.Empty;
+
+            var referenceSection = referenceTokens != null && referenceTokens.Length > 0
+                ? string.Join("|", referenceTokens)
+                : string.Empty;
+
+            return $"{rootSection}||{referenceSection}";
         }
 
         private static IReadOnlyList<string> ResolvePackageRoots(IEnumerable<string> initialRoots, Dictionary<string, string?> packageReferenceMap)
@@ -1627,6 +1767,43 @@ namespace SharpPadRuntime
             }
         }
 
+        private static bool PackageRootMayContainNativeAssets(string? packageRoot)
+        {
+            if (string.IsNullOrWhiteSpace(packageRoot) || !Directory.Exists(packageRoot))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (Directory.Exists(Path.Combine(packageRoot, "native")))
+                {
+                    return true;
+                }
+
+                var runtimesDirectory = Path.Combine(packageRoot, "runtimes");
+                if (!Directory.Exists(runtimesDirectory))
+                {
+                    return false;
+                }
+
+                foreach (var ridDirectory in Directory.EnumerateDirectories(runtimesDirectory, "*", SearchOption.TopDirectoryOnly))
+                {
+                    if (Directory.Exists(Path.Combine(ridDirectory, "native")) ||
+                        Directory.Exists(Path.Combine(ridDirectory, "lib")))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore probing errors and fall back to assuming no native assets.
+            }
+
+            return false;
+        }
+
         private static void CopyNativeAssetsFromPackage(string packageRoot, string workingDirectory, Dictionary<string, string> copiedFiles)
         {
             if (string.IsNullOrWhiteSpace(packageRoot) || !Directory.Exists(packageRoot))
@@ -1636,34 +1813,74 @@ namespace SharpPadRuntime
 
             var candidateDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var rid in GetRuntimeFallbackIdentifiers())
+            bool TryAddRuntimeDirectories(string rid, bool includeManagedLibs)
             {
                 if (string.IsNullOrWhiteSpace(rid))
                 {
-                    continue;
+                    return false;
                 }
 
                 var runtimeRoot = Path.Combine(packageRoot, "runtimes", rid);
                 if (!Directory.Exists(runtimeRoot))
                 {
-                    continue;
+                    return false;
                 }
 
+                var matched = false;
                 var nativeDir = Path.Combine(runtimeRoot, "native");
                 if (Directory.Exists(nativeDir))
                 {
                     candidateDirectories.Add(nativeDir);
+                    matched = true;
                 }
 
-                var libDir = Path.Combine(runtimeRoot, "lib");
-                if (Directory.Exists(libDir))
+                if (includeManagedLibs)
                 {
-                    foreach (var tfmDir in Directory.EnumerateDirectories(libDir, "*", SearchOption.TopDirectoryOnly))
+                    var libDir = Path.Combine(runtimeRoot, "lib");
+                    if (Directory.Exists(libDir))
                     {
-                        candidateDirectories.Add(tfmDir);
+                        matched = true;
+                        candidateDirectories.Add(libDir);
+                        foreach (var tfmDir in Directory.EnumerateDirectories(libDir, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            candidateDirectories.Add(tfmDir);
+                        }
+                    }
+                }
+
+                return matched;
+            }
+
+            var primaryRid = GetRuntimeIdentifier();
+            var hasPrimaryRuntime = TryAddRuntimeDirectories(primaryRid, includeManagedLibs: true);
+
+            if (!hasPrimaryRuntime)
+            {
+                foreach (var fallbackRid in GetRuntimeFallbackIdentifiers())
+                {
+                    if (string.IsNullOrWhiteSpace(fallbackRid))
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(fallbackRid, primaryRid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(fallbackRid, "any", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // handled after loop to always include cross-platform assets.
+                    }
+
+                    if (TryAddRuntimeDirectories(fallbackRid, includeManagedLibs: true))
+                    {
+                        break;
                     }
                 }
             }
+
+            TryAddRuntimeDirectories("any", includeManagedLibs: false);
 
             var rootNative = Path.Combine(packageRoot, "native");
             if (Directory.Exists(rootNative))
