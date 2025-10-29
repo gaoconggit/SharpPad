@@ -554,7 +554,7 @@ namespace SharpPadRuntime
                         }
                         catch (OperationCanceledException)
                         {
-                            await onError("代码执行已被取消").ConfigureAwait(false);
+                            throw;
                         }
                         catch (Exception ex)
                         {
@@ -585,6 +585,10 @@ namespace SharpPadRuntime
                         await onError("No entry point found in the code. Please ensure one file contains a Main method.").ConfigureAwait(false);
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

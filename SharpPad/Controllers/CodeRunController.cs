@@ -122,7 +122,7 @@ namespace SharpPad.Controllers
 
         private async Task OnOutputAsync(string output, ChannelWriter<string> writer, CancellationToken token)
         {
-            if (token.IsCancellationRequested) return;
+            token.ThrowIfCancellationRequested();
 
             try
             {
@@ -138,7 +138,7 @@ namespace SharpPad.Controllers
 
         private async Task OnErrorAsync(string error, ChannelWriter<string> writer, CancellationToken token)
         {
-            if (token.IsCancellationRequested) return;
+            token.ThrowIfCancellationRequested();
 
             try
             {
@@ -177,6 +177,10 @@ namespace SharpPad.Controllers
                         break;
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // 忽略取消导致的异常，避免噪声日志
             }
             catch (Exception ex)
             {
