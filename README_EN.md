@@ -4,7 +4,8 @@
 
 A lightweight tool for quickly validating C# code snippets, built with Roslyn and monaco-editor. Similar to LinqPad, with AI chat and AI completion support.
 
-![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
+<img width="1917" height="1036" alt="image" src="https://github.com/user-attachments/assets/1a807014-844b-4ff0-b2dd-a81305101b3f" />
+
 
 ## PC Version Recommended
 **The PC version provides a better experience. Starting from version 0.2.0, only the PC version is provided.**
@@ -87,4 +88,5 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
