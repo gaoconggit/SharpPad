@@ -3,7 +3,8 @@
 # SharpPad
 基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的工具。类似 LinqPad,支持ai chat、ai completion、ai edit
 
-![image](https://github.com/user-attachments/assets/019f4b60-4d17-4629-aca1-1cddac5b15e1)
+<img width="1917" height="1036" alt="image" src="https://github.com/user-attachments/assets/69cf6124-e3e1-4753-98da-0ee9cce80e5d" />
+
 
 
 ## PC版本体验更好,推荐使用PC版本,从0.2.0 版本起只提供PC版本
@@ -100,6 +101,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
