@@ -85,6 +85,7 @@
 - 多文件支持
 - 支持运行winform
 - 支持运行web api
+- 支持运行 avalonia
 
 ## 期待实现的功能
 
@@ -101,6 +102,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
