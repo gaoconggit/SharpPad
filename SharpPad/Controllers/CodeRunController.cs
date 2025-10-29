@@ -29,13 +29,15 @@ namespace SharpPad.Controllers
 
             var cts = new CancellationTokenSource();
             HttpContext.RequestAborted.Register(() => cts.Cancel());
+            var cancellationToken = cts.Token;
 
             // 注册会话，如果有SessionId的话（使用线程安全操作）
             if (!string.IsNullOrEmpty(request?.SessionId))
             {
-                _activeSessions.AddOrUpdate(request.SessionId, cts, (key, existing) => {
+                _activeSessions.AddOrUpdate(request.SessionId, cts, (key, existing) =>
+                {
                     existing?.Cancel();
-                    existing?.Dispose();
+                    // Previous request disposes its own token to avoid firing callbacks on a disposed source.
                     return cts;
                 });
             }
@@ -46,7 +48,7 @@ namespace SharpPad.Controllers
             try
             {
                 // 创建处理 Channel 的任务
-                var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
+                var processTask = ProcessChannelAsync(channel.Reader, cancellationToken);
 
                 RunResult result;
 
@@ -58,11 +60,11 @@ namespace SharpPad.Controllers
                         request.Files,
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
-                        message => OnOutputAsync(message, channel.Writer, cts.Token),
-                        error => OnErrorAsync(error, channel.Writer, cts.Token),
+                        message => OnOutputAsync(message, channel.Writer, cancellationToken),
+                        error => OnErrorAsync(error, channel.Writer, cancellationToken),
                         sessionId: request?.SessionId,
                         projectType: request?.ProjectType,
-                        cancellationToken: cts.Token
+                        cancellationToken: cancellationToken
                     );
                 }
                 else
@@ -72,16 +74,16 @@ namespace SharpPad.Controllers
                         request?.SourceCode,
                         nugetPackages,
                         request?.LanguageVersion ?? 2147483647,
-                        message => OnOutputAsync(message, channel.Writer, cts.Token),
-                        error => OnErrorAsync(error, channel.Writer, cts.Token),
+                        message => OnOutputAsync(message, channel.Writer, cancellationToken),
+                        error => OnErrorAsync(error, channel.Writer, cancellationToken),
                         sessionId: request?.SessionId,
                         projectType: request?.ProjectType,
-                        cancellationToken: cts.Token
+                        cancellationToken: cancellationToken
                     );
                 }
 
                 // 发送完成消息
-                await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "completed", result })}\n\n", cts.Token);
+                await channel.Writer.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "completed", result })}\n\n", cancellationToken);
 
                 // 关闭 Channel，不再接受新消息
                 channel.Writer.Complete();
@@ -91,12 +93,12 @@ namespace SharpPad.Controllers
             }
             catch (Exception ex)
             {
-                if (!cts.Token.IsCancellationRequested)
+                if (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
-                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
-                        await Response.Body.FlushAsync(cts.Token);
+                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cancellationToken);
+                        await Response.Body.FlushAsync(cancellationToken);
                     }
                     catch
                     {
@@ -237,6 +239,7 @@ namespace SharpPad.Controllers
 
             var cts = new CancellationTokenSource();
             HttpContext.RequestAborted.Register(() => cts.Cancel());
+            var cancellationToken = cts.Token;
 
             // 创建一个无界的 Channel 以缓冲输出
             var channel = Channel.CreateUnbounded<string>();
@@ -244,7 +247,7 @@ namespace SharpPad.Controllers
             try
             {
                 // 创建处理 Channel 的任务
-                var processTask = ProcessChannelAsync(channel.Reader, cts.Token);
+                var processTask = ProcessChannelAsync(channel.Reader, cancellationToken);
 
                 string nugetPackages = string.Join(" ", request?.Packages?.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
 
@@ -258,7 +261,7 @@ namespace SharpPad.Controllers
                         request?.LanguageVersion ?? 2147483647,
                         request?.OutputFileName ?? "Program.exe",
                         request?.ProjectType,
-                        message => OnBuildOutputAsync(message, channel.Writer, cts.Token)
+                        message => OnBuildOutputAsync(message, channel.Writer, cancellationToken)
                     );
                 }
                 else
@@ -269,7 +272,7 @@ namespace SharpPad.Controllers
                         request?.LanguageVersion ?? 2147483647,
                         request?.OutputFileName ?? "Program.exe",
                         request?.ProjectType,
-                        message => OnBuildOutputAsync(message, channel.Writer, cts.Token)
+                        message => OnBuildOutputAsync(message, channel.Writer, cancellationToken)
                     );
                 }
 
@@ -297,7 +300,7 @@ namespace SharpPad.Controllers
                         fileName = fileName,
                         fileSize = fileSize,
                         downloadId = downloadId
-                    })}\n\n", cts.Token);
+                    })}\n\n", cancellationToken);
 
                     // Best-effort cleanup of the working directory
                     try
@@ -317,7 +320,7 @@ namespace SharpPad.Controllers
                     {
                         type = "error",
                         content = result.Error ?? "构建失败"
-                    })}\n\n", cts.Token);
+                    })}\n\n", cancellationToken);
                 }
 
                 // 关闭 Channel
@@ -328,12 +331,12 @@ namespace SharpPad.Controllers
             }
             catch (Exception ex)
             {
-                if (!cts.Token.IsCancellationRequested)
+                if (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
-                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cts.Token);
-                        await Response.Body.FlushAsync(cts.Token);
+                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(new { type = "error", content = ex.ToString() })}\n\n", cancellationToken);
+                        await Response.Body.FlushAsync(cancellationToken);
                     }
                     catch
                     {
