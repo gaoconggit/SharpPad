@@ -129,6 +129,50 @@ namespace monacoEditorCSharp.DataHelpers
                 return;
             }
 
+            try
+            {
+                // First, resolve all dependencies for all requested packages
+                Console.WriteLine($"Resolving dependencies for packages: {packages}");
+                var allPackagesToDownload = await NuGetDependencyResolver.ResolveDependenciesForMultiplePackagesAsync(packages, preferredSourceKey);
+
+                if (allPackagesToDownload == null || allPackagesToDownload.Count == 0)
+                {
+                    Console.WriteLine("No packages to download after dependency resolution");
+                    // Fall back to original behavior if dependency resolution fails
+                    await DownloadAllPackagesWithoutDependenciesAsync(packages, preferredSourceKey);
+                    return;
+                }
+
+                Console.WriteLine($"Total packages to download (including dependencies): {allPackagesToDownload.Count}");
+
+                // Download all packages (including dependencies) in parallel
+                var tasks = new List<Task>();
+                foreach (var packageIdentity in allPackagesToDownload)
+                {
+                    var versionString = packageIdentity.Version?.ToString() ?? string.Empty;
+                    tasks.Add(DownloadPackageAsync(packageIdentity.Id, versionString, preferredSourceKey));
+                }
+
+                await Task.WhenAll(tasks);
+                Console.WriteLine("All packages and dependencies downloaded successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during dependency resolution: {ex.Message}");
+                Console.WriteLine("Falling back to download without dependency resolution");
+                // Fall back to original behavior if dependency resolution fails
+                await DownloadAllPackagesWithoutDependenciesAsync(packages, preferredSourceKey);
+            }
+        }
+
+        // Original download logic without dependency resolution (used as fallback)
+        private static async Task DownloadAllPackagesWithoutDependenciesAsync(string packages, string preferredSourceKey = null)
+        {
+            if (String.IsNullOrWhiteSpace(packages))
+            {
+                return;
+            }
+
             var tasks = new List<Task>();
             string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
