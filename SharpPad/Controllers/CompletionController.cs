@@ -116,10 +116,14 @@ namespace SharpPad.Controllers
             {
                 string nugetPackages = string.Join(" ", request?.Packages.Select(p => $"{p.Id},{p.Version};{Environment.NewLine}") ?? []);
                 CodeRunner.DownloadPackage(nugetPackages, request?.SourceKey);
+                var resolvedPackages = CodeRunner.CollectPackageGraph(request?.Packages ?? new List<Package>());
                 return Ok(new
                 {
                     code = 0,
-                    data = default(object)
+                    data = new
+                    {
+                        packages = resolvedPackages
+                    }
                 });
             }
             catch (Exception ex)

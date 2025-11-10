@@ -1139,6 +1139,54 @@ export class NugetManager {
         const packages = this.getInstalledPackages();
         return packages.find((pkg) => pkg.id.toLowerCase() === packageId.toLowerCase()) || null;
     }
+
+    mergePackagesFromServer(packageEntries) {
+        if (!this.currentFile) {
+            return [];
+        }
+
+        if (!Array.isArray(packageEntries) || packageEntries.length === 0) {
+            return this.getInstalledPackages();
+        }
+
+        if (!this.currentFile.nugetConfig) {
+            this.currentFile.nugetConfig = { packages: [] };
+        }
+
+        if (!Array.isArray(this.currentFile.nugetConfig.packages)) {
+            this.currentFile.nugetConfig.packages = [];
+        }
+
+        const installed = this.currentFile.nugetConfig.packages;
+
+        for (const entry of packageEntries) {
+            if (!entry) {
+                continue;
+            }
+
+            const idValue = entry.id ?? entry.Id;
+            if (!idValue) {
+                continue;
+            }
+
+            const normalizedId = String(idValue).trim();
+            if (!normalizedId) {
+                continue;
+            }
+
+            const versionValue = entry.version ?? entry.Version;
+            const normalizedVersion = versionValue ? String(versionValue).trim() : "";
+
+            const existingIndex = installed.findIndex((pkg) => pkg.id.toLowerCase() === normalizedId.toLowerCase());
+            if (existingIndex >= 0) {
+                installed[existingIndex].version = normalizedVersion;
+            } else {
+                installed.push({ id: normalizedId, version: normalizedVersion });
+            }
+        }
+
+        return installed;
+    }
     async fetchPackageMetadata(packageId, sourceKey = this.getSelectedPackageSource()) {
         const cacheKey = this.composeSourceCacheKey(sourceKey, packageId);
         if (this.packageCache.has(cacheKey)) {
@@ -1238,38 +1286,56 @@ export class NugetManager {
             return;
         }
 
+        const normalizedPackageId = (packageId || "").trim();
+        if (!normalizedPackageId) {
+            return;
+        }
+
         if (!targetVersion) {
             this.notify("请选择要安装的版本", "error");
             return;
         }
 
         const packages = this.getInstalledPackages();
-        const existingIndex = packages.findIndex((pkg) => pkg.id.toLowerCase() === packageId.toLowerCase());
+        const existingIndex = packages.findIndex((pkg) => pkg.id.toLowerCase() === normalizedPackageId.toLowerCase());
 
         if (existingIndex >= 0 && packages[existingIndex].version === targetVersion) {
-            this.notify(`包 ${packageId} 已是版本 ${targetVersion}`, "info");
+            this.notify(`包 ${normalizedPackageId} 已是版本 ${targetVersion}`, "info");
             return;
         }
 
+        let finalVersion = targetVersion;
+
         try {
             const request = {
-                Packages: [{ Id: packageId, Version: targetVersion }],
+                Packages: [{ Id: normalizedPackageId, Version: targetVersion }],
                 SourceKey: this.getSelectedPackageSource()
             };
             const result = await this.sendRequest("addPackages", request);
             if (!result?.data || result.data.code !== 0) {
                 throw new Error(result?.data?.message || "安装失败");
             }
+
+            const serverPackages = result?.data?.data?.packages;
+            if (Array.isArray(serverPackages) && serverPackages.length > 0) {
+                const updatedPackages = this.mergePackagesFromServer(serverPackages);
+                const currentEntry = updatedPackages.find(
+                    (pkg) => pkg.id.toLowerCase() === normalizedPackageId.toLowerCase()
+                );
+                finalVersion = currentEntry?.version || finalVersion;
+            } else {
+                const versionToUse = targetVersion || installedVersion || "";
+                if (existingIndex >= 0) {
+                    packages[existingIndex].version = versionToUse;
+                } else {
+                    packages.push({ id: normalizedPackageId, version: versionToUse });
+                }
+                finalVersion = versionToUse || finalVersion;
+            }
         } catch (error) {
             console.error("安装包失败", error);
-            this.notify(`安装 ${packageId} 失败：${error.message || "未知错误"}`, "error");
+            this.notify(`安装 ${normalizedPackageId} 失败：${error.message || "未知错误"}`, "error");
             return;
-        }
-
-        if (existingIndex >= 0) {
-            packages[existingIndex].version = targetVersion;
-        } else {
-            packages.push({ id: packageId, version: targetVersion });
         }
 
         this.persistFile();
@@ -1277,17 +1343,19 @@ export class NugetManager {
         this.refreshUpdates({ background: true });
         this.renderBrowseResults(this.lastSearchResults);
 
+        const versionForDiff = finalVersion || targetVersion || installedVersion;
+        const displayVersion = versionForDiff || "最新版本";
         if (installedVersion) {
-            const diff = compareVersions(targetVersion, installedVersion);
+            const diff = compareVersions(versionForDiff || installedVersion, installedVersion);
             if (diff > 0) {
-                this.notify(`已更新 ${packageId} 到 ${targetVersion}`, "success");
+                this.notify(`已更新 ${normalizedPackageId} 到 ${displayVersion}`, "success");
             } else if (diff < 0) {
-                this.notify(`已降级 ${packageId} 到 ${targetVersion}`, "success");
+                this.notify(`已降级 ${normalizedPackageId} 到 ${displayVersion}`, "success");
             } else {
-                this.notify(`已重新安装 ${packageId} (${targetVersion})`, "success");
+                this.notify(`已重新安装 ${normalizedPackageId} (${displayVersion})`, "success");
             }
         } else {
-            this.notify(`已安装 ${packageId} (${targetVersion})`, "success");
+            this.notify(`已安装 ${normalizedPackageId} (${displayVersion})`, "success");
         }
     }
 

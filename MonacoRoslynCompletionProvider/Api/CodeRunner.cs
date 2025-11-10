@@ -2539,6 +2539,70 @@ namespace SharpPadRuntime
             DownloadNugetPackages.DownloadAllPackagesAsync(nuget, preferredSourceKey).GetAwaiter().GetResult();
         }
 
+        public static IReadOnlyList<Package> CollectPackageGraph(IEnumerable<Package> packages)
+        {
+            if (packages == null)
+            {
+                return Array.Empty<Package>();
+            }
+
+            var queue = new Queue<(string Id, string VersionHint)>();
+            foreach (var package in packages)
+            {
+                if (package == null || string.IsNullOrWhiteSpace(package.Id))
+                {
+                    continue;
+                }
+
+                queue.Enqueue((package.Id.Trim(), package.Version));
+            }
+
+            var resolved = new List<Package>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            while (queue.Count > 0)
+            {
+                var (id, versionHint) = queue.Dequeue();
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                var trimmedId = id.Trim();
+                if (trimmedId.Length == 0)
+                {
+                    continue;
+                }
+
+                var normalizedHint = NormalizePackageVersion(versionHint);
+                var manifest = DownloadNugetPackages.TryGetDependencyManifestModel(trimmedId, normalizedHint);
+                var manifestVersion = NormalizePackageVersion(manifest?.PackageVersion);
+                var versionToUse = manifestVersion ?? normalizedHint ?? string.Empty;
+                var key = $"{trimmedId.ToLowerInvariant()}:{versionToUse}";
+                if (!seen.Add(key))
+                {
+                    continue;
+                }
+
+                resolved.Add(new Package(trimmedId, versionToUse));
+
+                if (manifest?.Dependencies != null)
+                {
+                    foreach (var dependency in manifest.Dependencies)
+                    {
+                        if (dependency == null || string.IsNullOrWhiteSpace(dependency.PackageId))
+                        {
+                            continue;
+                        }
+
+                        queue.Enqueue((dependency.PackageId, dependency.PackageVersion));
+                    }
+                }
+            }
+
+            return resolved;
+        }
+
         /// <summary>
         /// Removes NuGet packages from local cache
         /// </summary>

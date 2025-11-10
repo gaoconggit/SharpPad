@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
 using NuGet.Common;
 using NuGet.Frameworks;
@@ -23,6 +24,12 @@ namespace monacoEditorCSharp.DataHelpers
         private static readonly string installationDirectory;
         private static readonly HttpClient httpClient = new HttpClient();
         private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars();
+        private const string DependencyManifestFileName = "sharppad.dependencies.json";
+        private static readonly JsonSerializerOptions DependencyManifestSerializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = false
+        };
         private static readonly HashSet<string> LibraryExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".dll",
@@ -48,6 +55,17 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static readonly HashSet<string> PreferredRuntimeIdentifiers = BuildPreferredRuntimeIdentifiers();
         private static readonly IReadOnlyList<NuGetFramework> PreferredFrameworks = BuildPreferredFrameworks();
+        private readonly struct PackageRequest
+        {
+            public PackageRequest(string packageId, string version)
+            {
+                PackageId = packageId;
+                Version = string.IsNullOrWhiteSpace(version) ? string.Empty : version.Trim();
+            }
+
+            public string PackageId { get; }
+            public string Version { get; }
+        }
 
         static DownloadNugetPackages()
         {
@@ -63,6 +81,9 @@ namespace monacoEditorCSharp.DataHelpers
             }
 
             var assembliesByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var processedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pendingPackages = new Queue<PackageRequest>();
+
             string[] npackages = packages.Split(';', StringSplitOptions.RemoveEmptyEntries);
             foreach (var item in npackages)
             {
@@ -75,55 +96,39 @@ namespace monacoEditorCSharp.DataHelpers
                 string downloadItem = parts[0].Trim();
                 string version = parts.Length > 1 ? parts[1].Trim() : string.Empty;
 
-                var packagePath = ResolvePackageDirectory(downloadItem, version);
+                if (!string.IsNullOrWhiteSpace(downloadItem))
+                {
+                    pendingPackages.Enqueue(new PackageRequest(downloadItem, version));
+                }
+            }
+
+            while (pendingPackages.Count > 0)
+            {
+                var request = pendingPackages.Dequeue();
+                var packagePath = ResolvePackageDirectory(request.PackageId, request.Version);
                 if (string.IsNullOrEmpty(packagePath) || !Directory.Exists(packagePath))
                 {
                     continue;
                 }
 
-                var files = Directory.GetFiles(packagePath, "*.dll", SearchOption.AllDirectories);
-                foreach (var file in files)
+                var fullPath = Path.GetFullPath(packagePath);
+                if (!processedDirectories.Add(fullPath))
                 {
-                    try
+                    continue;
+                }
+
+                ProcessPackageDirectory(packagePath, assemblies, assembliesByName);
+
+                foreach (var dependency in ReadDependencyManifest(packagePath))
+                {
+                    if (dependency == null || string.IsNullOrWhiteSpace(dependency.PackageId))
                     {
-                        if (file.IndexOf($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            file.IndexOf($"{Path.AltDirectorySeparatorChar}ref{Path.AltDirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            continue;
-                        }
-
-                        var fileName = Path.GetFileName(file);
-                        if (!file.EndsWith(Path.Combine("net8.0", fileName)) &&
-                            !file.Contains(Path.Combine("netstandard2.0", fileName)) &&
-                            !file.Contains(Path.Combine("netstandard2.1", fileName)))
-                        {
-                            continue;
-                        }
-
-                        var assemblyName = AssemblyName.GetAssemblyName(file);
-                        var info = new PackageAssemblyInfo(file, assemblyName);
-                        var key = assemblyName.Name ?? Path.GetFileNameWithoutExtension(file);
-
-                        if (assembliesByName.TryGetValue(key, out var index))
-                        {
-                            var existing = assemblies[index];
-                            var existingVersion = existing.AssemblyName.Version;
-                            if (existingVersion == null ||
-                                (assemblyName.Version != null && assemblyName.Version > existingVersion))
-                            {
-                                assemblies[index] = info;
-                            }
-                        }
-                        else
-                        {
-                            assembliesByName[key] = assemblies.Count;
-                            assemblies.Add(info);
-                        }
+                        continue;
                     }
-                    catch
-                    {
-                        // Ignore individual file failures; continue probing remaining files
-                    }
+
+                    pendingPackages.Enqueue(new PackageRequest(
+                        dependency.PackageId,
+                        dependency.PackageVersion ?? string.Empty));
                 }
             }
 
@@ -230,6 +235,11 @@ namespace monacoEditorCSharp.DataHelpers
                     }
 
                     ExtractPackageArchive(packageFile, packageVersionDirectory);
+                    var identityFromArchive = TryReadIdentityFromArchive(packageFile);
+                    if (identityFromArchive != null)
+                    {
+                        WriteDependencyManifest(packageVersionDirectory, identityFromArchive, Array.Empty<PackageIdentity>());
+                    }
                     downloadSuccessful = true;
                     break;
                 }
@@ -260,6 +270,154 @@ namespace monacoEditorCSharp.DataHelpers
         public static void DownloadPackage(string packageName, string version)
         {
             DownloadPackageAsync(packageName, version).GetAwaiter().GetResult();
+        }
+
+        private static void ProcessPackageDirectory(
+            string packagePath,
+            List<PackageAssemblyInfo> assemblies,
+            Dictionary<string, int> assembliesByName)
+        {
+            try
+            {
+                var files = Directory.GetFiles(packagePath, "*.dll", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        if (file.IndexOf($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            file.IndexOf($"{Path.AltDirectorySeparatorChar}ref{Path.AltDirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            continue;
+                        }
+
+                        var fileName = Path.GetFileName(file);
+                        if (!file.EndsWith(Path.Combine("net8.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("netstandard2.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("netstandard2.1", fileName), StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var assemblyName = AssemblyName.GetAssemblyName(file);
+                        var info = new PackageAssemblyInfo(file, assemblyName);
+                        var key = assemblyName.Name ?? Path.GetFileNameWithoutExtension(file);
+
+                        if (assembliesByName.TryGetValue(key, out var index))
+                        {
+                            var existing = assemblies[index];
+                            var existingVersion = existing.AssemblyName.Version;
+                            if (existingVersion == null ||
+                                (assemblyName.Version != null && assemblyName.Version > existingVersion))
+                            {
+                                assemblies[index] = info;
+                            }
+                        }
+                        else
+                        {
+                            assembliesByName[key] = assemblies.Count;
+                            assemblies.Add(info);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore individual file failures; continue probing remaining files
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore directory enumeration issues
+            }
+        }
+
+        private static IReadOnlyList<DependencyManifestEntry> ReadDependencyManifest(string packageDirectory)
+        {
+            var manifest = ReadDependencyManifestModel(packageDirectory);
+            if (manifest?.Dependencies == null || manifest.Dependencies.Count == 0)
+            {
+                return Array.Empty<DependencyManifestEntry>();
+            }
+
+            return manifest.Dependencies.ToArray();
+        }
+
+        private static DependencyManifestModel? ReadDependencyManifestModel(string packageDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(packageDirectory))
+            {
+                return null;
+            }
+
+            try
+            {
+                var manifestPath = Path.Combine(packageDirectory, DependencyManifestFileName);
+                if (!File.Exists(manifestPath))
+                {
+                    return null;
+                }
+
+                var json = File.ReadAllText(manifestPath);
+                return JsonSerializer.Deserialize<DependencyManifestModel>(json, DependencyManifestSerializerOptions);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        internal static DependencyManifestModel? TryGetDependencyManifestModel(string packageName, string version = null)
+        {
+            var directory = TryGetPackageDirectory(packageName, version);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return null;
+            }
+
+            return ReadDependencyManifestModel(directory);
+        }
+
+        private static void WriteDependencyManifest(
+            string packageDirectory,
+            PackageIdentity identity,
+            IReadOnlyList<PackageIdentity> dependencies)
+        {
+            try
+            {
+                var manifest = new DependencyManifestModel
+                {
+                    PackageId = identity.Id,
+                    PackageVersion = identity.Version?.ToNormalizedString() ?? string.Empty,
+                    Dependencies = dependencies?
+                        .Where(d => d != null && !string.IsNullOrWhiteSpace(d.Id))
+                        .Select(d => new DependencyManifestEntry
+                        {
+                            PackageId = d.Id,
+                            PackageVersion = d.Version?.ToNormalizedString()
+                        })
+                        .ToList() ?? new List<DependencyManifestEntry>()
+                };
+
+                var manifestPath = Path.Combine(packageDirectory, DependencyManifestFileName);
+                var json = JsonSerializer.Serialize(manifest, DependencyManifestSerializerOptions);
+                File.WriteAllText(manifestPath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to write dependency manifest for {identity.Id} {identity.Version}: {ex.Message}");
+            }
+        }
+
+        private static PackageIdentity TryReadIdentityFromArchive(string packageFile)
+        {
+            try
+            {
+                using var reader = new PackageArchiveReader(packageFile);
+                return reader.GetIdentity();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static async Task<bool> TryDownloadWithDependenciesAsync(string packageName, string version, string preferredSourceKey)
@@ -413,6 +571,7 @@ namespace monacoEditorCSharp.DataHelpers
                     ExtractPackageArchive(packageFile, versionDirectory);
 
                     var dependencies = await ResolvePackageDependenciesAsync(packageFile, repositories, cacheContext, logger, cancellationToken);
+                    WriteDependencyManifest(versionDirectory, identity, dependencies);
                     foreach (var dependency in dependencies)
                     {
                         var dependencyDownloaded = await DownloadIdentityRecursiveAsync(dependency, repositories, cacheContext, logger, processed, cancellationToken);
@@ -563,6 +722,19 @@ namespace monacoEditorCSharp.DataHelpers
         {
             var id = identity.Id?.ToLowerInvariant() ?? string.Empty;
             return $"{id}:{identity.Version.ToNormalizedString()}";
+        }
+
+        internal sealed class DependencyManifestModel
+        {
+            public string PackageId { get; set; }
+            public string PackageVersion { get; set; }
+            public List<DependencyManifestEntry> Dependencies { get; set; } = new();
+        }
+
+        internal sealed class DependencyManifestEntry
+        {
+            public string PackageId { get; set; }
+            public string PackageVersion { get; set; }
         }
 
         private static string InitializeInstallationDirectory()
