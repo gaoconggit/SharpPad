@@ -28,6 +28,7 @@
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+		<PackageReference Include="NuGet.Protocol" Version="6.10.0" />
 		<PackageReference Include="IgnoresAccessChecksToGenerator" Version="0.8.0" />
 	</ItemGroup>
 

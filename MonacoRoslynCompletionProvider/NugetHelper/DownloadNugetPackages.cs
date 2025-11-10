@@ -1,4 +1,3 @@
-//using NuGet;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,6 +7,14 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.Threading;
+using NuGet.Common;
+using NuGet.Frameworks;
+using NuGet.Packaging;
+using NuGet.Packaging.Core;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 
 namespace monacoEditorCSharp.DataHelpers
 {
@@ -40,6 +47,7 @@ namespace monacoEditorCSharp.DataHelpers
         };
 
         private static readonly HashSet<string> PreferredRuntimeIdentifiers = BuildPreferredRuntimeIdentifiers();
+        private static readonly IReadOnlyList<NuGetFramework> PreferredFrameworks = BuildPreferredFrameworks();
 
         static DownloadNugetPackages()
         {
@@ -162,6 +170,24 @@ namespace monacoEditorCSharp.DataHelpers
                 return;
             }
 
+            var normalizedPackageName = packageName.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedPackageName))
+            {
+                return;
+            }
+
+            var normalizedVersion = string.IsNullOrWhiteSpace(version) ? null : version.Trim();
+
+            if (await TryDownloadWithDependenciesAsync(normalizedPackageName, normalizedVersion, preferredSourceKey))
+            {
+                return;
+            }
+
+            await DownloadPackageViaFlatContainerAsync(normalizedPackageName, normalizedVersion, preferredSourceKey);
+        }
+
+        private static async Task DownloadPackageViaFlatContainerAsync(string packageName, string version, string preferredSourceKey)
+        {
             bool versionSpecified = !string.IsNullOrWhiteSpace(version);
 
             string packageRootDirectory = GetPackageRootDirectory(packageName);
@@ -179,7 +205,6 @@ namespace monacoEditorCSharp.DataHelpers
 
             string packageFile = Path.Combine(packageVersionDirectory, BuildPackageFileName(packageName, version));
 
-            // Get available source URLs with preferred source first
             var sourceUrls = PackageSourceManager.GetSourceUrls(preferredSourceKey);
 
             Exception lastException = null;
@@ -206,14 +231,13 @@ namespace monacoEditorCSharp.DataHelpers
 
                     ExtractPackageArchive(packageFile, packageVersionDirectory);
                     downloadSuccessful = true;
-                    break; // Success, no need to try other sources
+                    break;
                 }
                 catch (Exception ex)
                 {
                     lastException = ex;
                     Console.WriteLine($"Failed to download {packageName} from {baseUrl}: {ex.Message}");
-                    TryDeleteFile(packageFile); // Clean up partial download
-                    // Continue to next source
+                    TryDeleteFile(packageFile);
                 }
             }
 
@@ -236,6 +260,309 @@ namespace monacoEditorCSharp.DataHelpers
         public static void DownloadPackage(string packageName, string version)
         {
             DownloadPackageAsync(packageName, version).GetAwaiter().GetResult();
+        }
+
+        private static async Task<bool> TryDownloadWithDependenciesAsync(string packageName, string version, string preferredSourceKey)
+        {
+            try
+            {
+                var repositories = CreateSourceRepositories(preferredSourceKey);
+                if (repositories.Count == 0)
+                {
+                    return false;
+                }
+
+                using var cacheContext = new SourceCacheContext();
+                var logger = NullLogger.Instance;
+                var cancellationToken = CancellationToken.None;
+
+                NuGetVersion resolvedVersion;
+                if (!string.IsNullOrWhiteSpace(version))
+                {
+                    if (!NuGetVersion.TryParse(version, out resolvedVersion))
+                    {
+                        Console.WriteLine($"Invalid NuGet version '{version}' for {packageName}.");
+                        return false;
+                    }
+                }
+                else
+                {
+                    resolvedVersion = await ResolveLatestVersionAsync(packageName, repositories, cacheContext, logger, cancellationToken);
+                    if (resolvedVersion == null)
+                    {
+                        Console.WriteLine($"Unable to resolve latest version for {packageName} from configured sources.");
+                        return false;
+                    }
+                }
+
+                var identity = new PackageIdentity(packageName, resolvedVersion);
+                var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var downloaded = await DownloadIdentityRecursiveAsync(identity, repositories, cacheContext, logger, processed, cancellationToken);
+                if (!downloaded)
+                {
+                    Console.WriteLine($"Failed to download package {packageName} {resolvedVersion.ToNormalizedString()} via NuGet.Protocol.");
+                }
+
+                return downloaded;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"NuGet dependency download failed for {packageName}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static IReadOnlyList<SourceRepository> CreateSourceRepositories(string preferredSourceKey)
+        {
+            var repositories = new List<SourceRepository>();
+            foreach (var source in PackageSourceManager.GetOrderedSources(preferredSourceKey))
+            {
+                var serviceIndexUrl = PackageSourceManager.GetServiceIndexUrl(source);
+                if (string.IsNullOrWhiteSpace(serviceIndexUrl))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    repositories.Add(Repository.Factory.GetCoreV3(serviceIndexUrl));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to initialize NuGet source {source.Name} ({serviceIndexUrl}): {ex.Message}");
+                }
+            }
+
+            return repositories;
+        }
+
+        private static async Task<NuGetVersion?> ResolveLatestVersionAsync(
+            string packageId,
+            IReadOnlyList<SourceRepository> repositories,
+            SourceCacheContext cacheContext,
+            ILogger logger,
+            CancellationToken cancellationToken)
+        {
+            foreach (var repository in repositories)
+            {
+                try
+                {
+                    var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+                    var versions = await resource.GetAllVersionsAsync(packageId, cacheContext, logger, cancellationToken);
+                    var latest = versions?
+                        .OrderByDescending(v => v)
+                        .FirstOrDefault();
+
+                    if (latest != null)
+                    {
+                        return latest;
+                    }
+                }
+                catch
+                {
+                    // Try next repository
+                }
+            }
+
+            return null;
+        }
+
+        private static async Task<bool> DownloadIdentityRecursiveAsync(
+            PackageIdentity identity,
+            IReadOnlyList<SourceRepository> repositories,
+            SourceCacheContext cacheContext,
+            ILogger logger,
+            HashSet<string> processed,
+            CancellationToken cancellationToken)
+        {
+            var key = BuildPackageKey(identity);
+            if (!processed.Add(key))
+            {
+                return true;
+            }
+
+            var versionDirectory = GetPackageVersionDirectory(identity.Id, identity.Version.ToNormalizedString());
+            if (HasAssemblies(versionDirectory))
+            {
+                return true;
+            }
+
+            Directory.CreateDirectory(versionDirectory);
+            var packageFile = Path.Combine(versionDirectory, BuildPackageFileName(identity.Id, identity.Version.ToNormalizedString()));
+
+            foreach (var repository in repositories)
+            {
+                try
+                {
+                    var findResource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+                    if (!await findResource.DoesPackageExistAsync(identity.Id, identity.Version, cacheContext, logger, cancellationToken))
+                    {
+                        continue;
+                    }
+
+                    using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true))
+                    {
+                        var copied = await findResource.CopyNupkgToStreamAsync(identity.Id, identity.Version, fileStream, cacheContext, logger, cancellationToken);
+                        if (!copied)
+                        {
+                            TryDeleteFile(packageFile);
+                            continue;
+                        }
+                    }
+
+                    ExtractPackageArchive(packageFile, versionDirectory);
+
+                    var dependencies = await ResolvePackageDependenciesAsync(packageFile, repositories, cacheContext, logger, cancellationToken);
+                    foreach (var dependency in dependencies)
+                    {
+                        var dependencyDownloaded = await DownloadIdentityRecursiveAsync(dependency, repositories, cacheContext, logger, processed, cancellationToken);
+                        if (!dependencyDownloaded)
+                        {
+                            Console.WriteLine($"Failed to download dependency {dependency.Id} {dependency.Version} required by {identity.Id} {identity.Version}.");
+                        }
+                    }
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    var source = repository.PackageSource?.Source ?? "unknown";
+                    Console.WriteLine($"Failed to download {identity.Id} {identity.Version} from {source}: {ex.Message}");
+                    TryDeleteFile(packageFile);
+                }
+            }
+
+            Console.WriteLine($"Unable to download {identity.Id} {identity.Version} from configured sources.");
+            return HasAssemblies(versionDirectory);
+        }
+
+        private static async Task<IReadOnlyList<PackageIdentity>> ResolvePackageDependenciesAsync(
+            string packageFile,
+            IReadOnlyList<SourceRepository> repositories,
+            SourceCacheContext cacheContext,
+            ILogger logger,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var reader = new PackageArchiveReader(packageFile);
+                var dependencyGroups = reader.NuspecReader.GetDependencyGroups();
+                var selectedGroup = SelectDependencyGroup(dependencyGroups);
+                if (selectedGroup == null || selectedGroup.Packages == null)
+                {
+                    return Array.Empty<PackageIdentity>();
+                }
+
+                var dependencies = new List<PackageIdentity>();
+                foreach (var dependency in selectedGroup.Packages)
+                {
+                    if (string.IsNullOrWhiteSpace(dependency.Id))
+                    {
+                        continue;
+                    }
+
+                    var versionRange = dependency.VersionRange ?? VersionRange.All;
+                    var resolvedVersion = await ResolveDependencyVersionAsync(
+                        dependency.Id,
+                        versionRange,
+                        repositories,
+                        cacheContext,
+                        logger,
+                        cancellationToken);
+
+                    if (resolvedVersion == null)
+                    {
+                        Console.WriteLine($"Unable to resolve dependency {dependency.Id} ({versionRange.OriginalString}) referenced by {Path.GetFileName(packageFile)}.");
+                        continue;
+                    }
+
+                    dependencies.Add(new PackageIdentity(dependency.Id, resolvedVersion));
+                }
+
+                return dependencies;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to read dependencies from {Path.GetFileName(packageFile)}: {ex.Message}");
+                return Array.Empty<PackageIdentity>();
+            }
+        }
+
+        private static async Task<NuGetVersion?> ResolveDependencyVersionAsync(
+            string packageId,
+            VersionRange versionRange,
+            IReadOnlyList<SourceRepository> repositories,
+            SourceCacheContext cacheContext,
+            ILogger logger,
+            CancellationToken cancellationToken)
+        {
+            versionRange ??= VersionRange.All;
+
+            foreach (var repository in repositories)
+            {
+                try
+                {
+                    var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+                    var versions = await resource.GetAllVersionsAsync(packageId, cacheContext, logger, cancellationToken);
+                    if (versions == null)
+                    {
+                        continue;
+                    }
+
+                    var resolved = versions
+                        .Where(v => versionRange.Satisfies(v))
+                        .OrderByDescending(v => v)
+                        .FirstOrDefault();
+
+                    if (resolved != null)
+                    {
+                        return resolved;
+                    }
+                }
+                catch
+                {
+                    // Try next source
+                }
+            }
+
+            return versionRange.HasLowerBound ? versionRange.MinVersion : null;
+        }
+
+        private static PackageDependencyGroup? SelectDependencyGroup(IEnumerable<PackageDependencyGroup> dependencyGroups)
+        {
+            if (dependencyGroups == null)
+            {
+                return null;
+            }
+
+            var groups = dependencyGroups.ToList();
+            if (groups.Count == 0)
+            {
+                return null;
+            }
+
+            var anyGroup = groups.FirstOrDefault(g => NuGetFramework.FrameworkNameComparer.Equals(g.TargetFramework, NuGetFramework.AnyFramework));
+            if (anyGroup != null)
+            {
+                return anyGroup;
+            }
+
+            foreach (var preferred in PreferredFrameworks)
+            {
+                var match = groups.FirstOrDefault(g => NuGetFramework.FrameworkNameComparer.Equals(g.TargetFramework, preferred));
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            return groups.First();
+        }
+
+        private static string BuildPackageKey(PackageIdentity identity)
+        {
+            var id = identity.Id?.ToLowerInvariant() ?? string.Empty;
+            return $"{id}:{identity.Version.ToNormalizedString()}";
         }
 
         private static string InitializeInstallationDirectory()
@@ -633,6 +960,34 @@ namespace monacoEditorCSharp.DataHelpers
             return extension.Equals(".xml", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".json", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".pdb", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static IReadOnlyList<NuGetFramework> BuildPreferredFrameworks()
+        {
+            var frameworks = new List<NuGetFramework>();
+            foreach (var tfm in PreferredTfms)
+            {
+                if (string.IsNullOrWhiteSpace(tfm))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    frameworks.Add(NuGetFramework.ParseFolder(tfm));
+                }
+                catch
+                {
+                    // Ignore invalid TFMs
+                }
+            }
+
+            if (!frameworks.Any(f => NuGetFramework.FrameworkNameComparer.Equals(f, NuGetFramework.AnyFramework)))
+            {
+                frameworks.Add(NuGetFramework.AnyFramework);
+            }
+
+            return frameworks;
         }
 
         private static HashSet<string> BuildPreferredRuntimeIdentifiers()

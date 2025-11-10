@@ -17,6 +17,7 @@ namespace monacoEditorCSharp.DataHelpers
                     Url = "https://packages.nuget.org/api/v2/package",
                     SearchUrl = "https://azuresearch-usnc.nuget.org/query",
                     ApiUrl = "https://api.nuget.org/v3-flatcontainer",
+                    ServiceIndexUrl = "https://api.nuget.org/v3/index.json",
                     IsDefault = true,
                     IsEnabled = true
                 }
@@ -30,6 +31,7 @@ namespace monacoEditorCSharp.DataHelpers
                     Url = "https://nuget.cdn.azure.cn/api/v2/package",
                     SearchUrl = "https://azuresearch-usnc.nuget.org/query",
                     ApiUrl = "https://nuget.cdn.azure.cn/v3-flatcontainer",
+                    ServiceIndexUrl = "https://nuget.cdn.azure.cn/v3/index.json",
                     IsDefault = false,
                     IsEnabled = true
                 }
@@ -43,6 +45,7 @@ namespace monacoEditorCSharp.DataHelpers
                     Url = "https://mirrors.huaweicloud.com/repository/nuget/v2/package",
                     SearchUrl = "https://azuresearch-usnc.nuget.org/query",
                     ApiUrl = "https://mirrors.huaweicloud.com/repository/nuget/v3-flatcontainer",
+                    ServiceIndexUrl = "https://mirrors.huaweicloud.com/repository/nuget/v3/index.json",
                     IsDefault = false,
                     IsEnabled = true
                 }
@@ -71,7 +74,24 @@ namespace monacoEditorCSharp.DataHelpers
                    ?? _packageSources.Values.First();
         }
 
-        public static void AddCustomSource(string key, string name, string url, string searchUrl = null, string apiUrl = null)
+        public static IReadOnlyList<PackageSource> GetOrderedSources(string preferredSourceKey = null)
+        {
+            var preferred = GetSource(preferredSourceKey);
+            var available = GetAvailableSources()
+                .Where(s => s.IsEnabled)
+                .ToList();
+
+            if (preferred == null)
+            {
+                return available;
+            }
+
+            var ordered = new List<PackageSource> { preferred };
+            ordered.AddRange(available.Where(s => !string.Equals(s.Key, preferred.Key, StringComparison.OrdinalIgnoreCase)));
+            return ordered;
+        }
+
+        public static void AddCustomSource(string key, string name, string url, string searchUrl = null, string apiUrl = null, string serviceIndexUrl = null)
         {
             if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(url))
             {
@@ -85,6 +105,7 @@ namespace monacoEditorCSharp.DataHelpers
                 Url = url,
                 SearchUrl = searchUrl ?? "https://azuresearch-usnc.nuget.org/query",
                 ApiUrl = apiUrl ?? $"{url.TrimEnd('/')}/v3-flatcontainer",
+                ServiceIndexUrl = serviceIndexUrl ?? DeriveServiceIndexUrl(apiUrl, url),
                 IsDefault = false,
                 IsEnabled = true,
                 IsCustom = true
@@ -111,22 +132,52 @@ namespace monacoEditorCSharp.DataHelpers
 
         public static string[] GetSourceUrls(string preferredSourceKey = null)
         {
-            var preferredSource = GetSource(preferredSourceKey);
-            var allSources = GetAvailableSources().Where(s => s.IsEnabled).ToList();
+            return GetOrderedSources(preferredSourceKey)
+                .Select(s => s.Url)
+                .ToArray();
+        }
 
-            // Put preferred source first, then others
-            var orderedSources = new List<PackageSource>();
-            if (preferredSource != null)
+        public static string? GetServiceIndexUrl(PackageSource source)
+        {
+            if (source == null)
             {
-                orderedSources.Add(preferredSource);
-                orderedSources.AddRange(allSources.Where(s => s.Key != preferredSource.Key));
-            }
-            else
-            {
-                orderedSources.AddRange(allSources);
+                return null;
             }
 
-            return orderedSources.Select(s => s.Url).ToArray();
+            if (!string.IsNullOrWhiteSpace(source.ServiceIndexUrl))
+            {
+                return source.ServiceIndexUrl;
+            }
+
+            return DeriveServiceIndexUrl(source.ApiUrl, source.Url);
+        }
+
+        private static string? DeriveServiceIndexUrl(string apiUrl, string fallbackUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(apiUrl))
+            {
+                var trimmed = apiUrl.TrimEnd('/');
+                if (trimmed.EndsWith("v3-flatcontainer", StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"{trimmed[..^"v3-flatcontainer".Length]}v3/index.json";
+                }
+
+                if (trimmed.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
+                {
+                    return trimmed;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(fallbackUrl))
+            {
+                var trimmed = fallbackUrl.TrimEnd('/');
+                if (trimmed.EndsWith("/api/v2/package", StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"{trimmed[..^"/api/v2/package".Length]}/v3/index.json";
+                }
+            }
+
+            return null;
         }
     }
 
@@ -137,6 +188,7 @@ namespace monacoEditorCSharp.DataHelpers
         public string Url { get; set; }
         public string SearchUrl { get; set; }
         public string ApiUrl { get; set; }
+        public string ServiceIndexUrl { get; set; }
         public bool IsDefault { get; set; }
         public bool IsEnabled { get; set; }
         public bool IsCustom { get; set; }
