@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SharpPad is a web-based C# code editor and execution platform similar to LinqPad, built with ASP.NET Core 9.0 and Monaco Editor. It combines Roslyn compiler services with modern web technologies to provide real-time code execution, IntelliSense, AI chat integration, and NuGet package management. The platform now includes both web and desktop versions.
+SharpPad is a web-based C# code editor and execution platform similar to LinqPad, built with ASP.NET Core 10.0 and Monaco Editor. It combines Roslyn compiler services with modern web technologies to provide real-time code execution, IntelliSense, AI chat integration, and NuGet package management. The platform now includes both web and desktop versions.
 
 ## Architecture
 
 ### Three-Project Structure
-- **SharpPad/**: Main ASP.NET Core 9.0 web application that serves the UI and provides API endpoints
-- **MonacoRoslynCompletionProvider/**: .NET 9.0 library that handles all Roslyn-based code analysis, compilation, and IntelliSense features
+- **SharpPad/**: Main ASP.NET Core 10.0 web application that serves the UI and provides API endpoints
+- **MonacoRoslynCompletionProvider/**: .NET 10.0 library that handles all Roslyn-based code analysis, compilation, and IntelliSense features
 - **SharpPad.Desktop/**: Avalonia-based desktop application that hosts the web UI in a WebView with native menus and system integration
 
 ### Key Components
@@ -212,7 +212,7 @@ The application is containerized with:
 - File management is client-side using localStorage
 - Code execution happens in isolated contexts for safety
 - AI integration supports multiple providers and custom endpoints
-- The application targets .NET 9.0 with C# Latest support
+- The application targets .NET 10.0 with C# Latest support
 - Monaco Editor provides full IDE-like experience in the browser
 - Desktop version embeds web server and uses WebView for rendering
 - Configuration is centralized in SharpPad's `appsettings.json` for both web and desktop versions
