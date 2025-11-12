@@ -3,7 +3,6 @@
         xmlns:vm="using:SharpPad.Desktop.ViewModels"
         x:Class="SharpPad.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/favicon.ico"
         Title="SharpPad Desktop"
         Width="1200"
         Height="800"

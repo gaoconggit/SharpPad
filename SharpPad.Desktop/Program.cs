@@ -6,7 +6,9 @@ namespace SharpPad.Desktop;
 
 internal class Program
 {
+#if WINDOWS
     [STAThread]
+#endif
     public static void Main(string[] args)
     {
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

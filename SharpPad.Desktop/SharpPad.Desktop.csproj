@@ -11,8 +11,8 @@
 		<ApplicationIcon Condition="'$(OS)' == 'Windows_NT'">Assets\favicon.ico</ApplicationIcon>
 		<!-- macOS图标 - 正确指定路径 -->
 		<CFBundleIconFile Condition="$([MSBuild]::IsOSPlatform('osx'))">Assets/favicon.icns</CFBundleIconFile>
-		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<BuiltInComInteropSupport Condition="'$(OS)' == 'Windows_NT'">true</BuiltInComInteropSupport>
+		<ApplicationManifest Condition="'$(OS)' == 'Windows_NT'">app.manifest</ApplicationManifest>
 		<SelfContained>false</SelfContained>
 		<PublishTrimmed>false</PublishTrimmed>
 		<!-- macOS specific build settings to fix linker issues -->
