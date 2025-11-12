@@ -1283,11 +1283,6 @@ class FileManager {
             return;
         }
 
-        if (this.shouldUseDesktopImport()) {
-            this.importFolderViaDesktopBridge(targetFolderId);
-            return;
-        }
-
         // 询问用户选择导入方式
         const importMethod = await this.selectImportMethod();
         if (!importMethod) {
@@ -1297,6 +1292,11 @@ class FileManager {
         if (importMethod === 'url') {
             await this.importFromUrl(targetFolderId);
         } else {
+            // 仅在文件导入时使用桌面桥接（如果可用）
+            if (this.shouldUseDesktopImport()) {
+                this.importFolderViaDesktopBridge(targetFolderId);
+                return;
+            }
             await this.importFromFile(targetFolderId);
         }
     }
