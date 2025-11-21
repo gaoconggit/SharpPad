@@ -40,7 +40,7 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 3. Right-click in the directory and select import KingOfTool.json
 
 ## Development Guide
-#### Development Environment: Recommended VS 2022 + .NET 9.0
+#### Development Environment: Recommended VS 2022 + .NET 10.0
 1. Git clone the repository
 2. Launch the SharpPad project in Visual Studio
 3. Use `Ctrl + Enter` to run "Hello World"
