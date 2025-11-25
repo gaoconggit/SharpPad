@@ -887,7 +887,10 @@ namespace SharpPadRuntime
             });
 
             var stdoutTask = PumpStreamAsync(process.StandardOutput, onOutput, cancellationToken);
-            var stderrTask = PumpStreamAsync(process.StandardError, onError, cancellationToken);
+            var stderrTask = PumpStreamAsync(
+                process.StandardError,
+                text => HandleProcessErrorAsync(text, onOutput, onError),
+                cancellationToken);
 
             try
             {
@@ -985,6 +988,55 @@ namespace SharpPadRuntime
             catch (IOException)
             {
             }
+        }
+
+        private static Task HandleProcessErrorAsync(string text, Func<string, Task> onOutput, Func<string, Task> onError)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return Task.CompletedTask;
+            }
+
+            if (IsBenignMacInputMethodMessage(text))
+            {
+                // Avoid surfacing macOS IME selection logs as errors; they are informational.
+                return onOutput(text);
+            }
+
+            return onError(text);
+        }
+
+        private static bool IsBenignMacInputMethodMessage(string text)
+        {
+            if (!OperatingSystem.IsMacOS())
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var tokens = new[] { "IMKClient", "IMKInputSession" };
+
+            // Only treat the message as benign if every non-empty line matches one of the known tokens.
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var line in lines)
+            {
+                var isBenign = tokens.Any(token => line.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0);
+                if (!isBenign)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static string LocateExecutionHost()
