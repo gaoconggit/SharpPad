@@ -383,16 +383,20 @@ namespace SharpPadRuntime
             }
 
             var normalizedProjectType = NormalizeProjectType(projectType);
+            var isAvalonia = string.Equals(normalizedProjectType, "avalonia", StringComparison.OrdinalIgnoreCase);
+            var detectedWinForms = DetectWinFormsUsage(files?.Select(f => f?.Content));
             var runBehavior = GetRunBehavior(projectType);
             
             // 检测是否需要 WinForms 支持
-            if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
+            if (runBehavior.OutputKind != OutputKind.WindowsApplication && detectedWinForms)
             {
                 // 自动检测到 WinForms 代码时启用所需的运行时设置
                 runBehavior = (OutputKind.WindowsApplication, true);
             }
 
-            if (runBehavior.OutputKind == OutputKind.WindowsApplication && !OperatingSystem.IsWindows())
+            var requiresWindowsDesktop = !isAvalonia && (string.Equals(normalizedProjectType, "winforms", StringComparison.OrdinalIgnoreCase) || detectedWinForms);
+
+            if (runBehavior.OutputKind == OutputKind.WindowsApplication && requiresWindowsDesktop && !OperatingSystem.IsWindows())
             {
                 await onError(WindowsFormsHostRequirementMessage).ConfigureAwait(false);
                 result.Error = WindowsFormsHostRequirementMessage;
@@ -624,13 +628,16 @@ namespace SharpPadRuntime
             };
 
             var normalizedProjectType = NormalizeProjectType(projectType);
+            var isAvalonia = string.Equals(normalizedProjectType, "avalonia", StringComparison.OrdinalIgnoreCase);
+            var detectedWinForms = DetectWinFormsUsage(files?.Select(f => f?.Content));
             var runBehavior = GetRunBehavior(projectType);
 
             // 检测是否需要 WinForms 支持
-            if (runBehavior.OutputKind != OutputKind.WindowsApplication && DetectWinFormsUsage(files?.Select(f => f?.Content)))
+            if (runBehavior.OutputKind != OutputKind.WindowsApplication && detectedWinForms)
             {
                 runBehavior = (OutputKind.WindowsApplication, true);
             }
+            var requiresWinForms = !isAvalonia && (string.Equals(normalizedProjectType, "winforms", StringComparison.OrdinalIgnoreCase) || detectedWinForms);
 
             var parseOptions = new CSharpParseOptions(
                 languageVersion: (LanguageVersion)languageVersion,
@@ -659,7 +666,7 @@ namespace SharpPadRuntime
 
             EnsureStandardLibraryReferences(references);
 
-            if (runBehavior.OutputKind == OutputKind.WindowsApplication)
+            if (runBehavior.OutputKind == OutputKind.WindowsApplication && requiresWinForms)
             {
                 EnsureWinFormsAssembliesLoaded();
                 TryAddWinFormsReferences(references);
@@ -686,6 +693,7 @@ namespace SharpPadRuntime
             var workingDirectory = CreateWorkingDirectory();
             var assemblyPath = Path.Combine(workingDirectory, "DynamicProgram.dll");
             var pdbPath = Path.Combine(workingDirectory, "DynamicProgram.pdb");
+            string? hostAssemblyPath = null;
 
             try
             {
@@ -747,10 +755,10 @@ namespace SharpPadRuntime
                 CopyHostAssembliesForExecution(workingDirectory, copiedFiles);
                 CopyAssembliesForPackages(packagesForAssemblyCopy, workingDirectory, copiedFiles);
 
-                var hostAssemblyPath = LocateExecutionHost();
+                hostAssemblyPath = LocateExecutionHost();
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await ExecuteInIsolatedProcessCoreAsync(
+                var exitCode = await ExecuteInIsolatedProcessCoreAsync(
                     hostAssemblyPath,
                     workingDirectory,
                     assemblyPath,
@@ -759,6 +767,22 @@ namespace SharpPadRuntime
                     onError,
                     sessionId,
                     cancellationToken).ConfigureAwait(false);
+
+                if (exitCode != 0)
+                {
+                    var diagnostics = BuildExecutionDiagnostics(
+                        $"Execution host exited with code {exitCode}",
+                        workingDirectory,
+                        assemblyPath,
+                        hostAssemblyPath,
+                        normalizedProjectType,
+                        packagesForAssemblyCopy,
+                        exception: null);
+
+                    await onError(diagnostics).ConfigureAwait(false);
+                    result.Error = diagnostics;
+                    return result;
+                }
 
                 result.Output = string.Empty;
                 result.Error = string.Empty;
@@ -772,7 +796,16 @@ namespace SharpPadRuntime
             }
             catch (Exception ex)
             {
-                await onError("Runtime error: " + ex.Message).ConfigureAwait(false);
+                var diagnostics = BuildExecutionDiagnostics(
+                    "Runtime error during isolated execution",
+                    workingDirectory,
+                    assemblyPath,
+                    hostAssemblyPath,
+                    normalizedProjectType,
+                    packageReferenceMap?.Keys,
+                    ex);
+
+                await onError(diagnostics).ConfigureAwait(false);
                 result.Error = ex.Message;
                 return result;
             }
@@ -878,6 +911,49 @@ namespace SharpPadRuntime
             }
 
             return process.ExitCode;
+        }
+
+        private static string BuildExecutionDiagnostics(
+            string message,
+            string workingDirectory,
+            string compiledAssemblyPath,
+            string hostAssemblyPath,
+            string projectType,
+            IEnumerable<string> packageIds,
+            Exception? exception)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine(string.IsNullOrWhiteSpace(message) ? "Execution diagnostics" : message);
+            builder.AppendLine($"ProjectType: {projectType}");
+            builder.AppendLine($"HostAssembly: {hostAssemblyPath}");
+            builder.AppendLine($"CompiledAssembly: {compiledAssemblyPath}");
+            builder.AppendLine($"WorkingDirectory: {workingDirectory}");
+
+            if (packageIds != null)
+            {
+                var packageList = packageIds
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (packageList.Count > 0)
+                {
+                    builder.AppendLine("Packages:");
+                    foreach (var pkg in packageList)
+                    {
+                        builder.Append("  - ").AppendLine(pkg);
+                    }
+                }
+            }
+
+            if (exception != null)
+            {
+                builder.AppendLine("Exception:");
+                builder.AppendLine(exception.ToString());
+            }
+
+            return builder.ToString();
         }
 
         private static async Task PumpStreamAsync(StreamReader reader, Func<string, Task> callback, CancellationToken cancellationToken)
@@ -1292,6 +1368,12 @@ namespace SharpPadRuntime
             {
                 switch (normalizedProjectType)
                 {
+                    case "avalonia":
+                        Add("Avalonia", TryGetPackageVersionFromAssembly("Avalonia", "11.3.9"));
+                        Add("Avalonia.Desktop", TryGetPackageVersionFromAssembly("Avalonia.Desktop", "11.3.9"));
+                        Add("Avalonia.Themes.Fluent", TryGetPackageVersionFromAssembly("Avalonia.Themes.Fluent", "11.3.9"));
+                        Add("Avalonia.Fonts.Inter", TryGetPackageVersionFromAssembly("Avalonia.Fonts.Inter", "11.3.9"));
+                        break;
                     case "aspnetcore":
                     case "aspnetcorewebapi":
                     case "webapi":
@@ -1897,6 +1979,22 @@ namespace SharpPadRuntime
             {
                 CopyNativeFilesFromDirectory(directory, workingDirectory, copiedFiles);
             }
+
+            // Fallback: scan the entire package for well-known native libraries (Avalonia/Skia/HarfBuzz)
+            foreach (var file in SafeEnumerateFiles(packageRoot))
+            {
+                if (!IsNativeLibraryPath(file))
+                {
+                    continue;
+                }
+
+                if (!IsKnownNativeLibraryName(Path.GetFileName(file)))
+                {
+                    continue;
+                }
+
+                CopyAssemblyFile(file, workingDirectory, copiedFiles);
+            }
         }
 
         private static void CopyNativeFilesFromDirectory(string sourceDirectory, string workingDirectory, Dictionary<string, string> copiedFiles)
@@ -1941,6 +2039,36 @@ namespace SharpPadRuntime
                    extension.Equals(".so", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".dylib", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".a", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsKnownNativeLibraryName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            var name = fileName.ToLowerInvariant();
+            return name.Contains("avalonianative") ||
+                   name.Contains("skiasharp") ||
+                   name.Contains("harfbuzz");
+        }
+
+        private static IEnumerable<string> SafeEnumerateFiles(string directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return Array.Empty<string>();
+            }
+
+            try
+            {
+                return Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories);
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
         }
 
         private static IEnumerable<string> GetRuntimeFallbackIdentifiers()
@@ -2389,6 +2517,10 @@ namespace SharpPadRuntime
                     propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
                     frameworkReferences.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                     break;
+                case "avalonia":
+                    targetFramework = "net8.0";
+                    propertyExtraLines.Add("    <AvaloniaUseCompiledBindings>true</AvaloniaUseCompiledBindings>");
+                    break;
                 case "webapi":
                     sdk = "Microsoft.NET.Sdk.Web";
                     break;
@@ -2676,6 +2808,10 @@ namespace SharpPadRuntime
                         propertyExtraLines.Add("    <EnableWindowsTargeting>true</EnableWindowsTargeting>");
                         frameworkRefLines.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                         break;
+                    case "avalonia":
+                        targetFramework = "net8.0";
+                        propertyExtraLines.Add("    <AvaloniaUseCompiledBindings>true</AvaloniaUseCompiledBindings>");
+                        break;
                     case "aspnetcore":
                     case "aspnetcorewebapi":
                     case "webapi":
@@ -2933,8 +3069,3 @@ namespace SharpPadRuntime
         }
     }
 }
-
-
-
-
-

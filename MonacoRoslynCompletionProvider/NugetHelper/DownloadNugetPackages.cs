@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Linq;
+using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.IO.Compression;
@@ -23,6 +24,7 @@ namespace monacoEditorCSharp.DataHelpers
     {
         private static readonly string installationDirectory;
         private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> PackageLocks = new(StringComparer.OrdinalIgnoreCase);
         private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars();
         private const string DependencyManifestFileName = "sharppad.dependencies.json";
         private static readonly JsonSerializerOptions DependencyManifestSerializerOptions = new()
@@ -55,6 +57,15 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static readonly HashSet<string> PreferredRuntimeIdentifiers = BuildPreferredRuntimeIdentifiers();
         private static readonly IReadOnlyList<NuGetFramework> PreferredFrameworks = BuildPreferredFrameworks();
+        private static readonly string[] FrameworkPackagePrefixes =
+        {
+            "system.",
+            "microsoft.netcore.",
+            "microsoft.windowsdesktop.",
+            "runtime.",
+            "netstandard.library",
+            "microsoft.aspnetcore.app.runtime."
+        };
         private readonly struct PackageRequest
         {
             public PackageRequest(string packageId, string version)
@@ -193,74 +204,78 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static async Task DownloadPackageViaFlatContainerAsync(string packageName, string version, string preferredSourceKey)
         {
-            bool versionSpecified = !string.IsNullOrWhiteSpace(version);
+            var normalizedVersion = string.IsNullOrWhiteSpace(version) ? string.Empty : version.Trim();
+            var versionSpecified = !string.IsNullOrEmpty(normalizedVersion);
 
-            string packageRootDirectory = GetPackageRootDirectory(packageName);
-            string packageVersionDirectory = versionSpecified
-                ? GetPackageVersionDirectory(packageName, version)
-                : packageRootDirectory;
-
-            if (HasAssemblies(packageVersionDirectory))
+            using (await AcquirePackageLockAsync(packageName, normalizedVersion))
             {
-                return;
-            }
+                string packageRootDirectory = GetPackageRootDirectory(packageName);
+                string packageVersionDirectory = versionSpecified
+                    ? GetPackageVersionDirectory(packageName, normalizedVersion)
+                    : packageRootDirectory;
 
-            Directory.CreateDirectory(packageRootDirectory);
-            Directory.CreateDirectory(packageVersionDirectory);
-
-            string packageFile = Path.Combine(packageVersionDirectory, BuildPackageFileName(packageName, version));
-
-            var sourceUrls = PackageSourceManager.GetSourceUrls(preferredSourceKey);
-
-            Exception lastException = null;
-            bool downloadSuccessful = false;
-
-            foreach (var baseUrl in sourceUrls)
-            {
-                try
+                if (HasAssemblies(packageVersionDirectory))
                 {
-                    string url = $"{baseUrl.TrimEnd('/')}/{packageName}";
-                    if (versionSpecified)
-                    {
-                        url += $"/{version}";
-                    }
+                    return;
+                }
 
-                    using (var response = await httpClient.GetAsync(url))
+                Directory.CreateDirectory(packageRootDirectory);
+                Directory.CreateDirectory(packageVersionDirectory);
+
+                string packageFile = Path.Combine(packageVersionDirectory, BuildPackageFileName(packageName, normalizedVersion));
+
+                var sourceUrls = PackageSourceManager.GetSourceUrls(preferredSourceKey);
+
+                Exception lastException = null;
+                bool downloadSuccessful = false;
+
+                foreach (var baseUrl in sourceUrls)
+                {
+                    try
                     {
-                        response.EnsureSuccessStatusCode();
-                        using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                        string url = $"{baseUrl.TrimEnd('/')}/{packageName}";
+                        if (versionSpecified)
                         {
-                            await response.Content.CopyToAsync(fileStream);
+                            url += $"/{normalizedVersion}";
                         }
+
+                        using (var response = await httpClient.GetAsync(url))
+                        {
+                            response.EnsureSuccessStatusCode();
+                            using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await response.Content.CopyToAsync(fileStream);
+                            }
+                        }
+
+                        ExtractPackageArchive(packageFile, packageVersionDirectory);
+                        var identityFromArchive = TryReadIdentityFromArchive(packageFile);
+                        if (identityFromArchive != null)
+                        {
+                            WriteDependencyManifest(packageVersionDirectory, identityFromArchive, Array.Empty<PackageIdentity>());
+                        }
+                        downloadSuccessful = true;
+                        break;
                     }
-
-                    ExtractPackageArchive(packageFile, packageVersionDirectory);
-                    var identityFromArchive = TryReadIdentityFromArchive(packageFile);
-                    if (identityFromArchive != null)
+                    catch (Exception ex)
                     {
-                        WriteDependencyManifest(packageVersionDirectory, identityFromArchive, Array.Empty<PackageIdentity>());
+                        lastException = ex;
+                        Console.WriteLine($"Failed to download {packageName} from {baseUrl}: {ex.Message}");
+                        TryDeleteFile(packageFile);
                     }
-                    downloadSuccessful = true;
-                    break;
                 }
-                catch (Exception ex)
-                {
-                    lastException = ex;
-                    Console.WriteLine($"Failed to download {packageName} from {baseUrl}: {ex.Message}");
-                    TryDeleteFile(packageFile);
-                }
-            }
 
-            if (!downloadSuccessful)
-            {
-                Console.WriteLine($"Error downloading package {packageName} from all sources: {lastException?.Message}");
-
-                if (!HasAssemblies(packageVersionDirectory))
+                if (!downloadSuccessful)
                 {
-                    TryDeleteFile(packageFile);
-                    if (versionSpecified)
+                    Console.WriteLine($"Error downloading package {packageName} from all sources: {lastException?.Message}");
+
+                    if (!HasAssemblies(packageVersionDirectory))
                     {
-                        TryDeleteDirectory(packageVersionDirectory);
+                        TryDeleteFile(packageFile);
+                        if (versionSpecified)
+                        {
+                            TryDeleteDirectory(packageVersionDirectory);
+                        }
                     }
                 }
             }
@@ -291,7 +306,11 @@ namespace monacoEditorCSharp.DataHelpers
                         }
 
                         var fileName = Path.GetFileName(file);
-                        if (!file.EndsWith(Path.Combine("net8.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                        if (!file.EndsWith(Path.Combine("net9.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("net8.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("net7.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("net6.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.Contains(Path.Combine("net5.0", fileName), StringComparison.OrdinalIgnoreCase) &&
                             !file.Contains(Path.Combine("netstandard2.0", fileName), StringComparison.OrdinalIgnoreCase) &&
                             !file.Contains(Path.Combine("netstandard2.1", fileName), StringComparison.OrdinalIgnoreCase))
                         {
@@ -422,6 +441,11 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static async Task<bool> TryDownloadWithDependenciesAsync(string packageName, string version, string preferredSourceKey)
         {
+            if (IsFrameworkPackage(packageName))
+            {
+                return true;
+            }
+
             try
             {
                 var repositories = CreateSourceRepositories(preferredSourceKey);
@@ -533,20 +557,28 @@ namespace monacoEditorCSharp.DataHelpers
             HashSet<string> processed,
             CancellationToken cancellationToken)
         {
+            if (IsFrameworkPackage(identity?.Id))
+            {
+                return true;
+            }
+
+            var normalizedVersion = identity.Version?.ToNormalizedString() ?? string.Empty;
             var key = BuildPackageKey(identity);
             if (!processed.Add(key))
             {
                 return true;
             }
 
-            var versionDirectory = GetPackageVersionDirectory(identity.Id, identity.Version.ToNormalizedString());
+            using var packageLock = await AcquirePackageLockAsync(identity.Id, normalizedVersion);
+
+            var versionDirectory = GetPackageVersionDirectory(identity.Id, normalizedVersion);
             if (HasAssemblies(versionDirectory))
             {
                 return true;
             }
 
             Directory.CreateDirectory(versionDirectory);
-            var packageFile = Path.Combine(versionDirectory, BuildPackageFileName(identity.Id, identity.Version.ToNormalizedString()));
+            var packageFile = Path.Combine(versionDirectory, BuildPackageFileName(identity.Id, normalizedVersion));
 
             foreach (var repository in repositories)
             {
@@ -720,8 +752,49 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static string BuildPackageKey(PackageIdentity identity)
         {
-            var id = identity.Id?.ToLowerInvariant() ?? string.Empty;
-            return $"{id}:{identity.Version.ToNormalizedString()}";
+            if (identity == null)
+            {
+                return BuildPackageKey(string.Empty, string.Empty);
+            }
+
+            return BuildPackageKey(identity.Id, identity.Version?.ToNormalizedString());
+        }
+
+        private static string BuildPackageKey(string packageId, string version)
+        {
+            var id = packageId?.Trim().ToLowerInvariant() ?? string.Empty;
+            var normalizedVersion = string.IsNullOrWhiteSpace(version) ? string.Empty : version.Trim().ToLowerInvariant();
+            return $"{id}:{normalizedVersion}";
+        }
+
+        private static async Task<IDisposable> AcquirePackageLockAsync(string packageId, string version)
+        {
+            var key = BuildPackageKey(packageId, version);
+            var semaphore = PackageLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync().ConfigureAwait(false);
+            return new PackageLock(semaphore);
+        }
+
+        private sealed class PackageLock : IDisposable
+        {
+            private readonly SemaphoreSlim _semaphore;
+            private bool _released;
+
+            public PackageLock(SemaphoreSlim semaphore)
+            {
+                _semaphore = semaphore ?? throw new ArgumentNullException(nameof(semaphore));
+            }
+
+            public void Dispose()
+            {
+                if (_released)
+                {
+                    return;
+                }
+
+                _released = true;
+                _semaphore.Release();
+            }
         }
 
         internal sealed class DependencyManifestModel
@@ -1132,6 +1205,25 @@ namespace monacoEditorCSharp.DataHelpers
             return extension.Equals(".xml", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".json", StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".pdb", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsFrameworkPackage(string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                return false;
+            }
+
+            var normalized = packageId.Trim().ToLowerInvariant();
+            foreach (var prefix in FrameworkPackagePrefixes)
+            {
+                if (normalized.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IReadOnlyList<NuGetFramework> BuildPreferredFrameworks()
