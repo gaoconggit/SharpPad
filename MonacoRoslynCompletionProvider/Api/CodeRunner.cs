@@ -836,9 +836,21 @@ namespace SharpPadRuntime
             string sessionId,
             CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(hostAssemblyPath))
+            {
+                throw new FileNotFoundException("Execution host path is missing.");
+            }
+
+            var resolvedHostPath = Path.GetFullPath(hostAssemblyPath);
+            var useDotNetCli = string.Equals(
+                Path.GetExtension(resolvedHostPath),
+                ".dll",
+                StringComparison.OrdinalIgnoreCase);
+
             var startInfo = new ProcessStartInfo
             {
-                FileName = "dotnet",
+                // Prefer the bundled execution host if available to avoid relying on a global dotnet CLI.
+                FileName = useDotNetCli ? "dotnet" : resolvedHostPath,
                 WorkingDirectory = workingDirectory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -849,7 +861,10 @@ namespace SharpPadRuntime
                 StandardErrorEncoding = Encoding.UTF8
             };
 
-            startInfo.ArgumentList.Add(hostAssemblyPath);
+            if (useDotNetCli)
+            {
+                startInfo.ArgumentList.Add(resolvedHostPath);
+            }
             startInfo.ArgumentList.Add("--assembly");
             startInfo.ArgumentList.Add(compiledAssemblyPath);
             startInfo.ArgumentList.Add("--workingDirectory");
@@ -1042,12 +1057,29 @@ namespace SharpPadRuntime
         private static string LocateExecutionHost()
         {
             var baseDirectory = AppContext.BaseDirectory;
-            var candidates = new[]
+            var rawCandidates = new[]
             {
-                Path.Combine(baseDirectory, "ExecutionHost", "SharpPad.ExecutionHost.dll"),
-                Path.Combine(baseDirectory, "SharpPad.ExecutionHost.dll"),
-                Path.Combine(baseDirectory, "..", "ExecutionHost", "SharpPad.ExecutionHost.dll")
+                Path.Combine(baseDirectory, "ExecutionHost", "SharpPad.ExecutionHost"),
+                Path.Combine(baseDirectory, "SharpPad.ExecutionHost"),
+                Path.Combine(baseDirectory, "..", "ExecutionHost", "SharpPad.ExecutionHost")
             };
+
+            var candidates = new List<string>();
+            foreach (var raw in rawCandidates)
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    continue;
+                }
+
+                if (OperatingSystem.IsWindows())
+                {
+                    candidates.Add(raw + ".exe");
+                }
+
+                candidates.Add(raw);
+                candidates.Add(raw + ".dll");
+            }
 
             foreach (var candidate in candidates)
             {
