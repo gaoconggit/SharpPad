@@ -1283,25 +1283,27 @@ class FileManager {
             return;
         }
 
-        if (this.shouldUseDesktopImport()) {
-            this.importFolderViaDesktopBridge(targetFolderId);
-            return;
-        }
+        const preferDesktopImport = this.shouldUseDesktopImport();
 
-        // 询问用户选择导入方式
-        const importMethod = await this.selectImportMethod();
+        // 询问用户选择导入方式（即便在桌面环境也允许 URL 导入）
+        const importMethod = await this.selectImportMethod(preferDesktopImport);
         if (!importMethod) {
             return; // 用户取消
         }
 
         if (importMethod === 'url') {
             await this.importFromUrl(targetFolderId);
+            return;
+        }
+
+        if (preferDesktopImport) {
+            this.importFolderViaDesktopBridge(targetFolderId);
         } else {
             await this.importFromFile(targetFolderId);
         }
     }
 
-    async selectImportMethod() {
+    async selectImportMethod(useDesktopImport = false) {
         return new Promise((resolve) => {
             const dialog = document.createElement('div');
             dialog.className = 'modal';
@@ -1314,7 +1316,7 @@ class FileManager {
                     <div class="modal-body">
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <button id="importFromFileBtn" class="save-button" style="width: 100%; padding: 12px;">
-                                📁 从本地文件导入
+                                📁 从本地文件导入${useDesktopImport ? '（桌面）' : ''}
                             </button>
                             <button id="importFromUrlBtn" class="save-button" style="width: 100%; padding: 12px;">
                                 🌐 从 URL 导入
