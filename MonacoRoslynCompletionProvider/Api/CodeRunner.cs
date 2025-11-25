@@ -43,8 +43,9 @@ namespace SharpPadRuntime
 {
     internal static class ConsoleReadKeyShim
     {
-        private static readonly object BufferLock = new();
-        private static readonly Queue<char> BufferedChars = new();
+        // Avoid target-typed new so the shim can compile with language versions below C# 9
+        private static readonly object BufferLock = new object();
+        private static readonly Queue<char> BufferedChars = new Queue<char>();
 
         public static ConsoleKeyInfo ReadKey()
         {
