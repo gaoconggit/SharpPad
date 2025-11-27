@@ -3,8 +3,10 @@
 # 此阶段用于在快速模式(默认为调试配置)下从 VS 运行时
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
-# 创建NugetPackages目录并设置权限
-RUN mkdir -p /app/NugetPackages/packages && \
+# 安装curl用于健康检查，创建NugetPackages目录并设置权限
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /app/NugetPackages/packages && \
     chmod -R 777 /app/NugetPackages
 USER $APP_UID
 EXPOSE 5090
@@ -17,6 +19,7 @@ WORKDIR /src
 COPY ./NuGet.config /etc/opt/NuGet/Config/NuGet.config
 COPY ["SharpPad/SharpPad.csproj", "SharpPad/"]
 COPY ["MonacoRoslynCompletionProvider/MonacoRoslynCompletionProvider.csproj", "MonacoRoslynCompletionProvider/"]
+COPY ["SharpPad.ExecutionHost/SharpPad.ExecutionHost.csproj", "SharpPad.ExecutionHost/"]
 RUN dotnet restore "./SharpPad/SharpPad.csproj"
 COPY . .
 WORKDIR "/src/SharpPad"
