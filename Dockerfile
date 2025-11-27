@@ -3,12 +3,10 @@
 # 此阶段用于在快速模式(默认为调试配置)下从 VS 运行时
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
-# 安装curl用于健康检查，创建NugetPackages目录并设置权限
+# 安装curl用于健康检查，创建NugetPackages目录
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /app/NugetPackages/packages && \
-    chmod -R 777 /app/NugetPackages
-USER $APP_UID
+    mkdir -p /app/NugetPackages/packages
 EXPOSE 5090
 
 
@@ -34,9 +32,9 @@ RUN dotnet publish "./SharpPad.csproj" -c $BUILD_CONFIGURATION -o /app/publish /
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-# 确保最终镜像中也创建NugetPackages目录并设置权限，并且在切换到非root用户前执行
-USER root
+# 确保最终镜像中也创建NugetPackages目录并设置权限
+# 使用chown设置目录所有者为app用户，而不是使用777权限
 RUN mkdir -p /app/NugetPackages/packages && \
-    chmod -R 777 /app/NugetPackages
+    chown -R $APP_UID:$APP_UID /app/NugetPackages
 USER $APP_UID
 ENTRYPOINT ["dotnet", "SharpPad.dll"]

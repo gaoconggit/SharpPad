@@ -16,7 +16,7 @@ services:
     restart: always
     # 健康检查配置，帮助Docker判断服务是否健康
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5090/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5090"]
       interval: 30s
       timeout: 10s
       retries: 3
