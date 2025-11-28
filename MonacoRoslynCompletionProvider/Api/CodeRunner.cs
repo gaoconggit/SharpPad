@@ -1349,8 +1349,7 @@ namespace SharpPadRuntime
             {
                 "System.Net.Http",
                 "System.Net.WebSockets",
-                "System.Net.WebSockets.Client",
-                //"System.Net.WebSockets.WebSocketProtocol"
+                "System.Net.WebSockets.Client"
             };
 
             foreach (var assemblyName in essentialAssemblies)

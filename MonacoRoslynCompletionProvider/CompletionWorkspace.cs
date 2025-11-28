@@ -76,6 +76,8 @@ namespace MonacoRoslynCompletionProvider
             TryAddOptionalType("System.Windows.Forms.Form, System.Windows.Forms");
             TryAddOptionalType("System.Drawing.Image, System.Drawing");
             TryAddOptionalType("Microsoft.Win32.SystemEvents, Microsoft.Win32.SystemEvents");
+            // For dynamic keyword runtime binder support
+            TryAddOptionalType("Microsoft.CSharp.RuntimeBinder.Binder, Microsoft.CSharp");
 
             foreach (var assemblyName in new[]
             {
