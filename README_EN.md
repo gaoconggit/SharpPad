@@ -2,9 +2,9 @@
 
 # SharpPad
 
-A lightweight tool for quickly validating C# code snippets, built with Roslyn and monaco-editor. Similar to LinqPad, with AI chat and AI completion support.
+A lightweight tool for quickly validating C# code snippets, built with Roslyn and monaco-editor. Similar to LinqPad, with AI chat, AI completion, and AI edit support.
 
-<img width="1917" height="1036" alt="image" src="https://github.com/user-attachments/assets/1a807014-844b-4ff0-b2dd-a81305101b3f" />
+<img width="1917" height="1036" alt="image" src="https://github.com/user-attachments/assets/69cf6124-e3e1-4753-98da-0ee9cce80e5d" />
 
 
 ## PC Version Recommended
@@ -17,7 +17,7 @@ A lightweight tool for quickly validating C# code snippets, built with Roslyn an
 4. Enjoy!
 
 ## Demo Site
-- https://try.dotnet10.com
+- https://try.dotnet10.com (Old version)
 
 ### Pre-0.2.0 Quick Start (Legacy)
 1. Download the release package
@@ -40,13 +40,14 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 3. Right-click in the directory and select import KingOfTool.json
 
 ## Development Guide
-#### Development Environment: Recommended VS 2022 + .NET 9.0
+#### Development Environment: Recommended VS 2026 + .NET 10 SDK
 1. Git clone the repository
 2. Launch the SharpPad project in Visual Studio
 3. Use `Ctrl + Enter` to run "Hello World"
 
 ## Keyboard Shortcuts
 
+### Windows
 - `Ctrl + Enter` - Run code
 - `Alt + C` - Clear output
 - `Ctrl + J` - Code suggestions
@@ -56,6 +57,16 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 - `Ctrl + Shift + Space` - Manually trigger GPT auto-completion
 - `Ctrl + Shift + K` - AI code editing
 - `Ctrl + D` - Duplicate line
+
+### macOS
+- `Cmd + Enter` - Run code
+- `Ctrl + Option + C` - Clear output
+- `Cmd + J` - Code suggestions
+- `Cmd + K` `Cmd + D` - Format code
+- `Cmd + S` - Save code
+- `Cmd + Shift + Space` - Manually trigger GPT auto-completion
+- `Cmd + Shift + K` - AI code editing
+- `Cmd + D` - Duplicate line
 
 ## Features
 
@@ -71,16 +82,17 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 - C# version selection support
 - Mobile-friendly UI
 - Visual Studio breakpoint debugging integration (see [Debugger.md](https://github.com/gaoconggit/SharpPad/blob/main/KingOfTool/Debugger.md))
-- Windows and macOS PC clients
+- Windows and macOS PC clients (macOS Silicon / Windows)
 - NuGet package management page
 - Multi-file support
 - WinForms application execution support
+- Web API execution support
+- Avalonia execution support
 
 ## Planned Features
 
 - Work in Progress
   - Native breakpoint debugging
-  - File import/export on macOS
  
 ## Project Acknowledgment
 
