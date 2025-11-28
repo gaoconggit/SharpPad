@@ -27,6 +27,7 @@ namespace monacoEditorCSharp.DataHelpers
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> PackageLocks = new(StringComparer.OrdinalIgnoreCase);
         private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars();
         private const string DependencyManifestFileName = "sharppad.dependencies.json";
+        public static Func<string, Task> LogWriter { get; set; }
         private static readonly JsonSerializerOptions DependencyManifestSerializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -81,6 +82,52 @@ namespace monacoEditorCSharp.DataHelpers
         static DownloadNugetPackages()
         {
             installationDirectory = InitializeInstallationDirectory();
+        }
+
+        public static IDisposable BeginLogScope(Func<string, Task> writer)
+        {
+            var previous = LogWriter;
+            LogWriter = writer;
+            return new LogScope(() => LogWriter = previous);
+        }
+
+        private static void Log(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            try
+            {
+                Console.WriteLine(message);
+            }
+            catch
+            {
+                // ignore console write failures
+            }
+
+            var handler = LogWriter;
+            if (handler == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var line = message.EndsWith("\n", StringComparison.Ordinal) ? message : message + Environment.NewLine;
+                var task = handler(line);
+                if (task != null && !task.IsCompleted)
+                {
+                    task.ContinueWith(
+                        t => { _ = t.Exception; },
+                        TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted);
+                }
+            }
+            catch
+            {
+                // swallow logging errors
+            }
         }
 
         public static List<PackageAssemblyInfo> LoadPackages(string packages)
@@ -193,12 +240,16 @@ namespace monacoEditorCSharp.DataHelpers
             }
 
             var normalizedVersion = string.IsNullOrWhiteSpace(version) ? null : version.Trim();
+            var displayVersion = string.IsNullOrWhiteSpace(normalizedVersion) ? "(latest)" : normalizedVersion;
+            Log($"[NuGet] Resolving {normalizedPackageName} {displayVersion} ...");
 
             if (await TryDownloadWithDependenciesAsync(normalizedPackageName, normalizedVersion, preferredSourceKey))
             {
+                Log($"[NuGet] Resolved {normalizedPackageName} {displayVersion}");
                 return;
             }
 
+            Log($"[NuGet] Fallback to flat container for {normalizedPackageName} {displayVersion}");
             await DownloadPackageViaFlatContainerAsync(normalizedPackageName, normalizedVersion, preferredSourceKey);
         }
 
@@ -216,6 +267,7 @@ namespace monacoEditorCSharp.DataHelpers
 
                 if (HasAssemblies(packageVersionDirectory))
                 {
+                    Log($"[NuGet] Using cached {packageName} {(versionSpecified ? normalizedVersion : "(latest)")}.");
                     return;
                 }
 
@@ -233,6 +285,7 @@ namespace monacoEditorCSharp.DataHelpers
                 {
                     try
                     {
+                        Log($"[NuGet] Downloading {packageName} {(versionSpecified ? normalizedVersion : "(latest)")} from {baseUrl} ...");
                         string url = $"{baseUrl.TrimEnd('/')}/{packageName}";
                         if (versionSpecified)
                         {
@@ -255,19 +308,20 @@ namespace monacoEditorCSharp.DataHelpers
                             WriteDependencyManifest(packageVersionDirectory, identityFromArchive, Array.Empty<PackageIdentity>());
                         }
                         downloadSuccessful = true;
+                        Log($"[NuGet] Finished downloading {packageName} {(versionSpecified ? normalizedVersion : "(latest)")}.");
                         break;
                     }
                     catch (Exception ex)
                     {
                         lastException = ex;
-                        Console.WriteLine($"Failed to download {packageName} from {baseUrl}: {ex.Message}");
+                        Log($"[NuGet] Failed to download {packageName} from {baseUrl}: {ex.Message}");
                         TryDeleteFile(packageFile);
                     }
                 }
 
                 if (!downloadSuccessful)
                 {
-                    Console.WriteLine($"Error downloading package {packageName} from all sources: {lastException?.Message}");
+                    Log($"[NuGet] Error downloading package {packageName} from all sources: {lastException?.Message}");
 
                     if (!HasAssemblies(packageVersionDirectory))
                     {
@@ -422,7 +476,7 @@ namespace monacoEditorCSharp.DataHelpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to write dependency manifest for {identity.Id} {identity.Version}: {ex.Message}");
+                Log($"[NuGet] Failed to write dependency manifest for {identity.Id} {identity.Version}: {ex.Message}");
             }
         }
 
@@ -463,7 +517,7 @@ namespace monacoEditorCSharp.DataHelpers
                 {
                     if (!NuGetVersion.TryParse(version, out resolvedVersion))
                     {
-                        Console.WriteLine($"Invalid NuGet version '{version}' for {packageName}.");
+                        Log($"[NuGet] Invalid NuGet version '{version}' for {packageName}.");
                         return false;
                     }
                 }
@@ -472,24 +526,25 @@ namespace monacoEditorCSharp.DataHelpers
                     resolvedVersion = await ResolveLatestVersionAsync(packageName, repositories, cacheContext, logger, cancellationToken);
                     if (resolvedVersion == null)
                     {
-                        Console.WriteLine($"Unable to resolve latest version for {packageName} from configured sources.");
+                        Log($"[NuGet] Unable to resolve latest version for {packageName} from configured sources.");
                         return false;
                     }
                 }
 
+                Log($"[NuGet] Downloading {packageName} {resolvedVersion.ToNormalizedString()} (includes dependencies) ...");
                 var identity = new PackageIdentity(packageName, resolvedVersion);
                 var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var downloaded = await DownloadIdentityRecursiveAsync(identity, repositories, cacheContext, logger, processed, cancellationToken);
                 if (!downloaded)
                 {
-                    Console.WriteLine($"Failed to download package {packageName} {resolvedVersion.ToNormalizedString()} via NuGet.Protocol.");
+                    Log($"[NuGet] Failed to download package {packageName} {resolvedVersion.ToNormalizedString()} via NuGet.Protocol.");
                 }
 
                 return downloaded;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"NuGet dependency download failed for {packageName}: {ex.Message}");
+                Log($"[NuGet] NuGet dependency download failed for {packageName}: {ex.Message}");
                 return false;
             }
         }
@@ -511,7 +566,7 @@ namespace monacoEditorCSharp.DataHelpers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to initialize NuGet source {source.Name} ({serviceIndexUrl}): {ex.Message}");
+                    Log($"[NuGet] Failed to initialize NuGet source {source.Name} ({serviceIndexUrl}): {ex.Message}");
                 }
             }
 
@@ -563,6 +618,7 @@ namespace monacoEditorCSharp.DataHelpers
             }
 
             var normalizedVersion = identity.Version?.ToNormalizedString() ?? string.Empty;
+            var versionLabel = string.IsNullOrWhiteSpace(normalizedVersion) ? "(latest)" : normalizedVersion;
             var key = BuildPackageKey(identity);
             if (!processed.Add(key))
             {
@@ -574,11 +630,13 @@ namespace monacoEditorCSharp.DataHelpers
             var versionDirectory = GetPackageVersionDirectory(identity.Id, normalizedVersion);
             if (HasAssemblies(versionDirectory))
             {
+                Log($"[NuGet] Using cached {identity.Id} {versionLabel}.");
                 return true;
             }
 
             Directory.CreateDirectory(versionDirectory);
             var packageFile = Path.Combine(versionDirectory, BuildPackageFileName(identity.Id, normalizedVersion));
+            Log($"[NuGet] Restoring {identity.Id} {versionLabel} ...");
 
             foreach (var repository in repositories)
             {
@@ -589,6 +647,8 @@ namespace monacoEditorCSharp.DataHelpers
                     {
                         continue;
                     }
+                    var sourceName = repository.PackageSource?.Source ?? "unknown";
+                    Log($"[NuGet]   from {sourceName}");
 
                     using (var fileStream = new FileStream(packageFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true))
                     {
@@ -609,21 +669,22 @@ namespace monacoEditorCSharp.DataHelpers
                         var dependencyDownloaded = await DownloadIdentityRecursiveAsync(dependency, repositories, cacheContext, logger, processed, cancellationToken);
                         if (!dependencyDownloaded)
                         {
-                            Console.WriteLine($"Failed to download dependency {dependency.Id} {dependency.Version} required by {identity.Id} {identity.Version}.");
+                            Log($"[NuGet] Failed to download dependency {dependency.Id} {dependency.Version} required by {identity.Id} {identity.Version}.");
                         }
                     }
 
+                    Log($"[NuGet] Restored {identity.Id} {versionLabel}.");
                     return true;
                 }
                 catch (Exception ex)
                 {
                     var source = repository.PackageSource?.Source ?? "unknown";
-                    Console.WriteLine($"Failed to download {identity.Id} {identity.Version} from {source}: {ex.Message}");
+                    Log($"[NuGet] Failed to download {identity.Id} {identity.Version} from {source}: {ex.Message}");
                     TryDeleteFile(packageFile);
                 }
             }
 
-            Console.WriteLine($"Unable to download {identity.Id} {identity.Version} from configured sources.");
+            Log($"[NuGet] Unable to download {identity.Id} {identity.Version} from configured sources.");
             return HasAssemblies(versionDirectory);
         }
 
@@ -663,7 +724,7 @@ namespace monacoEditorCSharp.DataHelpers
 
                     if (resolvedVersion == null)
                     {
-                        Console.WriteLine($"Unable to resolve dependency {dependency.Id} ({versionRange.OriginalString}) referenced by {Path.GetFileName(packageFile)}.");
+                        Log($"[NuGet] Unable to resolve dependency {dependency.Id} ({versionRange.OriginalString}) referenced by {Path.GetFileName(packageFile)}.");
                         continue;
                     }
 
@@ -674,7 +735,7 @@ namespace monacoEditorCSharp.DataHelpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to read dependencies from {Path.GetFileName(packageFile)}: {ex.Message}");
+                Log($"[NuGet] Failed to read dependencies from {Path.GetFileName(packageFile)}: {ex.Message}");
                 return Array.Empty<PackageIdentity>();
             }
         }
@@ -846,7 +907,7 @@ namespace monacoEditorCSharp.DataHelpers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to initialize NuGet cache at {path}: {ex.Message}");
+                    Log($"[NuGet] Failed to initialize NuGet cache at {path}: {ex.Message}");
                 }
             }
 
@@ -1056,7 +1117,7 @@ namespace monacoEditorCSharp.DataHelpers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Selective extraction failed for {Path.GetFileName(packageFile)}: {ex.Message}");
+                Log($"[NuGet] Selective extraction failed for {Path.GetFileName(packageFile)}: {ex.Message}");
                 return false;
             }
         }
@@ -1323,7 +1384,7 @@ namespace monacoEditorCSharp.DataHelpers
             catch (Exception ex)
             {
                 // Log the error but don't throw to allow cleanup attempts to continue
-                Console.WriteLine($"Failed to delete directory {directory}: {ex.Message}");
+                Log($"[NuGet] Failed to delete directory {directory}: {ex.Message}");
             }
         }
 
@@ -1369,7 +1430,7 @@ namespace monacoEditorCSharp.DataHelpers
                     catch (Exception ex)
                     {
                         var error = $"Failed to delete package {packageName} version {version}: {ex.Message}";
-                        Console.WriteLine(error);
+                        Log($"[NuGet] {error}");
                         errors.Add(error);
                     }
                 }
@@ -1384,7 +1445,7 @@ namespace monacoEditorCSharp.DataHelpers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Failed to delete empty package root directory {packageRoot}: {ex.Message}");
+                        Log($"[NuGet] Failed to delete empty package root directory {packageRoot}: {ex.Message}");
                         // Don't add to errors list since this is just cleanup
                     }
                 }
@@ -1402,7 +1463,7 @@ namespace monacoEditorCSharp.DataHelpers
                     catch (Exception ex)
                     {
                         var error = $"Failed to delete package {packageName}: {ex.Message}";
-                        Console.WriteLine(error);
+                        Log($"[NuGet] {error}");
                         errors.Add(error);
                     }
                 }
@@ -1438,6 +1499,25 @@ namespace monacoEditorCSharp.DataHelpers
                 string version = parts.Length > 1 ? parts[1].Trim() : string.Empty;
 
                 RemovePackage(packageName, version);
+            }
+        }
+
+        private sealed class LogScope : IDisposable
+        {
+            private readonly Action _disposeAction;
+            private int _disposed;
+
+            public LogScope(Action disposeAction)
+            {
+                _disposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
+            }
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) == 0)
+                {
+                    _disposeAction();
+                }
             }
         }
     }

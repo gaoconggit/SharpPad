@@ -364,6 +364,16 @@ namespace SharpPadRuntime
                 throw new ArgumentNullException(nameof(onError));
             }
 
+            using var nugetLogScope = DownloadNugetPackages.BeginLogScope(async text =>
+            {
+                if (string.IsNullOrEmpty(text))
+                {
+                    return;
+                }
+
+                await onOutput(text).ConfigureAwait(false);
+            });
+
             var files = (sourceFiles ?? Enumerable.Empty<FileContent>())
                 .Where(f => f != null)
                 .Select(f => new FileContent
@@ -1305,7 +1315,7 @@ namespace SharpPadRuntime
                 "System.Net.Http",
                 "System.Net.WebSockets",
                 "System.Net.WebSockets.Client",
-                "System.Net.WebSockets.WebSocketProtocol"
+                //"System.Net.WebSockets.WebSocketProtocol"
             };
 
             foreach (var assemblyName in essentialAssemblies)
