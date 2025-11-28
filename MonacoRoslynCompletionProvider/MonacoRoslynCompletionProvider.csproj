@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0</TargetFramework>
@@ -17,18 +17,19 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<FrameworkReference Condition="'$(OS)' == 'Windows_NT'"  Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+		<FrameworkReference Condition="'$(OS)' == 'Windows_NT'" Include="Microsoft.WindowsDesktop.App.WindowsForms" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
-		<PackageReference Include="NuGet.Protocol" Version="6.10.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.0.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+		<PackageReference Include="NuGet.Protocol" Version="7.0.1" />
+		
 		<PackageReference Include="IgnoresAccessChecksToGenerator" Version="0.8.0" />
 	</ItemGroup>
 
