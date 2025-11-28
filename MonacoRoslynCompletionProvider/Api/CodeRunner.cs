@@ -37,19 +37,23 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly Regex ConsoleReadKeyPattern = new(@"(?<!\w)(?:System\.)?Console\.ReadKey(?=\s*\()", RegexOptions.Compiled);
         private const string ConsoleReadKeyShimSource = @"
 using System;
-using System.Collections.Generic;
+using System.Collections;
 
 namespace SharpPadRuntime
 {
-    internal static class ConsoleReadKeyShim
+    internal sealed class ConsoleReadKeyShim
     {
         // Avoid target-typed new so the shim can compile with language versions below C# 9
         private static readonly object BufferLock = new object();
-        private static readonly Queue<char> BufferedChars = new Queue<char>();
+        private static readonly Queue BufferedChars = new Queue();
+
+        private ConsoleReadKeyShim()
+        {
+        }
 
         public static ConsoleKeyInfo ReadKey()
         {
-            return ReadKey(intercept: false);
+            return ReadKey(false);
         }
 
         public static ConsoleKeyInfo ReadKey(bool intercept)
@@ -58,13 +62,13 @@ namespace SharpPadRuntime
             {
                 if (BufferedChars.Count == 0)
                 {
-                    var line = Console.ReadLine();
+                    string line = Console.ReadLine();
                     if (line == null)
                     {
                         return new ConsoleKeyInfo('\0', ConsoleKey.NoName, false, false, false);
                     }
 
-                    foreach (var ch in line)
+                    foreach (char ch in line)
                     {
                         BufferedChars.Enqueue(ch);
                     }
@@ -72,14 +76,14 @@ namespace SharpPadRuntime
                     BufferedChars.Enqueue('\n');
                 }
 
-                var nextChar = BufferedChars.Dequeue();
+                char nextChar = (char)BufferedChars.Dequeue();
 
                 if (!intercept && nextChar != '\0')
                 {
                     Console.Write(nextChar);
                 }
 
-                return new ConsoleKeyInfo(nextChar, MapToConsoleKey(nextChar), shift: false, alt: false, control: false);
+                return new ConsoleKeyInfo(nextChar, MapToConsoleKey(nextChar), false, false, false);
             }
         }
 

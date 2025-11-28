@@ -298,19 +298,12 @@ export function showNotification(message, type = 'info') {
 
 //定义常量
 export const DEFAULT_CODE = `using System;
-using System.Threading.Tasks;
 
-class Program
+class Hello
 {
-    public static async Task Main()
+    static void Main(string[] args)
     {
-        string message = "Hello, SharpPad! 关注我: https://github.com/gaoconggit/SharpPad";
-        foreach (char c in message)
-        {
-            Console.Write(c);
-            await Task.Delay(100);
-        }
-        Console.WriteLine();
+        Console.WriteLine("Hello World");
     }
 }`;
 
