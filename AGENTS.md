@@ -29,7 +29,7 @@ SharpPad 是一个面向 C# 开发者的代码实验与 AI 辅助平台，结合
 - 静态资源包含 `monaco-editor`、样式、Markdown 和图标，并支持多模型切换与语义着色。
 
 ## 桌面宿主 (SharpPad.Desktop)
-- 使用 Avalonia 11 + WebView.Avalonia，Windows 目标编译为 `net9.0`，非 Windows 编译为 `net8.0`。
+- 使用 Avalonia 11 + WebView.Avalonia，Windows/非 Windows 统一以 `net10.0` 目标编译。
 - `App.axaml` 与 `MainWindow` 配置 WebView，配合 `WebServerManager` 启动/停止嵌入的 ASP.NET Core 服务。
 - `WebServerManager` 处理发布包与开发环境路径，托管 `SharpPad.Program.ConfigureServices/Configure`。
 - `SharpPad.Desktop.csproj` 发布阶段复制 `wwwroot` 与 `appsettings.json`，并清理多余语言资源。

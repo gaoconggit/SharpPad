@@ -45,6 +45,7 @@ namespace monacoEditorCSharp.DataHelpers
 
         private static readonly string[] PreferredTfms =
         {
+            "net10.0",
             "net9.0",
             "net8.0",
             "net7.0",
@@ -360,7 +361,8 @@ namespace monacoEditorCSharp.DataHelpers
                         }
 
                         var fileName = Path.GetFileName(file);
-                        if (!file.EndsWith(Path.Combine("net9.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                        if (!file.EndsWith(Path.Combine("net10.0", fileName), StringComparison.OrdinalIgnoreCase) &&
+                            !file.EndsWith(Path.Combine("net9.0", fileName), StringComparison.OrdinalIgnoreCase) &&
                             !file.Contains(Path.Combine("net8.0", fileName), StringComparison.OrdinalIgnoreCase) &&
                             !file.Contains(Path.Combine("net7.0", fileName), StringComparison.OrdinalIgnoreCase) &&
                             !file.Contains(Path.Combine("net6.0", fileName), StringComparison.OrdinalIgnoreCase) &&

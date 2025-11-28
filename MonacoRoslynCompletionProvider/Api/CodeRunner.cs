@@ -2612,7 +2612,7 @@ namespace SharpPadRuntime
                     frameworkReferences.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                     break;
                 case "avalonia":
-                    targetFramework = "net8.0";
+                    targetFramework = "net10.0";
                     propertyExtraLines.Add("    <AvaloniaUseCompiledBindings>true</AvaloniaUseCompiledBindings>");
                     break;
                 case "webapi":
@@ -2903,7 +2903,7 @@ namespace SharpPadRuntime
                         frameworkRefLines.Add("    <FrameworkReference Include=\"Microsoft.WindowsDesktop.App\" />");
                         break;
                     case "avalonia":
-                        targetFramework = "net8.0";
+                        targetFramework = "net10.0";
                         propertyExtraLines.Add("    <AvaloniaUseCompiledBindings>true</AvaloniaUseCompiledBindings>");
                         break;
                     case "aspnetcore":

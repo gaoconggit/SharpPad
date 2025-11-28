@@ -2,8 +2,8 @@
 	<PropertyGroup>
 		<OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
 		<OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
-		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net9.0-windows</TargetFramework>
-		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net9.0</TargetFramework>
+		<TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
+		<TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">12.0</SupportedOSPlatformVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -28,8 +28,8 @@
 		<PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.9" />
-		<PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
 
 		<PackageReference Include="WebView.Avalonia.Cross" Version="11.3.1" />
 		<PackageReference Include="WebView.Avalonia.Desktop.Cross" Version="11.3.1" />
@@ -58,7 +58,6 @@
 		<ItemGroup>
 			<SharpPadWwwroot Include="..\SharpPad\wwwroot\**\*" />
 			<SharpPadConfig Include="..\SharpPad\appsettings.json" />
-			<SharpPadWwwroot Include="..\SharpPad\Dll\**\*" />
 		</ItemGroup>
 
 		<Copy SourceFiles="@(SharpPadWwwroot)" DestinationFiles="@(SharpPadWwwroot->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />

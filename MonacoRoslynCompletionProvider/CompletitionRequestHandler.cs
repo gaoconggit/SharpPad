@@ -28,15 +28,6 @@ namespace MonacoRoslynCompletionProvider
                 .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
                 .Select(a => a.Location));
 
-            // 添加预定义的程序集
-            baseAssemblies.AddRange(new[]
-            {
-                Path.Combine("Dll", "System.Text.Json.dll"),
-                Path.Combine("Dll", "FreeSql.dll"),
-                Path.Combine("Dll", "CSRedisCore.dll"),
-                Path.Combine("Dll", "RestSharp.dll"),
-            });
-
             // 只有在项目类型为 winforms 时才加载 Windows Forms 程序集
             if (IsWindowsFormsProject(projectType))
             {
