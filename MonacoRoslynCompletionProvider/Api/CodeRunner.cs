@@ -110,6 +110,35 @@ namespace SharpPadRuntime
     }
 }
 ";
+        private static readonly LanguageVersion HighestDefinedLanguageVersion = Enum
+            .GetValues(typeof(LanguageVersion))
+            .Cast<LanguageVersion>()
+            .OrderByDescending(v => v)
+            .First();
+
+        private static LanguageVersion ResolveLanguageVersion(int requested)
+        {
+            var candidate = (LanguageVersion)requested;
+
+            if (Enum.IsDefined(typeof(LanguageVersion), candidate) && candidate != LanguageVersion.Default)
+            {
+                return candidate;
+            }
+
+            return HighestDefinedLanguageVersion;
+        }
+
+        private static string ResolveLanguageVersionString(int requested)
+        {
+            try
+            {
+                return ResolveLanguageVersion(requested).ToString();
+            }
+            catch
+            {
+                return "latest";
+            }
+        }
 
         private static string NormalizeProjectType(string type)
         {
@@ -452,11 +481,12 @@ namespace SharpPadRuntime
 
             try
             {
+                var effectiveLanguageVersion = ResolveLanguageVersion(languageVersion);
                 var nugetAssemblies = DownloadNugetPackages.LoadPackages(nuget);
                 loadContext = new CustomAssemblyLoadContext(nugetAssemblies);
 
                 var parseOptions = new CSharpParseOptions(
-                    languageVersion: (LanguageVersion)languageVersion,
+                    languageVersion: effectiveLanguageVersion,
                     kind: SourceCodeKind.Regular,
                     documentationMode: DocumentationMode.Parse);
 
@@ -649,8 +679,9 @@ namespace SharpPadRuntime
             }
             var requiresWinForms = !isAvalonia && (string.Equals(normalizedProjectType, "winforms", StringComparison.OrdinalIgnoreCase) || detectedWinForms);
 
+            var effectiveLanguageVersion = ResolveLanguageVersion(languageVersion);
             var parseOptions = new CSharpParseOptions(
-                languageVersion: (LanguageVersion)languageVersion,
+                languageVersion: effectiveLanguageVersion,
                 kind: SourceCodeKind.Regular,
                 documentationMode: DocumentationMode.Parse);
 
@@ -2620,15 +2651,7 @@ namespace SharpPadRuntime
                     break;
             }
 
-            var langVer = "latest";
-            try
-            {
-                langVer = ((LanguageVersion)languageVersion).ToString();
-            }
-            catch
-            {
-                // keep default when conversion fails
-            }
+            var langVer = ResolveLanguageVersionString(languageVersion);
 
             var builder = new StringBuilder();
             builder.AppendLine($"<Project Sdk=\"{sdk}\">");
@@ -2921,8 +2944,7 @@ namespace SharpPadRuntime
                 var packageReferences = BuildPackageReferenceMap(nuget, normalizedProjectType);
                 EnsureRuntimePackageReferences(packageReferences);
 
-                var langVer = "latest";
-                try { langVer = ((LanguageVersion)languageVersion).ToString(); } catch { }
+                var langVer = ResolveLanguageVersionString(languageVersion);
 
                 var projectBuilder = new StringBuilder();
                 projectBuilder.AppendLine($"<Project Sdk=\"{sdk}\">");

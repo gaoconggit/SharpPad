@@ -120,7 +120,8 @@ body.theme-light .version-select option {
     font-size: 14px;
     cursor: pointer;
     outline: none;
-    max-width: 130px;
+    min-width: 150px;
+    max-width: 190px;
 }
 
 .version-select:hover {
