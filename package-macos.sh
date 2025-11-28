@@ -17,6 +17,8 @@ APP_NAME="SharpPad"
 BUNDLE_ID="com.sharppad.desktop"
 VERSION="1.0.0"
 PROJECT_PATH="SharpPad.Desktop/SharpPad.Desktop.csproj"
+# 使用与手动命令一致的发布输出目录
+PUBLISH_DIR="/tmp/SharpPad-pub"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -72,7 +74,7 @@ clean_build() {
     
     rm -rf "SharpPad.Desktop/bin" "SharpPad.Desktop/obj" 2>/dev/null || true
     rm -rf "SharpPad.app" 2>/dev/null || true
-    rm -rf "publish-temp" 2>/dev/null || true
+    rm -rf "$PUBLISH_DIR" 2>/dev/null || true
     rm -rf "icon.iconset" 2>/dev/null || true
     
     print_success "清理完成"
@@ -94,13 +96,13 @@ detect_architecture() {
 build_app() {
     print_step "构建应用程序 ($RID)..."
     
-    # 使用 self-contained true 确保包含所有运行时文件
+    # 对齐手动执行的发布命令，确保 ExecutionHost 等全部产物被包含
     dotnet publish "$PROJECT_PATH" \
-        --configuration Release \
-        --runtime "$RID" \
+        -c Release \
+        -r "$RID" \
         --self-contained true \
-        --output "publish-temp" \
-        --verbosity quiet
+        --output "$PUBLISH_DIR" \
+        --nologo
     
     if [ $? -eq 0 ]; then
         print_success "应用构建完成"
@@ -125,7 +127,7 @@ copy_app_files() {
     print_step "复制应用文件..."
     
     # 复制所有发布文件到 MacOS 目录
-    cp -r publish-temp/* "SharpPad.app/Contents/MacOS/"
+    cp -r "$PUBLISH_DIR"/* "SharpPad.app/Contents/MacOS/"
     
     # 清理不需要的运行时文件（避免签名问题）
     rm -rf "SharpPad.app/Contents/MacOS/runtimes/win"* 2>/dev/null || true
@@ -319,7 +321,7 @@ set_permissions() {
 cleanup() {
     print_step "清理临时文件..."
     
-    rm -rf "publish-temp" 2>/dev/null || true
+    rm -rf "$PUBLISH_DIR" 2>/dev/null || true
     rm -rf "icon.iconset" 2>/dev/null || true
     
     print_success "清理完成"
@@ -329,12 +331,18 @@ cleanup() {
 verify_app() {
     print_step "验证应用包..."
     
-    if [ -f "SharpPad.app/Contents/Info.plist" ] && [ -f "SharpPad.app/Contents/MacOS/SharpPad.Desktop" ]; then
-        print_success "应用包验证通过"
-    else
+    if [ ! -f "SharpPad.app/Contents/Info.plist" ] || [ ! -f "SharpPad.app/Contents/MacOS/SharpPad.Desktop" ]; then
         print_error "应用包验证失败"
         exit 1
     fi
+
+    # 确认执行宿主被拷贝完整（避免运行时报缺失 .dll）
+    if [ ! -f "SharpPad.app/Contents/MacOS/ExecutionHost/SharpPad.ExecutionHost.dll" ]; then
+        print_error "未找到 ExecutionHost：SharpPad.app/Contents/MacOS/ExecutionHost/SharpPad.ExecutionHost.dll"
+        exit 1
+    fi
+
+    print_success "应用包验证通过"
 }
 
 # 显示完成信息

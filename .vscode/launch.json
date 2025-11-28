@@ -16,7 +16,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SharpPad/bin/Debug/net9.0/SharpPad.dll",
+            "program": "${workspaceFolder}/SharpPad/bin/Debug/net10.0/SharpPad.dll",
             "args": [],
             "cwd": "${workspaceFolder}/SharpPad",
             "stopAtEntry": false,
