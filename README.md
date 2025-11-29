@@ -22,11 +22,34 @@
 2. 解压后,找到 SharpPad.exe 双击运行
 3. 浏览器打开控制台显示的ip:port
 
-## Docker Compose
-  在项目根目录
-   1. 跑新服务 `docker compose up -d`
-   2. 更新服务 `docker compose build sharppad && docker compose down && docker compose up -d `
-   3. 停止服务 `docker compose down`
+## Docker Compose (纯Web版本容器化部署)
+  在项目根目录执行以下命令:
+  
+### 快速启动
+```bash
+# 构建并启动服务
+docker compose up -d
+
+# 访问 http://localhost:5090
+```
+
+### 常用命令
+  1. 启动新服务: `docker compose up -d`
+  2. 更新服务: `docker compose build sharppad && docker compose down && docker compose up -d`
+  3. 停止服务: `docker compose down`
+  4. 查看日志: `docker compose logs -f sharppad`
+
+### 手动构建 Docker 镜像
+```bash
+docker build -t sharppad:latest .
+docker run -d -p 5090:5090 --name sharppad-web sharppad:latest
+```
+
+### 特性
+- 基于 ASP.NET Core 9.0 的纯Web版本
+- 支持持久化NuGet包缓存
+- 内置健康检查
+- 自动重启
    
 
 ## 示例代码参考

@@ -24,11 +24,34 @@ A lightweight tool for quickly validating C# code snippets, built with Roslyn an
 2. Extract and run SharpPad.exe
 3. Open your browser and navigate to the ip:port shown in the console
 
-## Docker Compose
+## Docker Compose (Containerized Pure Web Version)
 In the project root directory:
-1. Run new service: `docker compose up -d`
+
+### Quick Start
+```bash
+# Build and start the service
+docker compose up -d
+
+# Access http://localhost:5090
+```
+
+### Common Commands
+1. Start new service: `docker compose up -d`
 2. Update service: `docker compose build sharppad && docker compose down && docker compose up -d`
 3. Stop service: `docker compose down`
+4. View logs: `docker compose logs -f sharppad`
+
+### Manual Docker Image Build
+```bash
+docker build -t sharppad:latest .
+docker run -d -p 5090:5090 --name sharppad-web sharppad:latest
+```
+
+### Features
+- Pure web version based on ASP.NET Core 9.0
+- Persistent NuGet package cache support
+- Built-in health check
+- Auto-restart on failure
 
 ## Sample Code Reference
 https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
