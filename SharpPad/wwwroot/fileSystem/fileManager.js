@@ -1911,18 +1911,33 @@ class FileManager {
         }
     }
 
-    // 清理文件名（移除非法字符）
+    // 清理文件名（移除非法字符，防止目录遍历）
     sanitizeFileName(fileName, defaultName = 'file') {
         if (!fileName || typeof fileName !== 'string') {
             return defaultName;
         }
         
-        const trimmed = fileName.trim();
-        if (trimmed.length === 0) {
+        // 移除前后空格
+        let sanitized = fileName.trim();
+        
+        // 移除路径分隔符和其他危险字符
+        // 移除: / \ : * ? " < > | 以及控制字符
+        sanitized = sanitized.replace(/[\/\\:*?"<>|\x00-\x1f\x7f]/g, '');
+        
+        // 移除前后的点（防止隐藏文件）
+        sanitized = sanitized.replace(/^\.+|\.+$/g, '');
+        
+        // 如果清理后为空，使用默认名称
+        if (sanitized.length === 0) {
             return defaultName;
         }
         
-        return trimmed;
+        // 限制长度（避免文件系统限制问题）
+        if (sanitized.length > 200) {
+            sanitized = sanitized.substring(0, 200);
+        }
+        
+        return sanitized;
     }
 
     // 通用的桌面保存方法
@@ -2029,6 +2044,9 @@ class FileManager {
         }
     }
 
+    // 创建文件夹结构数据（包含最新内容和完整配置）
+    // 注意：此方法获取 localStorage 中的最新内容，而不是缓存的 file.content
+    // 这确保导出/保存的始终是最新保存的内容
     createFolderStructureData(folder) {
         const structure = {
             name: folder.name,
@@ -2049,8 +2067,11 @@ class FileManager {
                     targetArray.push(subFolder);
                     processFiles(file.files, subFolder.files);
                 } else {
-                    // 获取最新的文件内容
+                    // 获取最新的文件内容（从 localStorage）
                     const content = localStorage.getItem(`file_${file.id}`) || file.content || '';
+                    
+                    // 包含 projectType 和 nugetConfig 以保持完整的项目配置
+                    // 这些字段在导入时会被使用，确保项目设置被正确恢复
                     targetArray.push({
                         name: file.name,
                         content: content,
