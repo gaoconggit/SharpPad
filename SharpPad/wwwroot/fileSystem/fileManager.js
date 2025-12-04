@@ -1188,37 +1188,8 @@ class FileManager {
         const findFolder = (items) => {
             for (let item of items) {
                 if (item.id === folderId) {
-                    // 创建一个包含文件夹内容的对象
-                    const folderData = {
-                        name: item.name,
-                        type: 'folder',
-                        files: []
-                    };
-
-                    // 递归获取文件夹的所有文件内容
-                    const getFilesContent = (folder, targetArray) => {
-                        if (folder.files) {
-                            folder.files.forEach(file => {
-                                if (file.type === 'folder') {
-                                    const subFolder = {
-                                        name: file.name,
-                                        type: 'folder',
-                                        files: []
-                                    };
-                                    targetArray.push(subFolder);
-                                    getFilesContent(file, subFolder.files);
-                                } else {
-                                    targetArray.push({
-                                        name: file.name,
-                                        content: file.content,
-                                        nugetConfig: file.nugetConfig
-                                    });
-                                }
-                            });
-                        }
-                    };
-
-                    getFilesContent(item, folderData.files);
+                    // 创建包含文件夹内容的对象（使用共享方法获取最新内容）
+                    const folderData = this.createFolderStructureData(item);
 
                     // 创建并下载 JSON 文件
                     const jsonContent = JSON.stringify(folderData, null, 2);
@@ -1992,34 +1963,36 @@ class FileManager {
         }
     }
 
-    saveFileViaDesktopBridge(fileName, content) {
+    // 通用的桌面保存方法
+    requestDesktopSave(fileName, content, mimeType, action) {
         if (!desktopBridge?.isAvailable) {
             showNotification('当前环境不支持桌面保存。', 'warning');
-            return;
+            return false;
         }
 
         try {
             const posted = desktopBridge.requestFileDownload({
                 fileName: fileName,
                 content: content,
-                mimeType: 'text/plain',
-                context: {
-                    action: 'save-file-as'
-                }
+                mimeType: mimeType,
+                context: { action: action }
             });
 
             if (!posted) {
                 showNotification('无法唤起桌面保存对话框。', 'error');
             }
+            return posted;
         } catch (error) {
             console.error('桌面保存请求失败:', error);
             showNotification('无法发起保存请求: ' + error.message, 'error');
+            return false;
         }
     }
 
-    saveFileViaBlob(fileName, content) {
+    // 通用的 Blob 下载方法
+    downloadBlob(fileName, content, mimeType, successMessage) {
         try {
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -2050,11 +2023,19 @@ class FileManager {
                 }, 100);
             }, 0);
 
-            showNotification('文件已保存', 'success');
+            showNotification(successMessage || '文件已保存', 'success');
         } catch (error) {
-            console.error('保存文件失败:', error);
-            showNotification('保存文件失败: ' + error.message, 'error');
+            console.error('保存失败:', error);
+            showNotification('保存失败: ' + error.message, 'error');
         }
+    }
+
+    saveFileViaDesktopBridge(fileName, content) {
+        this.requestDesktopSave(fileName, content, 'text/plain', 'save-file-as');
+    }
+
+    saveFileViaBlob(fileName, content) {
+        this.downloadBlob(fileName, content, 'text/plain;charset=utf-8', '文件已保存');
     }
 
     // 另存为文件夹到磁盘（包含完整目录结构）
@@ -2123,75 +2104,18 @@ class FileManager {
     }
 
     saveFolderViaDesktopBridge(folderName, folderData) {
-        if (!desktopBridge?.isAvailable) {
-            showNotification('当前环境不支持桌面保存。', 'warning');
-            return;
-        }
-
-        try {
-            const jsonContent = JSON.stringify(folderData, null, 2);
-            const fileName = `${folderName}.json`;
-
-            const posted = desktopBridge.requestFileDownload({
-                fileName: fileName,
-                content: jsonContent,
-                mimeType: 'application/json',
-                context: {
-                    action: 'save-folder-as',
-                    folderName: folderName
-                }
-            });
-
-            if (!posted) {
-                showNotification('无法唤起桌面保存对话框。', 'error');
-            } else {
-                showNotification('文件夹结构将保存为 JSON 文件', 'info');
-            }
-        } catch (error) {
-            console.error('桌面保存请求失败:', error);
-            showNotification('无法发起保存请求: ' + error.message, 'error');
+        const jsonContent = JSON.stringify(folderData, null, 2);
+        const fileName = `${folderName}.json`;
+        
+        const posted = this.requestDesktopSave(fileName, jsonContent, 'application/json', 'save-folder-as');
+        if (posted) {
+            showNotification('文件夹结构将保存为 JSON 文件', 'info');
         }
     }
 
     saveFolderViaBlob(folderName, folderData) {
-        try {
-            const jsonContent = JSON.stringify(folderData, null, 2);
-            const blob = new Blob([jsonContent], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${folderName}.json`;
-
-            // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
-            a.style.display = 'none';
-            document.body.appendChild(a);
-
-            // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
-            setTimeout(() => {
-                try {
-                    a.click();
-                } catch (e) {
-                    // 如果 click() 失败，尝试通过事件触发
-                    const clickEvent = new MouseEvent('click', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    a.dispatchEvent(clickEvent);
-                }
-
-                // 延迟清理以确保下载开始
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-            }, 0);
-
-            showNotification('文件夹已保存为 JSON', 'success');
-        } catch (error) {
-            console.error('保存文件夹失败:', error);
-            showNotification('保存文件夹失败: ' + error.message, 'error');
-        }
+        const jsonContent = JSON.stringify(folderData, null, 2);
+        this.downloadBlob(`${folderName}.json`, jsonContent, 'application/json', '文件夹已保存为 JSON');
     }
 
 }
