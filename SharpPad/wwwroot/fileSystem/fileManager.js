@@ -1624,15 +1624,27 @@ class FileManager {
         }
 
         if (message.cancelled) {
-            const cancelMessage = action === 'build-download' ? '已取消导出发布包' : '已取消导出';
+            let cancelMessage = '已取消';
+            if (action === 'build-download') {
+                cancelMessage = '已取消导出发布包';
+            } else if (action === 'save-file-as' || action === 'save-folder-as') {
+                cancelMessage = '已取消保存';
+            } else {
+                cancelMessage = '已取消导出';
+            }
             showNotification(cancelMessage, 'info');
             return true;
         }
 
         if (!message.success) {
-            const errorMessage = action === 'build-download'
-                ? (message.message || '导出发布包失败')
-                : (message.message || '导出失败');
+            let errorMessage = message.message || '操作失败';
+            if (action === 'build-download') {
+                errorMessage = message.message || '导出发布包失败';
+            } else if (action === 'save-file-as' || action === 'save-folder-as') {
+                errorMessage = message.message || '保存失败';
+            } else {
+                errorMessage = message.message || '导出失败';
+            }
             showNotification(errorMessage, 'error');
             return true;
         }
@@ -1655,6 +1667,24 @@ class FileManager {
                 showNotification(`已保存到: ${savedPath}`, 'success');
             } else {
                 showNotification('文件夹已导出', 'success');
+            }
+            return true;
+        }
+
+        if (action === 'save-file-as') {
+            if (savedPath) {
+                showNotification(`文件已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('文件已保存', 'success');
+            }
+            return true;
+        }
+
+        if (action === 'save-folder-as') {
+            if (savedPath) {
+                showNotification(`文件夹已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('文件夹已保存', 'success');
             }
             return true;
         }
@@ -1930,6 +1960,237 @@ class FileManager {
             // subFolders.forEach(element => {
             //     element.classList.add('open');
             // });
+        }
+    }
+
+    // 另存为单个文件到磁盘
+    saveFileAs() {
+        const menu = document.getElementById('fileContextMenu');
+        const fileId = menu.getAttribute('data-target-file-id');
+        menu.style.display = 'none';
+
+        if (!fileId) return;
+
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        // 递归查找文件
+        const file = this.findFileById(files, fileId);
+        if (!file) {
+            showNotification('未找到文件', 'error');
+            return;
+        }
+
+        // 获取文件内容
+        const fileContent = localStorage.getItem(`file_${file.id}`) || file.content || '';
+        
+        // 使用桌面保存对话框或Web下载
+        if (this.shouldUseDesktopExport()) {
+            this.saveFileViaDesktopBridge(file.name, fileContent);
+        } else {
+            this.saveFileViaBlob(file.name, fileContent);
+        }
+    }
+
+    saveFileViaDesktopBridge(fileName, content) {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('当前环境不支持桌面保存。', 'warning');
+            return;
+        }
+
+        try {
+            const posted = desktopBridge.requestFileDownload({
+                fileName: fileName,
+                content: content,
+                mimeType: 'text/plain',
+                context: {
+                    action: 'save-file-as'
+                }
+            });
+
+            if (!posted) {
+                showNotification('无法唤起桌面保存对话框。', 'error');
+            }
+        } catch (error) {
+            console.error('桌面保存请求失败:', error);
+            showNotification('无法发起保存请求: ' + error.message, 'error');
+        }
+    }
+
+    saveFileViaBlob(fileName, content) {
+        try {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+
+            // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
+            setTimeout(() => {
+                try {
+                    a.click();
+                } catch (e) {
+                    // 如果 click() 失败，尝试通过事件触发
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    a.dispatchEvent(clickEvent);
+                }
+
+                // 延迟清理以确保下载开始
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }, 0);
+
+            showNotification('文件已保存', 'success');
+        } catch (error) {
+            console.error('保存文件失败:', error);
+            showNotification('保存文件失败: ' + error.message, 'error');
+        }
+    }
+
+    // 另存为文件夹到磁盘（包含完整目录结构）
+    saveFolderAs() {
+        const menu = document.getElementById('folderContextMenu');
+        const folderId = menu.getAttribute('data-folder-id');
+        menu.style.display = 'none';
+
+        if (!folderId) return;
+
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        // 递归查找文件夹
+        const folder = this.findFileById(files, folderId);
+        if (!folder || folder.type !== 'folder') {
+            showNotification('未找到文件夹', 'error');
+            return;
+        }
+
+        // 创建包含完整目录结构的数据
+        const folderData = this.createFolderStructureData(folder);
+        
+        // 使用桌面保存对话框或Web下载
+        if (this.shouldUseDesktopExport()) {
+            this.saveFolderViaDesktopBridge(folder.name, folderData);
+        } else {
+            this.saveFolderViaBlob(folder.name, folderData);
+        }
+    }
+
+    createFolderStructureData(folder) {
+        const structure = {
+            name: folder.name,
+            type: 'folder',
+            files: []
+        };
+
+        const processFiles = (sourceFiles, targetArray) => {
+            if (!sourceFiles || !Array.isArray(sourceFiles)) return;
+
+            sourceFiles.forEach(file => {
+                if (file.type === 'folder') {
+                    const subFolder = {
+                        name: file.name,
+                        type: 'folder',
+                        files: []
+                    };
+                    targetArray.push(subFolder);
+                    processFiles(file.files, subFolder.files);
+                } else {
+                    // 获取最新的文件内容
+                    const content = localStorage.getItem(`file_${file.id}`) || file.content || '';
+                    targetArray.push({
+                        name: file.name,
+                        content: content,
+                        projectType: file.projectType,
+                        nugetConfig: file.nugetConfig
+                    });
+                }
+            });
+        };
+
+        processFiles(folder.files, structure.files);
+        return structure;
+    }
+
+    saveFolderViaDesktopBridge(folderName, folderData) {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('当前环境不支持桌面保存。', 'warning');
+            return;
+        }
+
+        try {
+            const jsonContent = JSON.stringify(folderData, null, 2);
+            const fileName = `${folderName}.json`;
+
+            const posted = desktopBridge.requestFileDownload({
+                fileName: fileName,
+                content: jsonContent,
+                mimeType: 'application/json',
+                context: {
+                    action: 'save-folder-as',
+                    folderName: folderName
+                }
+            });
+
+            if (!posted) {
+                showNotification('无法唤起桌面保存对话框。', 'error');
+            } else {
+                showNotification('文件夹结构将保存为 JSON 文件', 'info');
+            }
+        } catch (error) {
+            console.error('桌面保存请求失败:', error);
+            showNotification('无法发起保存请求: ' + error.message, 'error');
+        }
+    }
+
+    saveFolderViaBlob(folderName, folderData) {
+        try {
+            const jsonContent = JSON.stringify(folderData, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${folderName}.json`;
+
+            // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
+            setTimeout(() => {
+                try {
+                    a.click();
+                } catch (e) {
+                    // 如果 click() 失败，尝试通过事件触发
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    a.dispatchEvent(clickEvent);
+                }
+
+                // 延迟清理以确保下载开始
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }, 0);
+
+            showNotification('文件夹已保存为 JSON', 'success');
+        } catch (error) {
+            console.error('保存文件夹失败:', error);
+            showNotification('保存文件夹失败: ' + error.message, 'error');
         }
     }
 
