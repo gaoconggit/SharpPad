@@ -1190,8 +1190,6 @@ class FileManager {
                 if (item.id === folderId) {
                     // 创建包含文件夹内容的对象（使用共享方法获取最新内容）
                     const folderData = this.createFolderStructureData(item);
-
-                    // 创建并下载 JSON 文件
                     const jsonContent = JSON.stringify(folderData, null, 2);
 
                     if (this.shouldUseDesktopExport()) {
@@ -1199,38 +1197,8 @@ class FileManager {
                         return true;
                     }
 
-                    const blob = new Blob([jsonContent], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${item.name}.json`;
-
-                    // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-
-                    // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
-                    setTimeout(() => {
-                        try {
-                            a.click();
-                        } catch (e) {
-                            // 如果 click() 失败，尝试通过事件触发
-                            const clickEvent = new MouseEvent('click', {
-                                view: window,
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            a.dispatchEvent(clickEvent);
-                        }
-
-                        // 延迟清理以确保下载开始
-                        setTimeout(() => {
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                        }, 100);
-                    }, 0);
-
-                    showNotification('文件夹已导出', 'success');
+                    // Web 模式：使用共享下载方法
+                    this.downloadBlob(`${item.name}.json`, jsonContent, 'application/json', '文件夹已导出');
                     return true;
                 }
                 if (item.type === 'folder' && item.files) {
@@ -1457,32 +1425,12 @@ class FileManager {
     }
 
     exportFolderViaDesktopBridge(folderName, jsonContent) {
-        if (!desktopBridge?.isAvailable) {
-            showNotification('当前环境不支持桌面导出。', 'warning');
-            return;
-        }
-
-        const trimmedName = typeof folderName === 'string' ? folderName.trim() : '';
-        const fileName = trimmedName.length > 0 ? `${trimmedName}.json` : 'export.json';
-
-        try {
-            const posted = desktopBridge.requestFileDownload({
-                fileName,
-                content: jsonContent,
-                mimeType: 'application/json',
-                context: {
-                    action: 'export-folder',
-                    folderName: trimmedName || undefined
-                }
-            });
-
-            if (!posted) {
-                showNotification('无法唤起桌面导出对话框。', 'error');
-            }
-        } catch (error) {
-            console.error('桌面导出请求失败:', error);
-            showNotification('无法发起导出请求: ' + error.message, 'error');
-        }
+        const sanitizedName = this.sanitizeFileName(folderName, 'export');
+        const fileName = `${sanitizedName}.json`;
+        
+        this.requestDesktopSave(fileName, jsonContent, 'application/json', 'export-folder', {
+            folderName: sanitizedName
+        });
     }
 
     importFolderViaDesktopBridge(targetFolderId) {
@@ -1963,8 +1911,22 @@ class FileManager {
         }
     }
 
+    // 清理文件名（移除非法字符）
+    sanitizeFileName(fileName, defaultName = 'file') {
+        if (!fileName || typeof fileName !== 'string') {
+            return defaultName;
+        }
+        
+        const trimmed = fileName.trim();
+        if (trimmed.length === 0) {
+            return defaultName;
+        }
+        
+        return trimmed;
+    }
+
     // 通用的桌面保存方法
-    requestDesktopSave(fileName, content, mimeType, action) {
+    requestDesktopSave(fileName, content, mimeType, action, context = {}) {
         if (!desktopBridge?.isAvailable) {
             showNotification('当前环境不支持桌面保存。', 'warning');
             return false;
@@ -1975,7 +1937,7 @@ class FileManager {
                 fileName: fileName,
                 content: content,
                 mimeType: mimeType,
-                context: { action: action }
+                context: { action: action, ...context }
             });
 
             if (!posted) {
@@ -2104,18 +2066,22 @@ class FileManager {
     }
 
     saveFolderViaDesktopBridge(folderName, folderData) {
+        const sanitizedName = this.sanitizeFileName(folderName, 'folder');
         const jsonContent = JSON.stringify(folderData, null, 2);
-        const fileName = `${folderName}.json`;
+        const fileName = `${sanitizedName}.json`;
         
-        const posted = this.requestDesktopSave(fileName, jsonContent, 'application/json', 'save-folder-as');
+        const posted = this.requestDesktopSave(fileName, jsonContent, 'application/json', 'save-folder-as', {
+            folderName: sanitizedName
+        });
         if (posted) {
             showNotification('文件夹结构将保存为 JSON 文件', 'info');
         }
     }
 
     saveFolderViaBlob(folderName, folderData) {
+        const sanitizedName = this.sanitizeFileName(folderName, 'folder');
         const jsonContent = JSON.stringify(folderData, null, 2);
-        this.downloadBlob(`${folderName}.json`, jsonContent, 'application/json', '文件夹已保存为 JSON');
+        this.downloadBlob(`${sanitizedName}.json`, jsonContent, 'application/json', '文件夹已保存为 JSON');
     }
 
 }
