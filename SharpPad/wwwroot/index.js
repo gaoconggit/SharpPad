@@ -163,6 +163,8 @@ async function initializeApp() {
     window.exportFolder = () => fileManager.exportFolder();
     window.importFolder = () => fileManager.importFolder();
     window.showOnlyCurrentFolder = (folderId) => fileManager.showOnlyCurrentFolder(folderId);
+    window.saveFileAs = () => fileManager.saveFileAs();
+    window.saveFolderAs = () => fileManager.saveFolderAs();
 
     // NuGet 相关的全局函数
     window.GetCurrentFiles = () => JSON.parse(localStorage.getItem('controllerFiles') || '[]');

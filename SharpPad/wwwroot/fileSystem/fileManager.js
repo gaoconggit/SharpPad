@@ -3,6 +3,7 @@ import { showNotification, DEFAULT_CODE, PROJECT_TYPE_CHANGE_EVENT } from '../ut
 import { customPrompt, customConfirm } from '../utils/customPrompt.js';
 import desktopBridge from '../utils/desktopBridge.js';
 import { fileListResizer } from './fileListResizer.js';
+import { strToU8, zipSync } from '../libs/fflate.min.js';
 
 class FileManager {
     constructor() {
@@ -1188,39 +1189,8 @@ class FileManager {
         const findFolder = (items) => {
             for (let item of items) {
                 if (item.id === folderId) {
-                    // 创建一个包含文件夹内容的对象
-                    const folderData = {
-                        name: item.name,
-                        type: 'folder',
-                        files: []
-                    };
-
-                    // 递归获取文件夹的所有文件内容
-                    const getFilesContent = (folder, targetArray) => {
-                        if (folder.files) {
-                            folder.files.forEach(file => {
-                                if (file.type === 'folder') {
-                                    const subFolder = {
-                                        name: file.name,
-                                        type: 'folder',
-                                        files: []
-                                    };
-                                    targetArray.push(subFolder);
-                                    getFilesContent(file, subFolder.files);
-                                } else {
-                                    targetArray.push({
-                                        name: file.name,
-                                        content: file.content,
-                                        nugetConfig: file.nugetConfig
-                                    });
-                                }
-                            });
-                        }
-                    };
-
-                    getFilesContent(item, folderData.files);
-
-                    // 创建并下载 JSON 文件
+                    // 创建包含文件夹内容的对象（使用共享方法获取最新内容）
+                    const folderData = this.createFolderStructureData(item);
                     const jsonContent = JSON.stringify(folderData, null, 2);
 
                     if (this.shouldUseDesktopExport()) {
@@ -1228,38 +1198,8 @@ class FileManager {
                         return true;
                     }
 
-                    const blob = new Blob([jsonContent], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${item.name}.json`;
-
-                    // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-
-                    // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
-                    setTimeout(() => {
-                        try {
-                            a.click();
-                        } catch (e) {
-                            // 如果 click() 失败，尝试通过事件触发
-                            const clickEvent = new MouseEvent('click', {
-                                view: window,
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            a.dispatchEvent(clickEvent);
-                        }
-
-                        // 延迟清理以确保下载开始
-                        setTimeout(() => {
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                        }, 100);
-                    }, 0);
-
-                    showNotification('文件夹已导出', 'success');
+                    // Web 模式：使用共享下载方法
+                    this.downloadBlob(`${item.name}.json`, jsonContent, 'application/json', '文件夹已导出');
                     return true;
                 }
                 if (item.type === 'folder' && item.files) {
@@ -1486,32 +1426,12 @@ class FileManager {
     }
 
     exportFolderViaDesktopBridge(folderName, jsonContent) {
-        if (!desktopBridge?.isAvailable) {
-            showNotification('当前环境不支持桌面导出。', 'warning');
-            return;
-        }
-
-        const trimmedName = typeof folderName === 'string' ? folderName.trim() : '';
-        const fileName = trimmedName.length > 0 ? `${trimmedName}.json` : 'export.json';
-
-        try {
-            const posted = desktopBridge.requestFileDownload({
-                fileName,
-                content: jsonContent,
-                mimeType: 'application/json',
-                context: {
-                    action: 'export-folder',
-                    folderName: trimmedName || undefined
-                }
-            });
-
-            if (!posted) {
-                showNotification('无法唤起桌面导出对话框。', 'error');
-            }
-        } catch (error) {
-            console.error('桌面导出请求失败:', error);
-            showNotification('无法发起导出请求: ' + error.message, 'error');
-        }
+        const sanitizedName = this.sanitizeFileName(folderName, 'export');
+        const fileName = `${sanitizedName}.json`;
+        
+        this.requestDesktopSave(fileName, jsonContent, 'application/json', 'export-folder', {
+            folderName: sanitizedName
+        });
     }
 
     importFolderViaDesktopBridge(targetFolderId) {
@@ -1624,15 +1544,27 @@ class FileManager {
         }
 
         if (message.cancelled) {
-            const cancelMessage = action === 'build-download' ? '已取消导出发布包' : '已取消导出';
+            let cancelMessage = '已取消';
+            if (action === 'build-download') {
+                cancelMessage = '已取消导出发布包';
+            } else if (action === 'save-file-as' || action === 'save-folder-as') {
+                cancelMessage = '已取消保存';
+            } else {
+                cancelMessage = '已取消导出';
+            }
             showNotification(cancelMessage, 'info');
             return true;
         }
 
         if (!message.success) {
-            const errorMessage = action === 'build-download'
-                ? (message.message || '导出发布包失败')
-                : (message.message || '导出失败');
+            let errorMessage = message.message || '操作失败';
+            if (action === 'build-download') {
+                errorMessage = message.message || '导出发布包失败';
+            } else if (action === 'save-file-as' || action === 'save-folder-as') {
+                errorMessage = message.message || '保存失败';
+            } else {
+                errorMessage = message.message || '导出失败';
+            }
             showNotification(errorMessage, 'error');
             return true;
         }
@@ -1655,6 +1587,24 @@ class FileManager {
                 showNotification(`已保存到: ${savedPath}`, 'success');
             } else {
                 showNotification('文件夹已导出', 'success');
+            }
+            return true;
+        }
+
+        if (action === 'save-file-as') {
+            if (savedPath) {
+                showNotification(`文件已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('文件已保存', 'success');
+            }
+            return true;
+        }
+
+        if (action === 'save-folder-as') {
+            if (savedPath) {
+                showNotification(`文件夹已保存到: ${savedPath}`, 'success');
+            } else {
+                showNotification('文件夹已保存', 'success');
             }
             return true;
         }
@@ -1931,6 +1881,326 @@ class FileManager {
             //     element.classList.add('open');
             // });
         }
+    }
+
+    // 另存为单个文件到磁盘
+    saveFileAs() {
+        const menu = document.getElementById('fileContextMenu');
+        const fileId = menu.getAttribute('data-target-file-id');
+        menu.style.display = 'none';
+
+        if (!fileId) return;
+
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        // 递归查找文件
+        const file = this.findFileById(files, fileId);
+        if (!file) {
+            showNotification('未找到文件', 'error');
+            return;
+        }
+
+        // 获取文件内容
+        const fileContent = localStorage.getItem(`file_${file.id}`) || file.content || '';
+        
+        // 使用桌面保存对话框或Web下载
+        if (this.shouldUseDesktopExport()) {
+            this.saveFileViaDesktopBridge(file.name, fileContent);
+        } else {
+            this.saveFileViaBlob(file.name, fileContent);
+        }
+    }
+
+    // 清理文件名（移除非法字符，防止目录遍历）
+    sanitizeFileName(fileName, defaultName = 'file') {
+        if (!fileName || typeof fileName !== 'string') {
+            return defaultName;
+        }
+        
+        // 移除前后空格
+        let sanitized = fileName.trim();
+        
+        // 移除路径分隔符和其他危险字符
+        // 移除: / \ : * ? " < > | 以及控制字符
+        sanitized = sanitized.replace(/[\/\\:*?"<>|\x00-\x1f\x7f]/g, '');
+        
+        // 移除前后的点（防止隐藏文件）
+        sanitized = sanitized.replace(/^\.+|\.+$/g, '');
+        
+        // 如果清理后为空，使用默认名称
+        if (sanitized.length === 0) {
+            return defaultName;
+        }
+        
+        // 限制长度（避免文件系统限制问题）
+        if (sanitized.length > 200) {
+            sanitized = sanitized.substring(0, 200);
+        }
+        
+        return sanitized;
+    }
+
+    // 通用的桌面保存方法
+    requestDesktopSave(fileName, content, mimeType, action, context = {}, isBase64 = false) {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('当前环境不支持桌面保存。', 'warning');
+            return false;
+        }
+
+        try {
+            const posted = desktopBridge.requestFileDownload({
+                fileName: fileName,
+                content: content,
+                mimeType: mimeType,
+                isBase64: isBase64,
+                context: { action: action, ...context }
+            });
+
+            if (!posted) {
+                showNotification('无法唤起桌面保存对话框。', 'error');
+            }
+            return posted;
+        } catch (error) {
+            console.error('桌面保存请求失败:', error);
+            showNotification('无法发起保存请求: ' + error.message, 'error');
+            return false;
+        }
+    }
+
+    // 通用的 Blob 下载方法
+    downloadBlob(fileName, content, mimeType, successMessage) {
+        try {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+
+            // 兼容 macOS WebView: 先添加到 DOM，设置样式，然后触发点击
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            // 使用 setTimeout 确保元素完全附加到 DOM 后再触发点击
+            setTimeout(() => {
+                try {
+                    a.click();
+                } catch (e) {
+                    // 如果 click() 失败，尝试通过事件触发
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    a.dispatchEvent(clickEvent);
+                }
+
+                // 延迟清理以确保下载开始
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }, 0);
+
+            showNotification(successMessage || '文件已保存', 'success');
+        } catch (error) {
+            console.error('保存失败:', error);
+            showNotification('保存失败: ' + error.message, 'error');
+        }
+    }
+
+    downloadBinary(fileName, bytes, mimeType, successMessage) {
+        try {
+            const blob = new Blob([bytes], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            setTimeout(() => {
+                try {
+                    a.click();
+                } catch (e) {
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    a.dispatchEvent(clickEvent);
+                }
+
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }, 0);
+
+            showNotification(successMessage || '文件已保存', 'success');
+        } catch (error) {
+            console.error('保存失败:', error);
+            showNotification('保存失败: ' + error.message, 'error');
+        }
+    }
+
+    saveFileViaDesktopBridge(fileName, content) {
+        this.requestDesktopSave(fileName, content, 'text/plain', 'save-file-as');
+    }
+
+    saveFileViaBlob(fileName, content) {
+        this.downloadBlob(fileName, content, 'text/plain;charset=utf-8', '文件已保存');
+    }
+
+    // 另存为文件夹到磁盘（包含完整目录结构）
+    saveFolderAs() {
+        const menu = document.getElementById('folderContextMenu');
+        const folderId = menu.getAttribute('data-folder-id');
+        menu.style.display = 'none';
+
+        if (!folderId) return;
+
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        // 递归查找文件夹
+        const folder = this.findFileById(files, folderId);
+        if (!folder || folder.type !== 'folder') {
+            showNotification('未找到文件夹', 'error');
+            return;
+        }
+
+        // 创建包含完整目录结构的数据
+        const folderData = this.createFolderStructureData(folder);
+        const zipPackage = this.buildZipFromFolder(folderData);
+        if (!zipPackage) {
+            showNotification('打包文件夹时出现问题', 'error');
+            return;
+        }
+
+        // 使用桌面保存对话框或Web下载
+        if (this.shouldUseDesktopExport()) {
+            this.saveFolderViaDesktopBridge(zipPackage);
+        } else {
+            this.saveFolderViaBlob(zipPackage);
+        }
+    }
+
+    // 创建文件夹结构数据（包含最新内容和完整配置）
+    // 注意：此方法获取 localStorage 中的最新内容，而不是缓存的 file.content
+    // 这确保导出/保存的始终是最新保存的内容
+    createFolderStructureData(folder) {
+        const structure = {
+            name: folder.name,
+            type: 'folder',
+            files: []
+        };
+
+        const processFiles = (sourceFiles, targetArray) => {
+            if (!sourceFiles || !Array.isArray(sourceFiles)) return;
+
+            sourceFiles.forEach(file => {
+                if (file.type === 'folder') {
+                    const subFolder = {
+                        name: file.name,
+                        type: 'folder',
+                        files: []
+                    };
+                    targetArray.push(subFolder);
+                    processFiles(file.files, subFolder.files);
+                } else {
+                    // 获取最新的文件内容（从 localStorage）
+                    const content = localStorage.getItem(`file_${file.id}`) || file.content || '';
+                    
+                    // 包含 projectType 和 nugetConfig 以保持完整的项目配置
+                    // 这些字段在导入时会被使用，确保项目设置被正确恢复
+                    targetArray.push({
+                        name: file.name,
+                        content: content,
+                        projectType: file.projectType,
+                        nugetConfig: file.nugetConfig
+                    });
+                }
+            });
+        };
+
+        processFiles(folder.files, structure.files);
+        return structure;
+    }
+
+    buildZipFromFolder(folderData) {
+        if (!folderData || folderData.type !== 'folder') {
+            return null;
+        }
+
+        const sanitizedRoot = this.sanitizeFileName(folderData.name, 'folder');
+        const zipEntries = {};
+
+        const appendFiles = (node, currentPath) => {
+            if (!node || !Array.isArray(node.files)) return;
+
+            node.files.forEach(item => {
+                if (item.type === 'folder') {
+                    const folderName = this.sanitizeFileName(item.name, 'folder');
+                    appendFiles(item, `${currentPath}/${folderName}`);
+                } else {
+                    const fileName = this.sanitizeFileName(item.name, 'file');
+                    const content = typeof item.content === 'string' ? item.content : '';
+                    const fullPath = `${currentPath}/${fileName}`;
+                    zipEntries[fullPath] = strToU8(content);
+                }
+            });
+        };
+
+        appendFiles(folderData, sanitizedRoot);
+
+        if (Object.keys(zipEntries).length === 0) {
+            zipEntries[`${sanitizedRoot}/.keep`] = new Uint8Array();
+        }
+
+        const zipBytes = zipSync(zipEntries, { level: 9 });
+        return {
+            zipBytes,
+            zipName: `${sanitizedRoot}.zip`,
+            folderName: sanitizedRoot
+        };
+    }
+
+    arrayBufferToBase64(buffer) {
+        if (!buffer) return '';
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binary = '';
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, chunk);
+        }
+
+        return btoa(binary);
+    }
+
+    saveFolderViaDesktopBridge(zipPackage) {
+        const base64Content = this.arrayBufferToBase64(zipPackage.zipBytes);
+
+        const posted = this.requestDesktopSave(
+            zipPackage.zipName,
+            base64Content,
+            'application/zip',
+            'save-folder-as',
+            {
+                folderName: zipPackage.folderName,
+                format: 'zip'
+            },
+            true
+        );
+        if (posted) {
+            showNotification('文件夹已打包为 ZIP，等待保存', 'info');
+        }
+    }
+
+    saveFolderViaBlob(zipPackage) {
+        this.downloadBinary(zipPackage.zipName, zipPackage.zipBytes, 'application/zip', '文件夹已保存为 ZIP');
     }
 
 }
