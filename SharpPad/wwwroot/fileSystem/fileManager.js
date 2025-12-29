@@ -3,6 +3,7 @@ import { showNotification, DEFAULT_CODE, PROJECT_TYPE_CHANGE_EVENT } from '../ut
 import { customPrompt, customConfirm } from '../utils/customPrompt.js';
 import desktopBridge from '../utils/desktopBridge.js';
 import { fileListResizer } from './fileListResizer.js';
+import { strToU8, zipSync } from '../libs/fflate.min.js';
 
 class FileManager {
     constructor() {
@@ -1941,7 +1942,7 @@ class FileManager {
     }
 
     // 通用的桌面保存方法
-    requestDesktopSave(fileName, content, mimeType, action, context = {}) {
+    requestDesktopSave(fileName, content, mimeType, action, context = {}, isBase64 = false) {
         if (!desktopBridge?.isAvailable) {
             showNotification('当前环境不支持桌面保存。', 'warning');
             return false;
@@ -1952,6 +1953,7 @@ class FileManager {
                 fileName: fileName,
                 content: content,
                 mimeType: mimeType,
+                isBase64: isBase64,
                 context: { action: action, ...context }
             });
 
@@ -2007,6 +2009,41 @@ class FileManager {
         }
     }
 
+    downloadBinary(fileName, bytes, mimeType, successMessage) {
+        try {
+            const blob = new Blob([bytes], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            setTimeout(() => {
+                try {
+                    a.click();
+                } catch (e) {
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    a.dispatchEvent(clickEvent);
+                }
+
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }, 0);
+
+            showNotification(successMessage || '文件已保存', 'success');
+        } catch (error) {
+            console.error('保存失败:', error);
+            showNotification('保存失败: ' + error.message, 'error');
+        }
+    }
+
     saveFileViaDesktopBridge(fileName, content) {
         this.requestDesktopSave(fileName, content, 'text/plain', 'save-file-as');
     }
@@ -2035,12 +2072,17 @@ class FileManager {
 
         // 创建包含完整目录结构的数据
         const folderData = this.createFolderStructureData(folder);
-        
+        const zipPackage = this.buildZipFromFolder(folderData);
+        if (!zipPackage) {
+            showNotification('打包文件夹时出现问题', 'error');
+            return;
+        }
+
         // 使用桌面保存对话框或Web下载
         if (this.shouldUseDesktopExport()) {
-            this.saveFolderViaDesktopBridge(folder.name, folderData);
+            this.saveFolderViaDesktopBridge(zipPackage);
         } else {
-            this.saveFolderViaBlob(folder.name, folderData);
+            this.saveFolderViaBlob(zipPackage);
         }
     }
 
@@ -2086,23 +2128,79 @@ class FileManager {
         return structure;
     }
 
-    saveFolderViaDesktopBridge(folderName, folderData) {
-        const sanitizedName = this.sanitizeFileName(folderName, 'folder');
-        const jsonContent = JSON.stringify(folderData, null, 2);
-        const fileName = `${sanitizedName}.json`;
-        
-        const posted = this.requestDesktopSave(fileName, jsonContent, 'application/json', 'save-folder-as', {
-            folderName: sanitizedName
-        });
+    buildZipFromFolder(folderData) {
+        if (!folderData || folderData.type !== 'folder') {
+            return null;
+        }
+
+        const sanitizedRoot = this.sanitizeFileName(folderData.name, 'folder');
+        const zipEntries = {};
+
+        const appendFiles = (node, currentPath) => {
+            if (!node || !Array.isArray(node.files)) return;
+
+            node.files.forEach(item => {
+                if (item.type === 'folder') {
+                    const folderName = this.sanitizeFileName(item.name, 'folder');
+                    appendFiles(item, `${currentPath}/${folderName}`);
+                } else {
+                    const fileName = this.sanitizeFileName(item.name, 'file');
+                    const content = typeof item.content === 'string' ? item.content : '';
+                    const fullPath = `${currentPath}/${fileName}`;
+                    zipEntries[fullPath] = strToU8(content);
+                }
+            });
+        };
+
+        appendFiles(folderData, sanitizedRoot);
+
+        if (Object.keys(zipEntries).length === 0) {
+            zipEntries[`${sanitizedRoot}/.keep`] = new Uint8Array();
+        }
+
+        const zipBytes = zipSync(zipEntries, { level: 9 });
+        return {
+            zipBytes,
+            zipName: `${sanitizedRoot}.zip`,
+            folderName: sanitizedRoot
+        };
+    }
+
+    arrayBufferToBase64(buffer) {
+        if (!buffer) return '';
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binary = '';
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, chunk);
+        }
+
+        return btoa(binary);
+    }
+
+    saveFolderViaDesktopBridge(zipPackage) {
+        const base64Content = this.arrayBufferToBase64(zipPackage.zipBytes);
+
+        const posted = this.requestDesktopSave(
+            zipPackage.zipName,
+            base64Content,
+            'application/zip',
+            'save-folder-as',
+            {
+                folderName: zipPackage.folderName,
+                format: 'zip'
+            },
+            true
+        );
         if (posted) {
-            showNotification('文件夹结构将保存为 JSON 文件', 'info');
+            showNotification('文件夹已打包为 ZIP，等待保存', 'info');
         }
     }
 
-    saveFolderViaBlob(folderName, folderData) {
-        const sanitizedName = this.sanitizeFileName(folderName, 'folder');
-        const jsonContent = JSON.stringify(folderData, null, 2);
-        this.downloadBlob(`${sanitizedName}.json`, jsonContent, 'application/json', '文件夹已保存为 JSON');
+    saveFolderViaBlob(zipPackage) {
+        this.downloadBinary(zipPackage.zipName, zipPackage.zipBytes, 'application/zip', '文件夹已保存为 ZIP');
     }
 
 }
