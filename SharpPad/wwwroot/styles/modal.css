@@ -373,6 +373,7 @@ body.theme-light .model-backend-status {
 }
 
 .edit-model,
+.copy-model,
 .delete-model {
     padding: 4px 8px;
     font-size: 12px;
@@ -388,6 +389,15 @@ body.theme-light .model-backend-status {
 
 .edit-model:hover {
     background-color: #106ebe;
+}
+
+.copy-model {
+    background-color: #5b5b5b;
+    color: #fff;
+}
+
+.copy-model:hover {
+    background-color: #6f6f6f;
 }
 
 .delete-model {

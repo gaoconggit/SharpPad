@@ -245,6 +245,9 @@ export class ChatManager {
         // 暴露删除模型的方法到全局
         window.deleteModel = (modelId, showConfirm = true) => this.deleteModel(modelId, showConfirm);
 
+        // 暴露复制模型的方法到全局
+        window.copyModel = (modelId) => this.copyModel(modelId);
+
         // 添加测试方法到全局，用于检查聊天面板状态
         window.checkChatPanelState = () => {
             const chatManager = this;
@@ -790,6 +793,7 @@ export class ChatManager {
 
     updateModelSelect() {
         const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
+        const currentSelection = this.modelSelect.value;
         this.modelSelect.innerHTML = '';
 
         models.forEach(model => {
@@ -798,6 +802,10 @@ export class ChatManager {
             option.textContent = model.name;
             this.modelSelect.appendChild(option);
         });
+
+        if (models.some(model => model.id === currentSelection)) {
+            this.modelSelect.value = currentSelection;
+        }
     }
 
     updateModelList() {
@@ -819,6 +827,7 @@ export class ChatManager {
                 </div>
                 <div class="model-actions">
                     <button class="edit-model" data-model-id="${model.id}">编辑</button>
+                    <button class="copy-model" data-model-id="${model.id}">复制</button>
                     <button class="delete-model" data-model-id="${model.id}">删除</button>
                 </div>
             `;
@@ -828,6 +837,10 @@ export class ChatManager {
         // 添加事件监听
         modelList.querySelectorAll('.edit-model').forEach(button => {
             button.addEventListener('click', () => this.editModel(button.dataset.modelId));
+        });
+
+        modelList.querySelectorAll('.copy-model').forEach(button => {
+            button.addEventListener('click', () => this.copyModel(button.dataset.modelId));
         });
 
         modelList.querySelectorAll('.delete-model').forEach(button => {
@@ -1016,6 +1029,46 @@ export class ChatManager {
 
         this.updateModelList();
         this.updateModelSelect();
+    }
+
+    copyModel(modelId) {
+        const models = JSON.parse(localStorage.getItem('chatModels') || '[]');
+        const model = models.find(m => m.id === modelId);
+
+        if (!model) {
+            return;
+        }
+
+        const copyName = this.getCopyName(model.name, models);
+        const newModel = {
+            ...model,
+            id: crypto.randomUUID(),
+            name: copyName
+        };
+
+        models.push(newModel);
+        localStorage.setItem('chatModels', JSON.stringify(models));
+
+        this.updateModelList();
+        this.updateModelSelect();
+    }
+
+    getCopyName(baseName, models) {
+        const existingNames = new Set(models.map(m => m.name));
+        const defaultCopyName = `${baseName} - 副本`;
+
+        if (!existingNames.has(defaultCopyName)) {
+            return defaultCopyName;
+        }
+
+        let index = 2;
+        let candidate = `${defaultCopyName} ${index}`;
+        while (existingNames.has(candidate)) {
+            index += 1;
+            candidate = `${defaultCopyName} ${index}`;
+        }
+
+        return candidate;
     }
 
 
