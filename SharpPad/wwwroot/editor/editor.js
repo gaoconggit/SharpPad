@@ -100,8 +100,7 @@ ${body.completionMetadata.textBeforeCursor}<cursor>${body.completionMetadata.tex
 
 Provide only the code to insert at the cursor position.`
                         }
-                    ],
-                    "max_tokens": 300
+                    ]
                 };
 
                 // 确定请求端点
