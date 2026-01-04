@@ -1748,7 +1748,8 @@ class FileManager {
         }
     }
 
-    saveFileToLocalStorage(fileId, code) {
+    saveFileToLocalStorage(fileId, code, options = {}) {
+        const { silent = false } = options || {};
         try {
             // 保存到 localStorage
             localStorage.setItem(`file_${fileId}`, code);
@@ -1772,7 +1773,9 @@ class FileManager {
             updateFileContent(files, fileId, code);
             localStorage.setItem('controllerFiles', JSON.stringify(files));
 
-            showNotification('保存成功', 'success');
+            if (!silent) {
+                showNotification('保存成功', 'success');
+            }
             return true;
         } catch (error) {
             console.error('Error saving to localStorage:', error);

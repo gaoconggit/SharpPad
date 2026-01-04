@@ -54,6 +54,7 @@ function loadMonaco() {
 
 import { Editor } from './editor/editor.js';
 import { EditorCommands } from './editor/commands.js';
+import { AutoSaveManager } from './editor/autoSave.js';
 import { FileManager } from './fileSystem/fileManager.js';
 import { registerCsharpProvider } from './csharpLanguageProvider.js';
 import { CodeRunner } from './execution/runner.js';
@@ -275,6 +276,12 @@ async function initializeApp() {
     const commands = new EditorCommands(editor);
     commands.registerCommands();
 
+    // 自动保存编辑器内容
+    const autoSaveManager = new AutoSaveManager({
+        editor,
+        fileManager
+    });
+
     // 初始化代码运行器和输出面板
     const outputPanel = new OutputPanel();
     window.outputPanelInstance = outputPanel; // 暴露到全局作用域
@@ -301,6 +308,7 @@ async function initializeApp() {
     // 将编辑器实例暴露给全局，以便其他模块使用
     window.editor = editor;
     window.editorInstance = editorInstance;
+    window.autoSaveManager = autoSaveManager;
     // 暴露 CodeActionProvider 用于调试
     window.editor.codeActionProvider = editorInstance.codeActionProvider;
 }
