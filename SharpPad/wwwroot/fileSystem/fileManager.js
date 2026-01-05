@@ -16,6 +16,7 @@ class FileManager {
         FileManager.instance = this;
 
         this.fileListItems = document.getElementById('fileListItems');
+        this.workspaceRoot = null;
         this.initializeEventListeners();
     }
 
@@ -46,6 +47,12 @@ class FileManager {
             addFolderBtn.addEventListener('click', () => this.addFolder());
         }
 
+        // 打开工作区按钮监听
+        const openWorkspaceBtn = document.getElementById('openWorkspaceBtn');
+        if (openWorkspaceBtn) {
+            openWorkspaceBtn.addEventListener('click', () => this.openWorkspaceFromFolder());
+        }
+
         // 文件列表折叠/展开按钮监听
         const toggleFileListBtn = document.getElementById('toggleFileList');
         if (toggleFileListBtn) {
@@ -63,6 +70,271 @@ class FileManager {
 
         // 初始化右键菜单事件
         this.initializeContextMenus();
+
+        // 尝试恢复上一次的工作区
+        this.restoreWorkspaceFromCache();
+    }
+
+    isDiskPersistenceEnabled() {
+        return desktopBridge?.isAvailable && typeof this.workspaceRoot === 'string' && this.workspaceRoot.trim().length > 0;
+    }
+
+    getFilesFromStorage() {
+        const raw = localStorage.getItem('controllerFiles');
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const files = JSON.parse(raw);
+            return Array.isArray(files) ? files : [];
+        } catch (error) {
+            console.warn('无法解析文件列表:', error);
+            return [];
+        }
+    }
+
+    persistControllerFiles(files, options = {}) {
+        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        if (this.isDiskPersistenceEnabled() && !options?.skipDisk) {
+            this.persistWorkspaceToDisk(files, options?.silent);
+        }
+    }
+
+    persistWorkspaceToDisk(files, silent = false) {
+        if (!this.isDiskPersistenceEnabled()) {
+            return;
+        }
+
+        try {
+            const payload = this.buildWorkspacePayload(files);
+            const posted = desktopBridge.saveWorkspace(this.workspaceRoot, payload);
+            if (!posted && !silent) {
+                showNotification('当前环境不支持保存到磁盘。', 'warning');
+            }
+        } catch (error) {
+            console.error('持久化到磁盘失败:', error);
+            if (!silent) {
+                showNotification('保存到磁盘失败: ' + error.message, 'error');
+            }
+        }
+    }
+
+    buildWorkspacePayload(files, parentPath = '') {
+        const result = [];
+        if (!Array.isArray(files)) {
+            return result;
+        }
+
+        files.forEach(item => {
+            const safeName = this.sanitizeFileName(item.name, item.type === 'folder' ? 'Folder' : 'File');
+            const relativePath = parentPath ? `${parentPath}/${safeName}` : safeName;
+
+            if (item.type === 'folder') {
+                result.push({
+                    name: safeName,
+                    type: 'folder',
+                    relativePath: relativePath,
+                    files: this.buildWorkspacePayload(item.files || [], relativePath)
+                });
+            } else {
+                const content = localStorage.getItem(`file_${item.id}`) ?? item.content ?? '';
+                result.push({
+                    name: safeName,
+                    type: 'file',
+                    relativePath: relativePath,
+                    content: content,
+                    projectType: this.normalizeProjectType(item.projectType),
+                    nugetConfig: item.nugetConfig || { packages: [] }
+                });
+            }
+        });
+
+        return result;
+    }
+
+    getRelativePathById(items, targetId, parentPath = '') {
+        if (!Array.isArray(items)) {
+            return null;
+        }
+
+        for (const item of items) {
+            const safeName = this.sanitizeFileName(item.name, item.type === 'folder' ? 'Folder' : 'File');
+            const currentPath = parentPath ? `${parentPath}/${safeName}` : safeName;
+
+            if (item.id === targetId) {
+                return currentPath;
+            }
+
+            if (item.type === 'folder' && item.files) {
+                const childPath = this.getRelativePathById(item.files, targetId, currentPath);
+                if (childPath) {
+                    return childPath;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    saveFileContentToDisk(fileId, code) {
+        if (!this.isDiskPersistenceEnabled()) {
+            return;
+        }
+
+        const files = this.getFilesFromStorage();
+        const relativePath = this.getRelativePathById(files, fileId);
+        const file = this.findFileById(files, fileId);
+
+        if (!relativePath || !file) {
+            return;
+        }
+
+        const payload = {
+            name: this.sanitizeFileName(file.name, 'file'),
+            type: 'file',
+            relativePath: relativePath,
+            content: code ?? '',
+            projectType: this.normalizeProjectType(file.projectType),
+            nugetConfig: file.nugetConfig || { packages: [] }
+        };
+
+        const posted = desktopBridge.saveWorkspaceFile(this.workspaceRoot, payload);
+        if (!posted) {
+            showNotification('当前环境不支持保存到磁盘。', 'warning');
+        }
+    }
+
+    async openWorkspaceFromFolder() {
+        if (!desktopBridge?.isAvailable) {
+            showNotification('请在桌面应用中使用该功能。', 'warning');
+            return;
+        }
+
+        try {
+            const posted = desktopBridge.requestWorkspaceFolder();
+            if (!posted) {
+                showNotification('无法唤起文件夹选择器。', 'error');
+                return;
+            }
+
+            showNotification('正在打开文件夹...', 'info');
+        } catch (error) {
+            console.error('打开文件夹失败:', error);
+            showNotification('打开文件夹失败: ' + error.message, 'error');
+        }
+    }
+
+    handleWorkspaceMessage(message) {
+        if (!message || !message.type) {
+            return false;
+        }
+
+        if (message.type === 'workspace-folder-opened') {
+            if (message.cancelled) {
+                showNotification('已取消选择文件夹', 'info');
+                return true;
+            }
+
+            if (!message.success) {
+                showNotification(message.message || '加载文件夹失败', 'error');
+                return true;
+            }
+
+            this.applyWorkspaceFiles(message.rootPath, message.files);
+            return true;
+        }
+
+        if (message.type === 'workspace-saved') {
+            if (!message.success) {
+                showNotification(message.message || '保存到磁盘失败', 'error');
+            }
+            return true;
+        }
+
+        if (message.type === 'workspace-file-saved') {
+            if (!message.success) {
+                showNotification(message.message || '保存文件失败', 'error');
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    applyWorkspaceFiles(rootPath, items) {
+        if (!Array.isArray(items)) {
+            showNotification('未能解析文件夹内容', 'error');
+            return;
+        }
+
+        const transformed = this.transformWorkspaceItems(items);
+        this.workspaceRoot = rootPath || null;
+
+        // 缓存工作区路径，方便下次启动自动加载
+        if (this.workspaceRoot) {
+            try {
+                localStorage.setItem('sharpPad.workspaceRoot', this.workspaceRoot);
+            } catch (error) {
+                console.warn('无法缓存工作区路径:', error);
+            }
+        }
+
+        this.persistControllerFiles(transformed, { silent: true, skipDisk: true });
+        this.loadFileList();
+
+        if (transformed.length > 0) {
+            setTimeout(() => {
+                this.openFile(transformed[0]);
+            }, 0);
+        }
+
+        showNotification('已从磁盘加载项目', 'success');
+    }
+
+    transformWorkspaceItems(items) {
+        const result = [];
+        items.forEach(item => {
+            const safeName = this.sanitizeFileName(item.name, item.type === 'folder' ? 'Folder' : 'File');
+            const id = this.generateUUID();
+
+            if (item.type === 'folder') {
+                result.push({
+                    id,
+                    name: safeName,
+                    type: 'folder',
+                    files: this.transformWorkspaceItems(item.files || [])
+                });
+            } else {
+                const content = typeof item.content === 'string' ? item.content : '';
+                localStorage.setItem(`file_${id}`, content);
+
+                result.push({
+                    id,
+                    name: safeName,
+                    type: 'file',
+                    content: content,
+                    projectType: this.normalizeProjectType(item.projectType),
+                    nugetConfig: item.nugetConfig || { packages: [] }
+                });
+            }
+        });
+        return result;
+    }
+
+    restoreWorkspaceFromCache() {
+        if (!desktopBridge?.isAvailable) {
+            return;
+        }
+
+        try {
+            const cachedPath = localStorage.getItem('sharpPad.workspaceRoot');
+            if (cachedPath) {
+                desktopBridge.requestLoadWorkspace(cachedPath);
+            }
+        } catch (error) {
+            console.warn('无法恢复工作区:', error);
+        }
     }
 
     initializeFileListState() {
@@ -166,7 +438,7 @@ class FileManager {
                 const target = this.findFileById(files, fileId);
                 if (target && target.projectType !== normalized) {
                     target.projectType = normalized;
-                    window.localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    this.persistControllerFiles(files, { silent: true });
                     updated = true;
                 }
             }
@@ -426,7 +698,7 @@ class FileManager {
             // 添加到新文件夹
             folder.files = folder.files || [];
             folder.files.push(file);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
             this.loadFileList();
         }
     }
@@ -463,16 +735,16 @@ class FileManager {
                 return;
             }
 
-            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const files = this.getFilesFromStorage();
             const newFolder = {
                 id: Date.now().toString(),
-                name: folderName.trim(),
+                name: this.sanitizeFileName(folderName.trim(), 'New Folder'),
                 type: 'folder',
                 files: []
             };
 
             files.push(newFolder);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
 
             // 保存当前展开的文件夹，并添加新文件夹
             const expandedFolders = this.saveExpandedFolders();
@@ -535,8 +807,7 @@ class FileManager {
 
         if (!folderId) return;
 
-        const filesData = localStorage.getItem('controllerFiles');
-        const files = filesData ? JSON.parse(filesData) : [];
+        const files = this.getFilesFromStorage();
 
         // 递归查找文件夹
         const findAndRenameFolder = async (items) => {
@@ -545,8 +816,8 @@ class FileManager {
                     const newFolderName = await customPrompt('请输入新的文件夹名称', item.name);
                     if (!newFolderName || newFolderName === item.name) return;
 
-                    item.name = newFolderName;
-                    localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    item.name = this.sanitizeFileName(newFolderName, 'Folder');
+                    this.persistControllerFiles(files);
 
                     // 保存当前展开的文件夹状态
                     const expandedFolders = this.saveExpandedFolders();
@@ -570,9 +841,9 @@ class FileManager {
 
     async deleteFolder(folder) {
         if (await customConfirm(`确定要删除文件夹 "${folder.name}" 及其所有内容吗？`)) {
-            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const files = this.getFilesFromStorage();
             this.removeFileById(files, folder.id);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
             this.loadFileList();
         }
     }
@@ -700,10 +971,10 @@ class FileManager {
     }
 
     addFile() {
-        const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+        const files = this.getFilesFromStorage();
         const newFile = {
             id: Date.now().toString(),
-            name: 'New File.cs',
+            name: this.sanitizeFileName('New File.cs', 'New File.cs'),
             content: DEFAULT_CODE,
             projectType: this.getActiveProjectType(),
             nugetConfig: {
@@ -711,7 +982,7 @@ class FileManager {
             }
         };
         files.push(newFile);
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        this.persistControllerFiles(files);
         this.displayFileList(files);
         this.openFile(newFile);
     }
@@ -719,11 +990,11 @@ class FileManager {
     async renameFile(file) {
         const newName = await customPrompt('请输入新的文件名:', file.name);
         if (newName && newName !== file.name) {
-            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const files = this.getFilesFromStorage();
             const targetFile = this.findFileById(files, file.id);
             if (targetFile) {
-                targetFile.name = newName;
-                localStorage.setItem('controllerFiles', JSON.stringify(files));
+                targetFile.name = this.sanitizeFileName(newName, 'file');
+                this.persistControllerFiles(files);
                 this.loadFileList();
             }
         }
@@ -731,9 +1002,9 @@ class FileManager {
 
     async deleteFile(file) {
         if (await customConfirm(`确定要删除文件 "${file.name}" 吗？`)) {
-            const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+            const files = this.getFilesFromStorage();
             this.removeFileById(files, file.id);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
             this.loadFileList();
 
             // 如果删除的是当前选中的文件，清空编辑器
@@ -767,8 +1038,7 @@ class FileManager {
         if (!fileId) return;
 
         // 获取当前文件列表
-        const filesData = localStorage.getItem('controllerFiles');
-        const files = filesData ? JSON.parse(filesData) : [];
+        const files = this.getFilesFromStorage();
 
         // 递归查找并重命名文件
         const findAndRenameFile = async (items) => {
@@ -778,10 +1048,10 @@ class FileManager {
                     if (!newFileName || newFileName === items[i].name) return;
 
                     // 更新文件名
-                    items[i].name = newFileName;
+                    items[i].name = this.sanitizeFileName(newFileName, 'file');
 
                     // 保存更新后的文件列表
-                    localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    this.persistControllerFiles(files);
 
                     // 刷新文件列表
                     this.loadFileList();
@@ -822,10 +1092,8 @@ class FileManager {
     }
 
     moveItem(itemId, direction) {
-        const filesData = localStorage.getItem('controllerFiles');
-        if (!filesData) return;
-
-        const files = JSON.parse(filesData);
+        const files = this.getFilesFromStorage();
+        if (!files || files.length === 0) return;
 
         // 递归查找并移动项目
         const findAndMoveItem = (items) => {
@@ -850,7 +1118,7 @@ class FileManager {
         };
 
         if (findAndMoveItem(files)) {
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
             const expandedFolders = this.saveExpandedFolders();
             this.loadFileList();
             this.restoreExpandedFolders(expandedFolders);
@@ -881,7 +1149,7 @@ class FileManager {
     duplicateFile() {
         const menu = document.getElementById('fileContextMenu');
         const fileId = menu.getAttribute('data-target-file-id');
-        const files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+        const files = this.getFilesFromStorage();
 
         const originalFile = this.findFileById(files, fileId);
         if (!originalFile) return;
@@ -903,7 +1171,7 @@ class FileManager {
         }
 
         // 保存文件列表
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        this.persistControllerFiles(files);
 
         // 刷新文件列表显示
         this.loadFileList();
@@ -922,8 +1190,7 @@ class FileManager {
 
         if (!folderId) return;
 
-        const filesData = localStorage.getItem('controllerFiles');
-        const files = filesData ? JSON.parse(filesData) : [];
+        const files = this.getFilesFromStorage();
 
         // 递归查找并复制文件夹
         const findAndDuplicateFolder = (items) => {
@@ -961,7 +1228,7 @@ class FileManager {
                     parentArray.splice(index + 1, 0, duplicatedFolder);
 
                     // 保存更新后的文件列表
-                    localStorage.setItem('controllerFiles', JSON.stringify(files));
+                    this.persistControllerFiles(files);
 
                     // 刷新文件列表并展开复制的文件夹
                     const expandedFolders = this.saveExpandedFolders();
@@ -988,7 +1255,7 @@ class FileManager {
         menu.style.display = 'none';
 
         // 获取存储的文件列表
-        let files = JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+        let files = this.getFilesFromStorage();
 
         // 递归查找文件和其文件夹
         const findFileAndParentFolder = (items, parentFolder = null) => {
@@ -1013,7 +1280,7 @@ class FileManager {
             // 添加到根目录
             files.push(result.file);
             // 保存更新后的文件列表
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
             // 重新加载文件列表
             this.loadFileList();
         }
@@ -1077,7 +1344,7 @@ class FileManager {
 
         const newFile = {
             id: this.generateUUID(),
-            name: fileName,
+            name: this.sanitizeFileName(fileName, 'New File.cs'),
             content: DEFAULT_CODE,
             projectType: this.getActiveProjectType(),
             nugetConfig: {
@@ -1085,8 +1352,7 @@ class FileManager {
             }
         };
 
-        const filesData = localStorage.getItem('controllerFiles');
-        const files = filesData ? JSON.parse(filesData) : [];
+        const files = this.getFilesFromStorage();
 
         // 递归查找目标文件夹
         const findFolder = (items) => {
@@ -1106,7 +1372,7 @@ class FileManager {
         findFolder(files);
 
         // 保存文件列表和文件内容
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        this.persistControllerFiles(files);
         localStorage.setItem(`file_${newFile.id}`, newFile.content);
 
         // 保存当前展开的文件夹，并添加目标文件夹
@@ -1135,13 +1401,12 @@ class FileManager {
 
         const newFolder = {
             id: this.generateUUID(),
-            name: folderName,
+            name: this.sanitizeFileName(folderName, 'New Folder'),
             type: 'folder',
             files: []
         };
 
-        const filesData = localStorage.getItem('controllerFiles');
-        const files = filesData ? JSON.parse(filesData) : [];
+        const files = this.getFilesFromStorage();
 
         // 递归查找目标文件夹
         const findFolder = (items) => {
@@ -1161,7 +1426,7 @@ class FileManager {
         findFolder(files);
 
         // 保存文件列表
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        this.persistControllerFiles(files);
 
         // 保存当前展开的文件夹，并添加父文件夹和新文件夹
         const expandedFolders = this.saveExpandedFolders();
@@ -1671,7 +1936,7 @@ class FileManager {
             throw new Error('未找到目标文件夹。');
         }
 
-        localStorage.setItem('controllerFiles', JSON.stringify(files));
+        this.persistControllerFiles(files);
 
         const expandedFolders = this.saveExpandedFolders();
         if (!expandedFolders.includes(targetFolderId)) {
@@ -1754,8 +2019,7 @@ class FileManager {
             localStorage.setItem(`file_${fileId}`, code);
 
             // 保存到文件列表
-            const filesData = localStorage.getItem('controllerFiles');
-            const files = filesData ? JSON.parse(filesData) : [];
+            const files = this.getFilesFromStorage();
 
             const updateFileContent = (files, targetId, newCode) => {
                 for (const file of files) {
@@ -1770,7 +2034,8 @@ class FileManager {
             };
 
             updateFileContent(files, fileId, code);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            this.persistControllerFiles(files);
+            this.saveFileContentToDisk(fileId, code);
 
             showNotification('保存成功', 'success');
             return true;
@@ -1803,7 +2068,7 @@ class FileManager {
 
                 const newFile = {
                     id: newFileId,
-                    name: fileName,
+                    name: this.sanitizeFileName(fileName, 'New File.cs'),
                     content: code,
                     projectType: this.getActiveProjectType(),
                     nugetConfig: {
@@ -1811,10 +2076,9 @@ class FileManager {
                     }
                 };
 
-                const filesData = localStorage.getItem('controllerFiles');
-                const files = filesData ? JSON.parse(filesData) : [];
+                const files = this.getFilesFromStorage();
                 files.push(newFile);
-                localStorage.setItem('controllerFiles', JSON.stringify(files));
+                this.persistControllerFiles(files);
                 localStorage.setItem(`file_${newFileId}`, code);
 
                 this.loadFileList();

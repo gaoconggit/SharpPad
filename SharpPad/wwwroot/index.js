@@ -130,6 +130,14 @@ async function initializeApp() {
                     }
                     break;
                 }
+                case 'workspace-folder-opened':
+                case 'workspace-saved':
+                case 'workspace-file-saved': {
+                    if (typeof window.fileManager?.handleWorkspaceMessage === 'function') {
+                        window.fileManager.handleWorkspaceMessage(message);
+                    }
+                    break;
+                }
                 case 'pong':
                     console.log('Desktop bridge handshake completed.');
                     break;

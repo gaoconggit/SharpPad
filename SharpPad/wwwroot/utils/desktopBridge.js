@@ -175,6 +175,73 @@ const desktopBridge = {
             console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
         }
         return posted;
+    },
+    requestWorkspaceFolder() {
+        const posted = sendToHost({ type: 'open-workspace-folder' });
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持选择文件夹。');
+        }
+        return posted;
+    },
+    requestLoadWorkspace(rootPath) {
+        if (!rootPath || typeof rootPath !== 'string') {
+            console.warn('Desktop bridge: 缺少有效的工作区路径。');
+            return false;
+        }
+
+        const posted = sendToHost({
+            type: 'load-workspace-folder',
+            rootPath
+        });
+
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持加载工作区。');
+        }
+        return posted;
+    },
+    saveWorkspace(rootPath, files) {
+        if (!rootPath || typeof rootPath !== 'string') {
+            console.warn('Desktop bridge: 缺少有效的工作区路径。');
+            return false;
+        }
+
+        if (!Array.isArray(files)) {
+            console.warn('Desktop bridge: 工作区文件列表无效。');
+            return false;
+        }
+
+        const posted = sendToHost({
+            type: 'save-workspace',
+            rootPath,
+            files
+        });
+
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持保存工作区。');
+        }
+        return posted;
+    },
+    saveWorkspaceFile(rootPath, file) {
+        if (!rootPath || typeof rootPath !== 'string') {
+            console.warn('Desktop bridge: 缺少有效的工作区路径。');
+            return false;
+        }
+
+        if (!file || typeof file !== 'object') {
+            console.warn('Desktop bridge: 缺少需要保存的文件信息。');
+            return false;
+        }
+
+        const posted = sendToHost({
+            type: 'save-workspace-file',
+            rootPath,
+            file
+        });
+
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持保存文件。');
+        }
+        return posted;
     }
 };
 

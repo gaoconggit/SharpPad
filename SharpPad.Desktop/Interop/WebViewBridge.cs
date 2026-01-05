@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -13,12 +14,14 @@ internal sealed class WebViewBridge : IDisposable
     private readonly WebView _webView;
     private readonly Window _owner;
     private readonly JsonSerializerOptions _serializerOptions;
+    private readonly WorkspaceFileService _workspaceService;
     private bool _disposed;
 
     public WebViewBridge(WebView webView, Window owner)
     {
         _webView = webView ?? throw new ArgumentNullException(nameof(webView));
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        _workspaceService = new WorkspaceFileService();
 
         _serializerOptions = new JsonSerializerOptions
         {
@@ -73,6 +76,22 @@ internal sealed class WebViewBridge : IDisposable
 
                 case "open-external-url":
                     HandleOpenExternalUrl(root);
+                    break;
+
+                case "open-workspace-folder":
+                    await HandleOpenWorkspaceFolderAsync();
+                    break;
+
+                case "load-workspace-folder":
+                    await HandleLoadWorkspaceFolderAsync(root);
+                    break;
+
+                case "save-workspace":
+                    await HandleSaveWorkspaceAsync(root);
+                    break;
+
+                case "save-workspace-file":
+                    await HandleSaveWorkspaceFileAsync(root);
                     break;
 
                 default:
@@ -269,6 +288,193 @@ internal sealed class WebViewBridge : IDisposable
                 message = $"打开URL失败: {ex.Message}"
             });
         }
+    }
+
+    private async Task HandleOpenWorkspaceFolderAsync()
+    {
+        var result = await _workspaceService.PickFolderAsync(_owner);
+        if (result.Success)
+        {
+            Send(new
+            {
+                type = "workspace-folder-opened",
+                success = true,
+                rootPath = result.RootPath,
+                files = result.Files
+            });
+            return;
+        }
+
+        Send(new
+        {
+            type = "workspace-folder-opened",
+            success = false,
+            cancelled = result.Cancelled,
+            message = result.Error
+        });
+    }
+
+    private async Task HandleLoadWorkspaceFolderAsync(JsonElement root)
+    {
+        if (!root.TryGetProperty("rootPath", out var pathProperty) || pathProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "workspace-folder-opened",
+                success = false,
+                message = "缺少工作区路径。"
+            });
+            return;
+        }
+
+        var path = pathProperty.GetString() ?? string.Empty;
+        var result = await _workspaceService.LoadWorkspaceAsync(path);
+        if (result.Success)
+        {
+            Send(new
+            {
+                type = "workspace-folder-opened",
+                success = true,
+                rootPath = result.RootPath,
+                files = result.Files
+            });
+            return;
+        }
+
+        Send(new
+        {
+            type = "workspace-folder-opened",
+            success = false,
+            cancelled = result.Cancelled,
+            message = result.Error
+        });
+    }
+
+    private async Task HandleSaveWorkspaceAsync(JsonElement root)
+    {
+        if (!root.TryGetProperty("rootPath", out var pathProperty) || pathProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "workspace-saved",
+                success = false,
+                message = "缺少工作区路径。"
+            });
+            return;
+        }
+
+        if (!root.TryGetProperty("files", out var filesProperty) || filesProperty.ValueKind != JsonValueKind.Array)
+        {
+            Send(new
+            {
+                type = "workspace-saved",
+                success = false,
+                message = "缺少文件列表。"
+            });
+            return;
+        }
+
+        List<WorkspaceItem>? items = null;
+        try
+        {
+            items = JsonSerializer.Deserialize<List<WorkspaceItem>>(filesProperty.GetRawText(), _serializerOptions);
+        }
+        catch (JsonException ex)
+        {
+            Send(new
+            {
+                type = "workspace-saved",
+                success = false,
+                message = $"无法解析文件列表: {ex.Message}"
+            });
+            return;
+        }
+
+        if (items is null)
+        {
+            Send(new
+            {
+                type = "workspace-saved",
+                success = false,
+                message = "文件列表为空。"
+            });
+            return;
+        }
+
+        var rootPath = pathProperty.GetString() ?? string.Empty;
+        var result = await _workspaceService.SaveWorkspaceAsync(rootPath, items);
+
+        Send(new
+        {
+            type = "workspace-saved",
+            success = result.Success,
+            message = result.Message,
+            rootPath = result.RootPath
+        });
+    }
+
+    private async Task HandleSaveWorkspaceFileAsync(JsonElement root)
+    {
+        if (!root.TryGetProperty("rootPath", out var pathProperty) || pathProperty.ValueKind != JsonValueKind.String)
+        {
+            Send(new
+            {
+                type = "workspace-file-saved",
+                success = false,
+                message = "缺少工作区路径。"
+            });
+            return;
+        }
+
+        if (!root.TryGetProperty("file", out var fileProperty) || fileProperty.ValueKind != JsonValueKind.Object)
+        {
+            Send(new
+            {
+                type = "workspace-file-saved",
+                success = false,
+                message = "缺少文件内容。"
+            });
+            return;
+        }
+
+        WorkspaceItem? file;
+        try
+        {
+            file = JsonSerializer.Deserialize<WorkspaceItem>(fileProperty.GetRawText(), _serializerOptions);
+        }
+        catch (JsonException ex)
+        {
+            Send(new
+            {
+                type = "workspace-file-saved",
+                success = false,
+                message = $"无法解析文件内容: {ex.Message}"
+            });
+            return;
+        }
+
+        if (file is null)
+        {
+            Send(new
+            {
+                type = "workspace-file-saved",
+                success = false,
+                message = "文件内容为空。"
+            });
+            return;
+        }
+
+        var rootPath = pathProperty.GetString() ?? string.Empty;
+        var result = await _workspaceService.SaveWorkspaceFileAsync(rootPath, file);
+
+        Send(new
+        {
+            type = "workspace-file-saved",
+            success = result.Success,
+            message = result.Message,
+            rootPath = result.RootPath,
+            relativePath = file.RelativePath
+        });
     }
 
     private object? ExtractContext(JsonElement root)
