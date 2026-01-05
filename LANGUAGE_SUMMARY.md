@@ -1,6 +1,6 @@
 # Project Language Summary
 
-- Snapshot: commit `f8dc46d` on branch `codex/language-summary`
+- Snapshot: commit `f8dc46d` on branch `codex/language-summary-report`
 - Method: Counted text lines by extension with a Python script, skipping typical build/output folders (`bin`, `obj`, `node_modules`, `packages`, `.vs`, `.git`, `dist`, `build`, `coverage`).
 
 | Language   | LOC    | Files | Share |
@@ -15,4 +15,3 @@
 | YAML       | 35     | 1     | 0.0%  |
 | Config     | 9      | 1     | 0.0%  |
 | **Total**  | 85,420 | —     | 100%  |
-
