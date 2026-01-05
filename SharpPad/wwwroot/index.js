@@ -274,6 +274,7 @@ async function initializeApp() {
     // 注册编辑器命令
     const commands = new EditorCommands(editor);
     commands.registerCommands();
+    setupAutoSave(editor, fileManager);
 
     // 初始化代码运行器和输出面板
     const outputPanel = new OutputPanel();
@@ -332,6 +333,52 @@ function setupGitHubLinkHandler() {
             desktopBridge.openExternalUrl(url);
         }
     });
+}
+
+function setupAutoSave(editor, fileManager) {
+    const AUTO_SAVE_DELAY_MS = 1000;
+    let autoSaveTimer = null;
+
+    if (typeof window.__suppressAutoSave === 'undefined') {
+        window.__suppressAutoSave = false;
+    }
+
+    const isSuppressed = () => !!window.__suppressAutoSave;
+
+    const performAutoSave = () => {
+        if (isSuppressed()) {
+            return;
+        }
+
+        const selectedFileElement = document.querySelector('#fileListItems a.selected');
+        const fileId = selectedFileElement?.getAttribute('data-file-id');
+        if (!fileId) {
+            return;
+        }
+
+        fileManager.saveFileToLocalStorage(fileId, editor.getValue(), { silent: true });
+    };
+
+    const scheduleAutoSave = () => {
+        if (isSuppressed()) {
+            return;
+        }
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(performAutoSave, AUTO_SAVE_DELAY_MS);
+    };
+
+    const flushAutoSave = () => {
+        if (autoSaveTimer) {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = null;
+        }
+        performAutoSave();
+    };
+
+    editor.onDidChangeModelContent(() => scheduleAutoSave());
+    editor.onDidBlurEditorWidget(() => flushAutoSave());
+    window.addEventListener('blur', () => flushAutoSave());
 }
 
 // 确保在DOM完全加载后再启动应用

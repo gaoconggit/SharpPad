@@ -578,6 +578,12 @@ class FileManager {
     }
 
     async openFile(file) {
+        const currentSelected = this.fileListItems.querySelector('a.selected');
+        const currentFileId = currentSelected?.getAttribute('data-file-id');
+        if (currentFileId && currentFileId !== file.id && window.editor) {
+            this.saveFileToLocalStorage(currentFileId, window.editor.getValue(), { silent: true });
+        }
+
         // 移除之前的选中状态
         const selectedFile = this.fileListItems.querySelector('.selected');
         if (selectedFile) {
@@ -592,8 +598,10 @@ class FileManager {
 
         // 从localStorage获取最新的文件内容并更新编辑器
         if (window.editor) {
-            const fileContent = localStorage.getItem(`file_${file.id}`);
+            const fileContent = localStorage.getItem(`file_${file.id}`);        
+            window.__suppressAutoSave = true;
             window.editor.setValue(fileContent || file.content || '');
+            window.__suppressAutoSave = false;
         }
 
         const normalizedType = this.normalizeProjectType(file?.projectType);
@@ -1748,8 +1756,9 @@ class FileManager {
         }
     }
 
-    saveFileToLocalStorage(fileId, code) {
+    saveFileToLocalStorage(fileId, code, options = {}) {
         try {
+            const { silent = false } = options;
             // 保存到 localStorage
             localStorage.setItem(`file_${fileId}`, code);
 
@@ -1770,9 +1779,11 @@ class FileManager {
             };
 
             updateFileContent(files, fileId, code);
-            localStorage.setItem('controllerFiles', JSON.stringify(files));
+            localStorage.setItem('controllerFiles', JSON.stringify(files));     
 
-            showNotification('保存成功', 'success');
+            if (!silent) {
+                showNotification('保存成功', 'success');
+            }
             return true;
         } catch (error) {
             console.error('Error saving to localStorage:', error);
