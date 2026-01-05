@@ -510,14 +510,18 @@ export class CodeRunner {
         try {
             let result = "";
             const { reader, showNotificationTimer } = await sendRequest('run', request);
+            const decoder = new TextDecoder("utf-8");
+            let pendingText = "";
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
 
-                // 将 Uint8Array 转换为字符串
-                const text = new TextDecoder("utf-8").decode(value);
+                // 将 Uint8Array 转换为字符串，保留跨块的多字节字符
+                const text = decoder.decode(value, { stream: true });
+                pendingText += text;
                 // 处理每一行数据
-                const lines = text.split('\n');
+                const lines = pendingText.split('\n');
+                pendingText = lines.pop() ?? "";
 
                 for (const line of lines) {
                     if (!line.trim()) continue;
@@ -530,6 +534,44 @@ export class CodeRunner {
                                 this.hideOutOfProcessOverlay();
                             }
                             // 检查是否是输入请求
+                            if (data.content.includes('[INPUT REQUIRED]')) {
+                                this.showInputRequest(data.content);
+                            } else {
+                                result += data.content;
+                                this.streamOutput(result, 'success');
+                            }
+                            break;
+                        case 'error':
+                            this.hideOutOfProcessOverlay();
+                            this.appendOutput(data.content, 'error');
+                            this.notification.textContent = '运行出错';
+                            this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+                            this.notification.style.display = 'block';
+                            break;
+                        case 'completed':
+                            clearTimeout(showNotificationTimer); // 清除显示通知的定时器
+                            this.notification.style.display = 'none';
+                            this.outputContent.classList.remove("result-streaming");
+                            this.currentSessionId = null; // 清空会话ID
+                            this.setRunningState(false); // 重置运行状态
+                            return;
+                    }
+                }
+            }
+
+            pendingText += decoder.decode();
+            if (pendingText.trim()) {
+                const lines = pendingText.split('\n');
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    if (!line.startsWith('data: ')) continue;
+
+                    const data = JSON.parse(line.substring(6));
+                    switch (data.type) {
+                        case 'output':
+                            if (this.isOutOfProcessRun) {
+                                this.hideOutOfProcessOverlay();
+                            }
                             if (data.content.includes('[INPUT REQUIRED]')) {
                                 this.showInputRequest(data.content);
                             } else {
@@ -798,16 +840,81 @@ export class CodeRunner {
         try {
             let buildOutput = "";
             const { reader, showNotificationTimer } = await sendRequest('buildExe', request);
+            const decoder = new TextDecoder("utf-8");
+            let pendingText = "";
 
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
 
-                // 将 Uint8Array 转换为字符串
-                const text = new TextDecoder("utf-8").decode(value);
+                // 将 Uint8Array 转换为字符串，保留跨块的多字节字符
+                const text = decoder.decode(value, { stream: true });
+                pendingText += text;
                 // 处理每一行数据
-                const lines = text.split('\n');
+                const lines = pendingText.split('\n');
+                pendingText = lines.pop() ?? "";
 
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    if (!line.startsWith('data: ')) continue;
+
+                    const data = JSON.parse(line.substring(6));
+                    switch (data.type) {
+                        case 'output':
+                            buildOutput += data.content;
+                            this.streamOutput(buildOutput, 'info');
+                            break;
+                        case 'error':
+                            this.appendOutput(data.content, 'error');
+                            this.notification.textContent = '构建失败';
+                            this.notification.style.backgroundColor = 'rgba(244, 67, 54, 0.9)';
+                            this.notification.style.display = 'block';
+                            break;
+                        case 'completed':
+                            clearTimeout(showNotificationTimer);
+                            this.outputContent.classList.remove("result-streaming");
+
+                            if (data.success && data.downloadId) {
+                                const downloadUrl = `/api/coderun/downloadBuild/${data.downloadId}`;
+                                const shouldUseDesktop = this.shouldUseDesktopDownload();
+
+                                if (shouldUseDesktop) {
+                                    try {
+                                        await this.downloadBuildViaDesktop(downloadUrl, data.fileName, data.downloadId);
+                                    } catch (downloadError) {
+                                        this.appendOutput(`下载发布包失败: ${downloadError.message}`, 'error');
+                                        this.notification.textContent = '构建成功但下载失败';
+                                        this.notification.style.backgroundColor = 'rgba(255, 152, 0, 0.95)';
+                                        this.notification.style.display = 'block';
+                                        break;
+                                    }
+                                } else {
+                                    const a = document.createElement('a');
+                                    a.href = downloadUrl;
+                                    a.download = data.fileName;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                }
+
+                                this.appendOutput(`\n✅ 成功构建 ${data.fileName}，文件已开始下载`, 'success');
+                                this.notification.textContent = `构建成功：${data.fileName}`;
+                                this.notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
+                                this.notification.style.display = 'block';
+
+                                // 3秒后隐藏通知
+                                setTimeout(() => {
+                                    this.notification.style.display = 'none';
+                                }, 3000);
+                            }
+                            return;
+                    }
+                }
+            }
+
+            pendingText += decoder.decode();
+            if (pendingText.trim()) {
+                const lines = pendingText.split('\n');
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     if (!line.startsWith('data: ')) continue;

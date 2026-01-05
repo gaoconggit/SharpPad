@@ -28,6 +28,7 @@ namespace MonacoRoslynCompletionProvider.Api
         private static readonly Dictionary<string, InteractiveTextReader> LegacyReaders = new();
         private static readonly object ProcessSessionLock = new();
         private static readonly object ConsoleLock = new();
+        private static int _codePageProviderRegistered;
         private static readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<string>>> PackageRootResolutionCache =
             new(StringComparer.OrdinalIgnoreCase);
 
@@ -946,9 +947,9 @@ namespace SharpPadRuntime
                 TryTerminateProcess(process);
             });
 
-            var stdoutTask = PumpStreamAsync(process.StandardOutput, onOutput, cancellationToken);
+            var stdoutTask = PumpStreamAsync(process.StandardOutput?.BaseStream, onOutput, cancellationToken);
             var stderrTask = PumpStreamAsync(
-                process.StandardError,
+                process.StandardError?.BaseStream,
                 text => HandleProcessErrorAsync(text, onOutput, onError),
                 cancellationToken);
 
@@ -1019,27 +1020,81 @@ namespace SharpPadRuntime
             return builder.ToString();
         }
 
-        private static async Task PumpStreamAsync(StreamReader reader, Func<string, Task> callback, CancellationToken cancellationToken)
+        private static async Task PumpStreamAsync(Stream stream, Func<string, Task> callback, CancellationToken cancellationToken)
         {
-            if (reader == null)
+            if (stream == null)
             {
                 return;
             }
 
-            var buffer = new char[1024];
+            var buffer = new byte[4096];
+            var charBuffer = new char[4096];
+            var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+            Encoding currentEncoding = utf8;
+            var decoder = currentEncoding.GetDecoder();
+            Encoding fallbackEncoding = null;
+            if (OperatingSystem.IsWindows())
+            {
+                EnsureCodePageEncodingProvider();
+                try
+                {
+                    fallbackEncoding = Encoding.GetEncoding("GB18030");
+                }
+                catch
+                {
+                    fallbackEncoding = null;
+                }
+            }
 
             try
             {
                 while (true)
                 {
-                    var read = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                    var read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
                     if (read <= 0)
                     {
                         break;
                     }
 
-                    var text = new string(buffer, 0, read);
-                    await callback(text).ConfigureAwait(false);
+                    string text;
+                    if (ReferenceEquals(currentEncoding, utf8))
+                    {
+                        try
+                        {
+                            var charCount = decoder.GetChars(buffer, 0, read, charBuffer, 0, flush: false);
+                            text = charCount == 0 ? string.Empty : new string(charBuffer, 0, charCount);
+                        }
+                        catch (DecoderFallbackException)
+                        {
+                            if (fallbackEncoding != null)
+                            {
+                                currentEncoding = fallbackEncoding;
+                                decoder = currentEncoding.GetDecoder();
+                                var charCount = decoder.GetChars(buffer, 0, read, charBuffer, 0, flush: false);
+                                text = charCount == 0 ? string.Empty : new string(charBuffer, 0, charCount);
+                            }
+                            else
+                            {
+                                text = string.Empty;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var charCount = decoder.GetChars(buffer, 0, read, charBuffer, 0, flush: false);
+                        text = charCount == 0 ? string.Empty : new string(charBuffer, 0, charCount);
+                    }
+
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        await callback(text).ConfigureAwait(false);
+                    }
+                }
+
+                var flushCount = decoder.GetChars(Array.Empty<byte>(), 0, 0, charBuffer, 0, flush: true);
+                if (flushCount > 0)
+                {
+                    await callback(new string(charBuffer, 0, flushCount)).ConfigureAwait(false);
                 }
             }
             catch (ObjectDisposedException)
@@ -1047,6 +1102,17 @@ namespace SharpPadRuntime
             }
             catch (IOException)
             {
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private static void EnsureCodePageEncodingProvider()
+        {
+            if (Interlocked.Exchange(ref _codePageProviderRegistered, 1) == 0)
+            {
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             }
         }
 

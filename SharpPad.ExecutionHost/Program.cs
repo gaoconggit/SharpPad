@@ -17,6 +17,7 @@ namespace SharpPad.ExecutionHost
         private static async Task<int> Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = Encoding.UTF8;
 
             if (!ExecutionOptions.TryParse(args, out var options, out var error))
             {
