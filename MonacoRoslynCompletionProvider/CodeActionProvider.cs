@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MonacoRoslynCompletionProvider.Api;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -155,7 +156,28 @@ namespace MonacoRoslynCompletionProvider
                     }
                 }
 
-                // 常见的命名空间映射
+                // 优先从当前编译中找可用的命名空间（与 completion 使用同一数据源）
+                var suggestedNamespaces = await FindNamespacesFromCompilationAsync(
+                    document,
+                    identifier,
+                    cancellationToken);
+
+                var suggestedSet = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var namespaceName in suggestedNamespaces)
+                {
+                    if (!suggestedSet.Add(namespaceName))
+                    {
+                        continue;
+                    }
+
+                    var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
+                    if (action != null)
+                    {
+                        results.Add(action);
+                    }
+                }
+
+                // 常见的命名空间映射（兜底）
                 var commonNamespaces = new Dictionary<string, string[]>
                 {
                     // System基础类型
@@ -163,6 +185,7 @@ namespace MonacoRoslynCompletionProvider
                     ["ArrayBufferWriter"] = new[] { "System.Buffers" },
                     ["ArrayPool"] = new[] { "System.Buffers" },
                     ["Dump"] = new[] { "System" },
+                    ["Debugger"] = new[] { "System.Diagnostics" },
                     ["ToJson"] = new[] { "System" },
                     ["DateTime"] = new[] { "System" },
                     ["TimeSpan"] = new[] { "System" },
@@ -955,9 +978,16 @@ namespace MonacoRoslynCompletionProvider
                 {
                     foreach (var namespaceName in commonNamespaces[identifier])
                     {
+                        if (!suggestedSet.Add(namespaceName))
+                        {
+                            continue;
+                        }
+
                         var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
                         if (action != null)
+                        {
                             results.Add(action);
+                        }
                     }
                 }
             }
@@ -967,6 +997,60 @@ namespace MonacoRoslynCompletionProvider
             }
 
             return results;
+        }
+
+        private static async Task<IReadOnlyList<string>> FindNamespacesFromCompilationAsync(
+            Document document,
+            string identifier,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                return Array.Empty<string>();
+            }
+
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            var compilation = semanticModel?.Compilation;
+            if (compilation == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var results = new HashSet<string>(StringComparer.Ordinal);
+            var typeSymbols = compilation.GetSymbolsWithName(
+                name => string.Equals(name, identifier, StringComparison.Ordinal),
+                SymbolFilter.Type,
+                cancellationToken);
+
+            foreach (var symbol in typeSymbols.OfType<INamedTypeSymbol>())
+            {
+                var ns = symbol.ContainingNamespace?.ToDisplayString();
+                if (!string.IsNullOrWhiteSpace(ns))
+                {
+                    results.Add(ns);
+                }
+            }
+
+            var memberSymbols = compilation.GetSymbolsWithName(
+                name => string.Equals(name, identifier, StringComparison.Ordinal),
+                SymbolFilter.Member,
+                cancellationToken);
+
+            foreach (var symbol in memberSymbols.OfType<IMethodSymbol>())
+            {
+                if (!symbol.IsExtensionMethod)
+                {
+                    continue;
+                }
+
+                var ns = symbol.ContainingNamespace?.ToDisplayString();
+                if (!string.IsNullOrWhiteSpace(ns))
+                {
+                    results.Add(ns);
+                }
+            }
+
+            return results.OrderBy(r => r, StringComparer.Ordinal).ToArray();
         }
 
         private CodeActionResult? CreateAddUsingAction(Document document, string namespaceName, SourceText sourceText, SyntaxNode syntaxRoot)
@@ -1114,33 +1198,30 @@ namespace MonacoRoslynCompletionProvider
                         .Distinct()
                         .ToArray();
 
-                    // 常见的方法到命名空间映射
-                    var commonUsings = new Dictionary<string, string[]>
-                    {
-                        ["AsParallel"] = new[] { "System.Linq" },
-                        ["Where"] = new[] { "System.Linq" },
-                        ["Select"] = new[] { "System.Linq" },
-                        ["First"] = new[] { "System.Linq" },
-                        ["Any"] = new[] { "System.Linq" },
-                        ["ToList"] = new[] { "System.Linq" },
-                        ["ToArray"] = new[] { "System.Linq" }
-                    };
-
+                    var suggestedNamespaces = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var token in tokens)
                     {
-                        if (commonUsings.ContainsKey(token))
+                        var namespaces = await FindNamespacesFromCompilationAsync(
+                            document,
+                            token,
+                            cancellationToken);
+                        foreach (var namespaceName in namespaces)
                         {
-                            foreach (var namespaceName in commonUsings[token])
-                            {
-                                if (!existingUsings.Contains(namespaceName))
-                                {
-                                    var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
-                                    if (action != null && !results.Any(r => r.Title == action.Title))
-                                    {
-                                        results.Add(action);
-                                    }
-                                }
-                            }
+                            suggestedNamespaces.Add(namespaceName);
+                        }
+                    }
+
+                    foreach (var namespaceName in suggestedNamespaces)
+                    {
+                        if (existingUsings.Contains(namespaceName))
+                        {
+                            continue;
+                        }
+
+                        var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
+                        if (action != null && !results.Any(r => r.Title == action.Title))
+                        {
+                            results.Add(action);
                         }
                     }
                 }
