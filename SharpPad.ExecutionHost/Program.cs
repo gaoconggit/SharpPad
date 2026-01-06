@@ -780,8 +780,9 @@ namespace SharpPad.ExecutionHost
             _originalError = Console.Error;
             _originalIn = Console.In;
 
-            _stdoutWriter = new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8) { AutoFlush = true };
-            _stderrWriter = new StreamWriter(Console.OpenStandardError(), Encoding.UTF8) { AutoFlush = true };
+            var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            _stdoutWriter = new StreamWriter(Console.OpenStandardOutput(), utf8NoBom) { AutoFlush = true };
+            _stderrWriter = new StreamWriter(Console.OpenStandardError(), utf8NoBom) { AutoFlush = true };
             Console.SetOut(_stdoutWriter);
             Console.SetError(_stderrWriter);
 
