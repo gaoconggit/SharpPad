@@ -11,6 +11,11 @@ export class Editor {
         this.container = document.getElementById('container');
         this.completion = null;
         this.codeActionProvider = null;
+        this.breakpointDecorationIds = [];
+        this.breakpointLines = new Set();
+        this.updateBreakpointDecorations = null;
+        this.breakpointTooltip = null;
+        this.hoverBreakpointDecorationIds = [];
 
         // 从localStorage读取主题设置，如果没有则默认为dark主题
         this.currentTheme = localStorage.getItem('editorTheme') || 'vs-dark';
@@ -52,7 +57,8 @@ export class Editor {
             fontSize: 14,
             lineNumbers: 'on',
             renderWhitespace: 'selection',
-            scrollBeyondLastLine: true
+            scrollBeyondLastLine: true,
+            glyphMargin: true
         });
 
         this.completion = registerCompletion(monaco, this.editor, {
@@ -141,6 +147,9 @@ Provide only the code to insert at the cursor position.`
 
         // 适配桌面端 WebView 缺失系统菜单时的快捷键
         this.setupDesktopShortcuts();
+        this.setupDebuggerBreakpoints();
+        this.setupDebuggerBreakpointToggle();
+        this.setupDebuggerBreakpointHover();
 
         return this.editor;
     }
@@ -275,6 +284,163 @@ Provide only the code to insert at the cursor position.`
                 this.toggleTheme();
             });
         }
+    }
+
+    setupDebuggerBreakpoints() {
+        if (!this.editor) {
+            return;
+        }
+
+        addDebuggerBreakpointStyles();
+
+        const updateDecorations = () => {
+            const decorations = [];
+            const lines = Array.from(this.breakpointLines).sort((a, b) => a - b);
+            lines.forEach(lineNumber => {
+                decorations.push({
+                    range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                    options: {
+                        isWholeLine: true,
+                        className: 'debugger-breakpoint-line',
+                        glyphMarginClassName: 'debugger-breakpoint-glyph'
+                    }
+                });
+            });
+
+            this.breakpointDecorationIds = this.editor.deltaDecorations(
+                this.breakpointDecorationIds,
+                decorations
+            );
+        };
+
+        updateDecorations();
+        this.updateBreakpointDecorations = updateDecorations;
+    }
+
+    setupDebuggerBreakpointToggle() {
+        if (!this.editor) {
+            return;
+        }
+
+        this.editor.onMouseDown(event => {
+            if (event.target?.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+                return;
+            }
+
+            const position = event.target.position;
+            if (!position) {
+                return;
+            }
+
+            this.toggleDebuggerBreakpointAtLine(position.lineNumber);
+        });
+    }
+
+    setupDebuggerBreakpointHover() {
+        if (!this.editor) {
+            return;
+        }
+
+        const updateGhostDecoration = lineNumber => {
+            if (!lineNumber || this.breakpointLines.has(lineNumber)) {
+                this.hoverBreakpointDecorationIds = this.editor.deltaDecorations(
+                    this.hoverBreakpointDecorationIds,
+                    []
+                );
+                return;
+            }
+
+            this.hoverBreakpointDecorationIds = this.editor.deltaDecorations(
+                this.hoverBreakpointDecorationIds,
+                [{
+                    range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                    options: {
+                        glyphMarginClassName: 'debugger-breakpoint-glyph debugger-breakpoint-ghost'
+                    }
+                }]
+            );
+        };
+
+        const showTooltip = (text, x, y) => {
+            const tooltip = this.ensureDebuggerBreakpointTooltip();
+            tooltip.textContent = text;
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.classList.add('is-visible');
+        };
+
+        const hideTooltip = () => {
+            if (this.breakpointTooltip) {
+                this.breakpointTooltip.classList.remove('is-visible');
+            }
+            updateGhostDecoration(null);
+        };
+
+        this.editor.onMouseMove(event => {
+            const targetType = event.target?.type;
+            const isGlyphMargin = targetType === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN;
+
+            if (!isGlyphMargin || !event.target.position) {
+                hideTooltip();
+                return;
+            }
+
+            const lineNumber = event.target.position.lineNumber;
+            const browserEvent = event.event?.browserEvent;
+            if (!browserEvent) {
+                hideTooltip();
+                return;
+            }
+
+            const text = this.breakpointLines.has(lineNumber)
+                ? 'Click to remove breakpoint'
+                : 'Click to add a breakpoint';
+
+            showTooltip(text, browserEvent.clientX + 10, browserEvent.clientY + 10);
+            updateGhostDecoration(lineNumber);
+        });
+
+        this.editor.onMouseLeave(() => {
+            hideTooltip();
+        });
+    }
+
+    toggleDebuggerBreakpointAtLine(lineNumber) {
+        if (this.breakpointLines.has(lineNumber)) {
+            this.breakpointLines.delete(lineNumber);
+        } else {
+            this.breakpointLines.add(lineNumber);
+        }
+
+        if (this.updateBreakpointDecorations) {
+            this.updateBreakpointDecorations();
+        }
+
+        if (this.hoverBreakpointDecorationIds.length > 0) {
+            const hoveredLine = this.breakpointLines.has(lineNumber) ? null : lineNumber;
+            if (!hoveredLine) {
+                this.hoverBreakpointDecorationIds = this.editor.deltaDecorations(
+                    this.hoverBreakpointDecorationIds,
+                    []
+                );
+            }
+        }
+    }
+
+    getBreakpointLines() {
+        return Array.from(this.breakpointLines).sort((a, b) => a - b);
+    }
+
+    ensureDebuggerBreakpointTooltip() {
+        if (this.breakpointTooltip) {
+            return this.breakpointTooltip;
+        }
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'debugger-breakpoint-tooltip';
+        document.body.appendChild(tooltip);
+        this.breakpointTooltip = tooltip;
+        return tooltip;
     }
 
     defineVSDarkTheme() {
@@ -456,4 +622,84 @@ Provide only the code to insert at the cursor position.`
             this.editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
         }
     }
+}
+
+function addDebuggerBreakpointStyles() {
+    if (document.getElementById('debugger-breakpoint-style')) {
+        return;
+    }
+
+    const style = document.createElement('style');
+    style.id = 'debugger-breakpoint-style';
+    style.textContent = `
+        .monaco-editor .debugger-breakpoint-glyph {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .monaco-editor .debugger-breakpoint-glyph::before {
+            content: '';
+            display: block;
+            box-sizing: border-box;
+            width: 13px;
+            height: 13px;
+            min-width: 13px;
+            min-height: 13px;
+            max-width: 13px;
+            max-height: 13px;
+            aspect-ratio: 1 / 1;
+            margin-left: 15px;
+            background: #e51400;
+            border-radius: 999px;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+        }
+
+        .monaco-editor .debugger-breakpoint-glyph:hover::before {
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 6px rgba(229, 20, 0, 0.6);
+        }
+
+        .monaco-editor .debugger-breakpoint-ghost::before {
+            background: rgba(229, 20, 0, 0.35);
+            box-shadow: 0 0 0 1px rgba(229, 20, 0, 0.35), 0 0 6px rgba(229, 20, 0, 0.4);
+        }
+
+        .monaco-editor .debugger-breakpoint-line {
+            background-color: rgba(229, 20, 0, 0.06);
+        }
+
+        body.theme-light .monaco-editor .debugger-breakpoint-line {
+            background-color: rgba(229, 20, 0, 0.1);
+        }
+
+        .debugger-breakpoint-tooltip {
+            position: fixed;
+            z-index: 10000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(30, 30, 30, 0.95);
+            color: #e6e6e6;
+            font-size: 12px;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(-2px);
+            transition: opacity 0.12s ease, transform 0.12s ease;
+            white-space: nowrap;
+        }
+
+        body.theme-light .debugger-breakpoint-tooltip {
+            background: rgba(250, 250, 250, 0.98);
+            color: #1e1e1e;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .debugger-breakpoint-tooltip.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    `;
+    document.head.appendChild(style);
 }

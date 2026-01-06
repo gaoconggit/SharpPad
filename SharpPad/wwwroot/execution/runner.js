@@ -6,6 +6,37 @@ import desktopBridge from '../utils/desktopBridge.js';
 
 const fileManager = new FileManager();
 
+function injectBreakpoints(sourceCode, breakpointLines) {
+    if (!sourceCode || !Array.isArray(breakpointLines) || breakpointLines.length === 0) {
+        return sourceCode;
+    }
+
+    const lines = sourceCode.split('\n');
+    const sorted = breakpointLines
+        .map(line => Number(line))
+        .filter(line => Number.isInteger(line) && line > 0)
+        .sort((a, b) => b - a);
+
+    sorted.forEach(lineNumber => {
+        if (lineNumber > lines.length) {
+            return;
+        }
+
+        const targetIndex = lineNumber - 1;
+        const indentMatch = lines[targetIndex]?.match(/^\s*/);
+        const indent = indentMatch ? indentMatch[0] : '';
+
+        lines.splice(
+            targetIndex,
+            0,
+            `${indent}System.Diagnostics.Debugger.Launch();`,
+            `${indent}System.Diagnostics.Debugger.Break();`
+        );
+    });
+
+    return lines.join('\n');
+}
+
 function sanitizePackageList(packages) {
     if (!Array.isArray(packages)) {
         return [];
@@ -443,6 +474,8 @@ export class CodeRunner {
         }
 
         const file = getCurrentFile();
+        const breakpointLines = window.editorInstance?.getBreakpointLines?.() || [];
+        const codeWithBreakpoints = injectBreakpoints(code, breakpointLines);
         const basePackages = file?.nugetConfig?.packages || [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
         const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
@@ -474,11 +507,19 @@ export class CodeRunner {
         let request;
 
         if (selectedFiles.length > 0) {
-            const filesWithContent = selectedFiles.map(f => ({
-                FileName: f.name,
-                Content: f.content,
-                IsEntry: f.isEntry || f.content.includes('static void Main') || f.content.includes('static Task Main') || f.content.includes('static async Task Main')
-            }));
+            const filesWithContent = selectedFiles.map(f => {
+                const isEntry = f.isEntry
+                    || f.content.includes('static void Main')
+                    || f.content.includes('static Task Main')
+                    || f.content.includes('static async Task Main');
+                const shouldInject = (fileId && f.id === fileId) || (!fileId && isEntry);
+
+                return {
+                    FileName: f.name,
+                    Content: shouldInject ? codeWithBreakpoints : f.content,
+                    IsEntry: isEntry
+                };
+            });
 
             request = {
                 Files: filesWithContent,
@@ -492,7 +533,7 @@ export class CodeRunner {
             };
         } else {
             request = {
-                SourceCode: code,
+                SourceCode: codeWithBreakpoints,
                 Packages: combinedPackages.map(p => ({
                     Id: p.id,
                     Version: p.version
