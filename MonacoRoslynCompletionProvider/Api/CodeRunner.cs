@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Emit;
@@ -36,6 +37,10 @@ namespace MonacoRoslynCompletionProvider.Api
         private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
         private static readonly Lazy<string> _objectExtensionsSource = new(LoadObjectExtensionsFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
         private static readonly Regex ConsoleReadKeyPattern = new(@"(?<!\w)(?:System\.)?Console\.ReadKey(?=\s*\()", RegexOptions.Compiled);
+        private const string BreakpointInsertAnnotationKind = "sharpPadBreakpointInsert";
+        private const string BreakpointWrapAnnotationKind = "sharpPadBreakpointWrap";
+        private const string BreakpointBlockAnnotationKind = "sharpPadBreakpointBlock";
+        private const string BreakpointSectionAnnotationKind = "sharpPadBreakpointSection";
         private const string ConsoleReadKeyShimSource = @"
 using System;
 using System.Collections;
@@ -217,6 +222,375 @@ namespace SharpPadRuntime
             return ConsoleReadKeyPattern.Replace(source, "SharpPadRuntime.ConsoleReadKeyShim.ReadKey");
         }
 
+        private static IReadOnlyList<int> NormalizeBreakpointLines(IEnumerable<int> breakpointLines)
+        {
+            if (breakpointLines == null)
+            {
+                return Array.Empty<int>();
+            }
+
+            return breakpointLines
+                .Where(line => line > 0)
+                .Distinct()
+                .OrderBy(line => line)
+                .ToArray();
+        }
+
+        private static FileContent ResolveBreakpointTarget(IReadOnlyList<FileContent> files, string breakpointFileName)
+        {
+            if (files == null || files.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(breakpointFileName))
+            {
+                var directMatch = files.FirstOrDefault(file => FileNameMatches(file?.FileName, breakpointFileName));
+                if (directMatch != null)
+                {
+                    return directMatch;
+                }
+            }
+
+            var entryMatch = files.FirstOrDefault(file => file?.IsEntry == true);
+            if (entryMatch != null)
+            {
+                return entryMatch;
+            }
+
+            return files.Count == 1 ? files[0] : null;
+        }
+
+        private static bool FileNameMatches(string candidate, string expected)
+        {
+            if (string.IsNullOrWhiteSpace(candidate) || string.IsNullOrWhiteSpace(expected))
+            {
+                return false;
+            }
+
+            if (string.Equals(candidate, expected, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var candidateName = Path.GetFileName(candidate);
+            var expectedName = Path.GetFileName(expected);
+            return string.Equals(candidateName, expectedName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string InjectDebuggerBreakpoints(
+            string source,
+            IReadOnlyCollection<int> breakpointLines,
+            CSharpParseOptions parseOptions)
+        {
+            if (string.IsNullOrEmpty(source) || breakpointLines == null || breakpointLines.Count == 0)
+            {
+                return source ?? string.Empty;
+            }
+
+            var text = SourceText.From(source, Encoding.UTF8);
+            var lineCount = text.Lines.Count;
+            var orderedLines = breakpointLines
+                .Where(line => line > 0 && line <= lineCount)
+                .Distinct()
+                .OrderBy(line => line)
+                .ToList();
+
+            if (orderedLines.Count == 0)
+            {
+                return source;
+            }
+
+            var tree = CSharpSyntaxTree.ParseText(text, parseOptions);
+            var root = tree.GetRoot();
+
+            var insertStatements = new HashSet<StatementSyntax>();
+            var wrapStatements = new HashSet<StatementSyntax>();
+            var targetBlocks = new HashSet<BlockSyntax>();
+            var targetSections = new HashSet<SwitchSectionSyntax>();
+
+            foreach (var lineNumber in orderedLines)
+            {
+                var position = text.Lines[lineNumber - 1].Start;
+                var token = root.FindToken(position, findInsideTrivia: true);
+                var node = token.Parent;
+                if (node == null)
+                {
+                    continue;
+                }
+
+                var statement = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
+                if (statement != null)
+                {
+                    if (statement is BlockSyntax block)
+                    {
+                        targetBlocks.Add(block);
+                        continue;
+                    }
+
+                    if (statement.Parent is BlockSyntax || statement.Parent is SwitchSectionSyntax)
+                    {
+                        insertStatements.Add(statement);
+                    }
+                    else
+                    {
+                        wrapStatements.Add(statement);
+                    }
+
+                    continue;
+                }
+
+                var switchSection = node.AncestorsAndSelf().OfType<SwitchSectionSyntax>().FirstOrDefault();
+                if (switchSection != null)
+                {
+                    targetSections.Add(switchSection);
+                    continue;
+                }
+
+                var method = node.AncestorsAndSelf().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
+                if (method?.Body != null)
+                {
+                    targetBlocks.Add(method.Body);
+                    continue;
+                }
+
+                var accessor = node.AncestorsAndSelf().OfType<AccessorDeclarationSyntax>().FirstOrDefault();
+                if (accessor?.Body != null)
+                {
+                    targetBlocks.Add(accessor.Body);
+                }
+            }
+
+            if (insertStatements.Count == 0 &&
+                wrapStatements.Count == 0 &&
+                targetBlocks.Count == 0 &&
+                targetSections.Count == 0)
+            {
+                return source;
+            }
+
+            var annotatedRoot = root;
+
+            if (insertStatements.Count > 0)
+            {
+                annotatedRoot = annotatedRoot.ReplaceNodes(
+                    insertStatements,
+                    (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointInsertAnnotationKind)));
+            }
+
+            if (wrapStatements.Count > 0)
+            {
+                annotatedRoot = annotatedRoot.ReplaceNodes(
+                    wrapStatements,
+                    (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointWrapAnnotationKind)));
+            }
+
+            if (targetBlocks.Count > 0)
+            {
+                annotatedRoot = annotatedRoot.ReplaceNodes(
+                    targetBlocks,
+                    (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointBlockAnnotationKind)));
+            }
+
+            if (targetSections.Count > 0)
+            {
+                annotatedRoot = annotatedRoot.ReplaceNodes(
+                    targetSections,
+                    (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointSectionAnnotationKind)));
+            }
+
+            var rewriter = new BreakpointSyntaxRewriter();
+            var updatedRoot = rewriter.Visit(annotatedRoot);
+
+            return updatedRoot?.ToFullString() ?? source;
+        }
+
+        private static SyntaxTriviaList GetInsertionTrivia(StatementSyntax statement)
+        {
+            return statement.GetLeadingTrivia();
+        }
+
+        private static SyntaxTriviaList GetBlockInsertionTrivia(BlockSyntax block)
+        {
+            var firstStatement = block.Statements.FirstOrDefault();
+            if (firstStatement != null)
+            {
+                return firstStatement.GetLeadingTrivia();
+            }
+
+            var indent = ExtractIndentation(block.CloseBraceToken.LeadingTrivia);
+            var innerIndent = $"{indent}    ";
+            return SyntaxFactory.TriviaList(
+                SyntaxFactory.ElasticCarriageReturnLineFeed,
+                SyntaxFactory.Whitespace(innerIndent));
+        }
+
+        private static string ExtractIndentation(SyntaxTriviaList triviaList)
+        {
+            var text = triviaList.ToFullString();
+            var lastNewline = text.LastIndexOf('\n');
+            if (lastNewline >= 0)
+            {
+                text = text.Substring(lastNewline + 1);
+            }
+
+            return text.Replace("\r", string.Empty);
+        }
+
+        private static StatementSyntax CreateDebuggerLaunchStatement(SyntaxTriviaList leadingTrivia)
+        {
+            return SyntaxFactory.ParseStatement("System.Diagnostics.Debugger.Launch();")
+                .WithLeadingTrivia(leadingTrivia);
+        }
+
+        private static StatementSyntax CreateDebuggerBreakStatement(SyntaxTriviaList leadingTrivia)
+        {
+            return SyntaxFactory.ParseStatement("System.Diagnostics.Debugger.Break();")
+                .WithLeadingTrivia(leadingTrivia);
+        }
+
+        private static SyntaxTriviaList EnsureLeadingLineBreak(SyntaxTriviaList triviaList)
+        {
+            if (triviaList.Any(trivia => trivia.IsKind(SyntaxKind.EndOfLineTrivia)))
+            {
+                return triviaList;
+            }
+
+            return triviaList.Insert(0, SyntaxFactory.ElasticCarriageReturnLineFeed);
+        }
+
+        private sealed class BreakpointSyntaxRewriter : CSharpSyntaxRewriter
+        {
+            public override SyntaxNode VisitBlock(BlockSyntax node)
+            {
+                var updated = (BlockSyntax)base.VisitBlock(node);
+                var statements = updated.Statements;
+                var shouldInsertAtStart = updated.GetAnnotations(BreakpointBlockAnnotationKind).Any();
+
+                var builder = new List<StatementSyntax>(statements.Count + 2);
+                var adjustNextLeading = false;
+                if (shouldInsertAtStart)
+                {
+                    var leadingTrivia = GetBlockInsertionTrivia(updated);
+                    builder.Add(CreateDebuggerLaunchStatement(leadingTrivia));
+                    var normalizedLeading = EnsureLeadingLineBreak(leadingTrivia);
+                    builder.Add(CreateDebuggerBreakStatement(normalizedLeading));
+                    adjustNextLeading = true;
+                }
+
+                foreach (var statement in statements)
+                {
+                    if (statement.GetAnnotations(BreakpointInsertAnnotationKind).Any())
+                    {
+                        var leadingTrivia = GetInsertionTrivia(statement);
+                        builder.Add(CreateDebuggerLaunchStatement(leadingTrivia));
+                        var normalizedLeading = EnsureLeadingLineBreak(leadingTrivia);
+                        builder.Add(CreateDebuggerBreakStatement(normalizedLeading));
+                        builder.Add(statement.WithLeadingTrivia(normalizedLeading));
+                        adjustNextLeading = false;
+                    }
+                    else if (adjustNextLeading)
+                    {
+                        var normalizedLeading = EnsureLeadingLineBreak(statement.GetLeadingTrivia());
+                        builder.Add(statement.WithLeadingTrivia(normalizedLeading));
+                        adjustNextLeading = false;
+                    }
+                    else
+                    {
+                        builder.Add(statement);
+                    }
+                }
+
+                if (builder.Count == statements.Count && !shouldInsertAtStart)
+                {
+                    return updated;
+                }
+
+                return updated.WithStatements(SyntaxFactory.List(builder));
+            }
+
+            public override SyntaxNode VisitSwitchSection(SwitchSectionSyntax node)
+            {
+                var updated = (SwitchSectionSyntax)base.VisitSwitchSection(node);
+                var statements = updated.Statements;
+                var builder = new List<StatementSyntax>(statements.Count + 2);
+                var shouldInsertAtStart = updated.GetAnnotations(BreakpointSectionAnnotationKind).Any();
+                var adjustNextLeading = false;
+
+                if (shouldInsertAtStart)
+                {
+                    var leadingTrivia = statements.FirstOrDefault()?.GetLeadingTrivia()
+                        ?? SyntaxFactory.TriviaList(
+                            SyntaxFactory.ElasticCarriageReturnLineFeed,
+                            SyntaxFactory.Whitespace("    "));
+                    builder.Add(CreateDebuggerLaunchStatement(leadingTrivia));
+                    var normalizedLeading = EnsureLeadingLineBreak(leadingTrivia);
+                    builder.Add(CreateDebuggerBreakStatement(normalizedLeading));
+                    adjustNextLeading = true;
+                }
+
+                foreach (var statement in statements)
+                {
+                    if (statement.GetAnnotations(BreakpointInsertAnnotationKind).Any())
+                    {
+                        var leadingTrivia = GetInsertionTrivia(statement);
+                        builder.Add(CreateDebuggerLaunchStatement(leadingTrivia));
+                        var normalizedLeading = EnsureLeadingLineBreak(leadingTrivia);
+                        builder.Add(CreateDebuggerBreakStatement(normalizedLeading));
+                        builder.Add(statement.WithLeadingTrivia(normalizedLeading));
+                        adjustNextLeading = false;
+                    }
+                    else if (adjustNextLeading)
+                    {
+                        var normalizedLeading = EnsureLeadingLineBreak(statement.GetLeadingTrivia());
+                        builder.Add(statement.WithLeadingTrivia(normalizedLeading));
+                        adjustNextLeading = false;
+                    }
+                    else
+                    {
+                        builder.Add(statement);
+                    }
+                }
+
+                if (builder.Count == statements.Count && !shouldInsertAtStart)
+                {
+                    return updated;
+                }
+
+                return updated.WithStatements(SyntaxFactory.List(builder));
+            }
+
+            public override SyntaxNode Visit(SyntaxNode node)
+            {
+                if (node == null)
+                {
+                    return null;
+                }
+
+                var visited = base.Visit(node);
+                if (visited is StatementSyntax statement &&
+                    statement is not BlockSyntax &&
+                    statement.GetAnnotations(BreakpointWrapAnnotationKind).Any())
+                {
+                    var outerTrivia = statement.GetLeadingTrivia();
+                    var indent = ExtractIndentation(outerTrivia);
+                    var innerTrivia = SyntaxFactory.TriviaList(
+                        SyntaxFactory.ElasticCarriageReturnLineFeed,
+                        SyntaxFactory.Whitespace($"{indent}    "));
+                    var block = SyntaxFactory.Block(
+                            CreateDebuggerLaunchStatement(innerTrivia),
+                            CreateDebuggerBreakStatement(innerTrivia),
+                            statement.WithLeadingTrivia(innerTrivia))
+                        .WithLeadingTrivia(outerTrivia)
+                        .WithTrailingTrivia(statement.GetTrailingTrivia());
+
+                    return block;
+                }
+
+                return visited;
+            }
+        }
+
         private static SyntaxTree CreateConsoleReadKeyShim(CSharpParseOptions parseOptions)
         {
             if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
@@ -315,6 +689,8 @@ namespace SharpPadRuntime
             Func<string, Task> onError,
             string sessionId = null,
             string projectType = null,
+            IReadOnlyList<int> breakpointLines = null,
+            string breakpointFileName = null,
             CancellationToken cancellationToken = default)
         {
             return CompileAndExecuteAsync(
@@ -325,6 +701,8 @@ namespace SharpPadRuntime
                 onError,
                 sessionId,
                 projectType,
+                breakpointLines,
+                breakpointFileName,
                 cancellationToken);
         }
 
@@ -336,6 +714,8 @@ namespace SharpPadRuntime
             Func<string, Task> onError,
             string sessionId = null,
             string projectType = null,
+            IReadOnlyList<int> breakpointLines = null,
+            string breakpointFileName = null,
             CancellationToken cancellationToken = default)
         {
             var files = new List<FileContent>
@@ -355,6 +735,8 @@ namespace SharpPadRuntime
                 onError,
                 sessionId,
                 projectType,
+                breakpointLines,
+                breakpointFileName,
             cancellationToken);
         }
 
@@ -380,6 +762,8 @@ namespace SharpPadRuntime
             Func<string, Task> onError,
             string sessionId,
             string projectType,
+            IReadOnlyList<int> breakpointLines,
+            string breakpointFileName,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -455,12 +839,32 @@ namespace SharpPadRuntime
                 normalizedProjectType == "web")
             {
                 // WinForms 和 Web API 应用使用进程外执行
-                return await ExecuteInIsolatedProcessAsync(files, nuget, languageVersion, onOutput, onError, sessionId, projectType, cancellationToken);
+                return await ExecuteInIsolatedProcessAsync(
+                    files,
+                    nuget,
+                    languageVersion,
+                    onOutput,
+                    onError,
+                    sessionId,
+                    projectType,
+                    breakpointLines,
+                    breakpointFileName,
+                    cancellationToken);
             }
             else
             {
                 // Console 应用使用进程内执行
-                return await ExecuteInProcessAsync(files, nuget, languageVersion, onOutput, onError, sessionId, projectType, cancellationToken);
+                return await ExecuteInProcessAsync(
+                    files,
+                    nuget,
+                    languageVersion,
+                    onOutput,
+                    onError,
+                    sessionId,
+                    projectType,
+                    breakpointLines,
+                    breakpointFileName,
+                    cancellationToken);
             }
         }
 
@@ -473,6 +877,8 @@ namespace SharpPadRuntime
             Func<string, Task> onError,
             string sessionId,
             string projectType,
+            IReadOnlyList<int> breakpointLines,
+            string breakpointFileName,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -494,6 +900,8 @@ namespace SharpPadRuntime
                     languageVersion: effectiveLanguageVersion,
                     kind: SourceCodeKind.Regular,
                     documentationMode: DocumentationMode.Parse);
+                var normalizedBreakpoints = NormalizeBreakpointLines(breakpointLines);
+                var breakpointTarget = ResolveBreakpointTarget(files, breakpointFileName);
 
                 string assemblyName = "DynamicCode";
 
@@ -504,6 +912,10 @@ namespace SharpPadRuntime
                 {
                     var file = files[index];
                     var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                    if (normalizedBreakpoints.Count > 0 && ReferenceEquals(file, breakpointTarget))
+                    {
+                        processedSource = InjectDebuggerBreakpoints(processedSource, normalizedBreakpoints, parseOptions);
+                    }
                     var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
                     var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);
                     var sourceText = SourceText.From(processedSource, Encoding.UTF8);
@@ -680,6 +1092,8 @@ namespace SharpPadRuntime
             Func<string, Task> onError,
             string sessionId,
             string projectType,
+            IReadOnlyList<int> breakpointLines,
+            string breakpointFileName,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -705,6 +1119,8 @@ namespace SharpPadRuntime
                 languageVersion: effectiveLanguageVersion,
                 kind: SourceCodeKind.Regular,
                 documentationMode: DocumentationMode.Parse);
+            var normalizedBreakpoints = NormalizeBreakpointLines(breakpointLines);
+            var breakpointTarget = ResolveBreakpointTarget(files, breakpointFileName);
 
             var workingDirectory = CreateWorkingDirectory();
             var syntaxTrees = new List<SyntaxTree>(files.Count);
@@ -714,6 +1130,10 @@ namespace SharpPadRuntime
                 cancellationToken.ThrowIfCancellationRequested();
                 var file = files[index];
                 var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                if (normalizedBreakpoints.Count > 0 && ReferenceEquals(file, breakpointTarget))
+                {
+                    processedSource = InjectDebuggerBreakpoints(processedSource, normalizedBreakpoints, parseOptions);
+                }
                 var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
                 var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);
                 var sourceText = SourceText.From(processedSource, Encoding.UTF8);

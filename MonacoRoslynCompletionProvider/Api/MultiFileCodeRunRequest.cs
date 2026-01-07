@@ -13,6 +13,8 @@ namespace MonacoRoslynCompletionProvider.Api
         public int LanguageVersion { get; set; }
         public string SessionId { get; set; }
         public string ProjectType { get; set; } = "console";
+        public List<int> BreakpointLines { get; set; }
+        public string BreakpointFileName { get; set; }
 
         // For backward compatibility
         public string SourceCode { get; set; }

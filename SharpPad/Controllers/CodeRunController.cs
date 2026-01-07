@@ -64,6 +64,8 @@ namespace SharpPad.Controllers
                         error => OnErrorAsync(error, channel.Writer, cancellationToken),
                         sessionId: request?.SessionId,
                         projectType: request?.ProjectType,
+                        breakpointLines: request?.BreakpointLines,
+                        breakpointFileName: request?.BreakpointFileName,
                         cancellationToken: cancellationToken
                     );
                 }
@@ -78,6 +80,8 @@ namespace SharpPad.Controllers
                         error => OnErrorAsync(error, channel.Writer, cancellationToken),
                         sessionId: request?.SessionId,
                         projectType: request?.ProjectType,
+                        breakpointLines: request?.BreakpointLines,
+                        breakpointFileName: request?.BreakpointFileName,
                         cancellationToken: cancellationToken
                     );
                 }
