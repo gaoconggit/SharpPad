@@ -41,6 +41,8 @@ namespace MonacoRoslynCompletionProvider.Api
         private const string BreakpointWrapAnnotationKind = "sharpPadBreakpointWrap";
         private const string BreakpointBlockAnnotationKind = "sharpPadBreakpointBlock";
         private const string BreakpointSectionAnnotationKind = "sharpPadBreakpointSection";
+        private const string ConsoleReadKeyShimPath = "__ConsoleReadKeyShim.cs";
+        private const string DebuggerBreakpointShimPath = "__DebuggerBreakpointShim.cs";
         private const string ConsoleReadKeyShimSource = @"
 using System;
 using System.Collections;
@@ -116,6 +118,61 @@ namespace SharpPadRuntime
             }
 
             return ConsoleKey.NoName;
+        }
+    }
+}
+";
+        private const string DebuggerBreakpointShimSource = @"
+using System;
+using System.Diagnostics;
+using System.Threading;
+
+namespace SharpPadRuntime
+{
+    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
+    internal static class DebuggerBreakpointShim
+    {
+        private static int _launchAttempted;
+
+        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
+        public static void WaitForDebugger()
+        {
+            if (!Debugger.IsAttached)
+            {
+                if (Interlocked.Exchange(ref _launchAttempted, 1) == 0)
+                {
+                    try
+                    {
+                        Debugger.Launch();
+                    }
+                    catch
+                    {
+                        return;
+                    }
+                }
+
+                while (!Debugger.IsAttached)
+                {
+                    Thread.Sleep(50);
+                }
+            }
+
+            if (Debugger.IsAttached)
+            {
+                return;
+            }
+        }
+
+        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
+        public static void BreakIfAttached()
+        {
+            if (Debugger.IsAttached)
+            {
+                Debugger.Break();
+            }
         }
     }
 }
@@ -495,13 +552,13 @@ namespace SharpPadRuntime
 
         private static StatementSyntax CreateDebuggerLaunchStatement(SyntaxTriviaList leadingTrivia)
         {
-            return SyntaxFactory.ParseStatement("System.Diagnostics.Debugger.Launch();")
+            return SyntaxFactory.ParseStatement("SharpPadRuntime.DebuggerBreakpointShim.WaitForDebugger();")
                 .WithLeadingTrivia(leadingTrivia);
         }
 
         private static StatementSyntax CreateDebuggerBreakStatement(SyntaxTriviaList leadingTrivia)
         {
-            return SyntaxFactory.ParseStatement("System.Diagnostics.Debugger.Break();")
+            return SyntaxFactory.ParseStatement("SharpPadRuntime.DebuggerBreakpointShim.BreakIfAttached();")
                 .WithLeadingTrivia(leadingTrivia);
         }
 
@@ -654,8 +711,32 @@ namespace SharpPadRuntime
             return CSharpSyntaxTree.ParseText(
                 ConsoleReadKeyShimSource,
                 parseOptions,
-                path: "__ConsoleReadKeyShim.cs",
+                path: ConsoleReadKeyShimPath,
                 encoding: Encoding.UTF8);
+        }
+
+        private static SyntaxTree CreateDebuggerBreakpointShim(CSharpParseOptions parseOptions)
+        {
+            if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
+
+            return CSharpSyntaxTree.ParseText(
+                DebuggerBreakpointShimSource,
+                parseOptions,
+                path: DebuggerBreakpointShimPath,
+                encoding: Encoding.UTF8);
+        }
+
+        private static IReadOnlyList<EmbeddedText> CreateShimEmbeddedTexts()
+        {
+            return new[]
+            {
+                EmbeddedText.FromSource(
+                    ConsoleReadKeyShimPath,
+                    SourceText.From(ConsoleReadKeyShimSource, Encoding.UTF8)),
+                EmbeddedText.FromSource(
+                    DebuggerBreakpointShimPath,
+                    SourceText.From(DebuggerBreakpointShimSource, Encoding.UTF8))
+            };
         }
 
         private static Task RunEntryPointAsync(Func<Task> executeAsync, bool requiresStaThread)
@@ -998,6 +1079,7 @@ namespace SharpPadRuntime
                     syntaxTrees.Add(syntaxTree);
                 }
                 syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
+                syntaxTrees.Add(CreateDebuggerBreakpointShim(parseOptions));
 
                 // Collect references
                 var references = new List<MetadataReference>();
@@ -1029,10 +1111,12 @@ namespace SharpPadRuntime
                 using (var peStream = new MemoryStream())
                 using (var pdbStream = new MemoryStream())
                 {
+                    var embeddedTexts = CreateShimEmbeddedTexts();
                     var compileResult = compilation.Emit(
                         peStream,
                         pdbStream,
-                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb));
+                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb),
+                        embeddedTexts: embeddedTexts);
                     if (!compileResult.Success)
                     {
                         foreach (var diag in compileResult.Diagnostics)
@@ -1222,6 +1306,7 @@ namespace SharpPadRuntime
                 syntaxTrees.Add(syntaxTree);
             }
             syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
+            syntaxTrees.Add(CreateDebuggerBreakpointShim(parseOptions));
 
             var references = new List<MetadataReference>();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -1275,10 +1360,12 @@ namespace SharpPadRuntime
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    var embeddedTexts = CreateShimEmbeddedTexts();
                     var emitResult = compilation.Emit(
                         peStream,
                         pdbStream,
-                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb));
+                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb),
+                        embeddedTexts: embeddedTexts);
 
                     if (!emitResult.Success)
                     {
