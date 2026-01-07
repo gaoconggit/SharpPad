@@ -90,6 +90,7 @@
 
 - 进行中的任务
   - 重写文件管理,持久化为物理文件夹/文件
+  - 更新 web 版本
 
     
   
@@ -100,6 +101,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
