@@ -499,13 +499,18 @@ namespace SharpPadRuntime
 
                 // Parse all files into syntax trees
                 var syntaxTrees = new List<SyntaxTree>();
-                foreach (var file in files)
+                var sourceRoot = CreateSourceDirectory();
+                for (var index = 0; index < files.Count; index++)
                 {
+                    var file = files[index];
                     var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                    var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
+                    var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);
+                    var sourceText = SourceText.From(processedSource, Encoding.UTF8);
                     var syntaxTree = CSharpSyntaxTree.ParseText(
-                        processedSource,
+                        sourceText,
                         parseOptions,
-                        path: file.FileName);
+                        path: sourcePath);
                     syntaxTrees.Add(syntaxTree);
                 }
                 syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
@@ -525,15 +530,25 @@ namespace SharpPadRuntime
                     references.Add(MetadataReference.CreateFromFile(pkg.Path));
                 }
 
+                var compilationOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication);
+                if (Debugger.IsAttached)
+                {
+                    compilationOptions = compilationOptions.WithOptimizationLevel(OptimizationLevel.Debug);
+                }
+
                 var compilation = CSharpCompilation.Create(
                     assemblyName,
                     syntaxTrees,
                     references,
-                    new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+                    compilationOptions);
 
                 using (var peStream = new MemoryStream())
+                using (var pdbStream = new MemoryStream())
                 {
-                    var compileResult = compilation.Emit(peStream);
+                    var compileResult = compilation.Emit(
+                        peStream,
+                        pdbStream,
+                        options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb));
                     if (!compileResult.Success)
                     {
                         foreach (var diag in compileResult.Diagnostics)
@@ -550,8 +565,9 @@ namespace SharpPadRuntime
                         return result;
                     }
                     peStream.Seek(0, SeekOrigin.Begin);
+                    pdbStream.Seek(0, SeekOrigin.Begin);
 
-                    assembly = loadContext.LoadFromStream(peStream);
+                    assembly = loadContext.LoadFromStream(peStream, pdbStream);
 
                     var entryPoint = assembly.EntryPoint;
                     if (entryPoint != null)
@@ -690,13 +706,18 @@ namespace SharpPadRuntime
                 kind: SourceCodeKind.Regular,
                 documentationMode: DocumentationMode.Parse);
 
+            var workingDirectory = CreateWorkingDirectory();
             var syntaxTrees = new List<SyntaxTree>(files.Count);
-            foreach (var file in files)
+            var sourceRoot = CreateSourceDirectory(workingDirectory);
+            for (var index = 0; index < files.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                var file = files[index];
                 var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
+                var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);
                 var sourceText = SourceText.From(processedSource, Encoding.UTF8);
-                var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, parseOptions, path: file.FileName);
+                var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, parseOptions, path: sourcePath);
                 syntaxTrees.Add(syntaxTree);
             }
             syntaxTrees.Add(CreateConsoleReadKeyShim(parseOptions));
@@ -730,13 +751,18 @@ namespace SharpPadRuntime
                 TryEnsureAssemblyLoaded(pkg);
             }
 
+            var compilationOptions = new CSharpCompilationOptions(runBehavior.OutputKind);
+            if (Debugger.IsAttached)
+            {
+                compilationOptions = compilationOptions.WithOptimizationLevel(OptimizationLevel.Debug);
+            }
+
             var compilation = CSharpCompilation.Create(
                 "DynamicProgram",
                 syntaxTrees,
                 references,
-                new CSharpCompilationOptions(runBehavior.OutputKind));
+                compilationOptions);
 
-            var workingDirectory = CreateWorkingDirectory();
             var assemblyPath = Path.Combine(workingDirectory, "DynamicProgram.dll");
             var pdbPath = Path.Combine(workingDirectory, "DynamicProgram.pdb");
             string? hostAssemblyPath = null;
@@ -870,6 +896,76 @@ namespace SharpPadRuntime
             var directory = Path.Combine(root, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid():N}");
             Directory.CreateDirectory(directory);
             return directory;
+        }
+
+        private static string CreateSourceDirectory(string workingDirectory = null)
+        {
+            var root = string.IsNullOrWhiteSpace(workingDirectory)
+                ? Path.Combine(Path.GetTempPath(), "SharpPad", "sources")
+                : Path.Combine(workingDirectory, "sources");
+            Directory.CreateDirectory(root);
+
+            var directory = Path.Combine(root, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            return directory;
+        }
+
+        private static string WriteSourceFile(string rootDirectory, string relativePath, string source)
+        {
+            var fullPath = Path.Combine(rootDirectory, relativePath);
+            var directory = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(fullPath, source ?? string.Empty, Encoding.UTF8);
+            return fullPath;
+        }
+
+        private static string GetSafeRelativePath(string path, string fallbackName)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return fallbackName;
+            }
+
+            var normalized = path.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+            {
+                normalized = Path.GetFileName(normalized);
+            }
+
+            var segments = normalized.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0)
+            {
+                return fallbackName;
+            }
+
+            var safeSegments = new List<string>(segments.Length);
+            foreach (var segment in segments)
+            {
+                var safe = SanitizeFileName(segment);
+                if (string.IsNullOrWhiteSpace(safe))
+                {
+                    safe = fallbackName;
+                }
+                safeSegments.Add(safe);
+            }
+
+            return Path.Combine(safeSegments.ToArray());
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var builder = new StringBuilder(name.Length);
+            foreach (var ch in name)
+            {
+                builder.Append(invalidChars.Contains(ch) ? '_' : ch);
+            }
+
+            return builder.ToString();
         }
 
         private static async Task<int> ExecuteInIsolatedProcessCoreAsync(
