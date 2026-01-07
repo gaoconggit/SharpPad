@@ -1184,46 +1184,7 @@ namespace MonacoRoslynCompletionProvider
                         results.Add(CreateOrganizeUsingsAction());
                     }
 
-                    // 检查可能缺失的常用using语句
-                    var existingUsings = usingDirectives
-                        .Select(u => u.Name?.ToString())
-                        .Where(n => !string.IsNullOrEmpty(n))
-                        .ToHashSet();
-
-                    // 扫描代码中的标识符，检查是否需要添加using语句
-                    var tokens = syntaxRoot.DescendantTokens()
-                        .Where(t => t.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.IdentifierToken))
-                        .Where(t => span.IntersectsWith(t.Span) || span.Length == 0)
-                        .Select(t => t.ValueText)
-                        .Distinct()
-                        .ToArray();
-
-                    var suggestedNamespaces = new HashSet<string>(StringComparer.Ordinal);
-                    foreach (var token in tokens)
-                    {
-                        var namespaces = await FindNamespacesFromCompilationAsync(
-                            document,
-                            token,
-                            cancellationToken);
-                        foreach (var namespaceName in namespaces)
-                        {
-                            suggestedNamespaces.Add(namespaceName);
-                        }
-                    }
-
-                    foreach (var namespaceName in suggestedNamespaces)
-                    {
-                        if (existingUsings.Contains(namespaceName))
-                        {
-                            continue;
-                        }
-
-                        var action = CreateAddUsingAction(document, namespaceName, sourceText, syntaxRoot);
-                        if (action != null && !results.Any(r => r.Title == action.Title))
-                        {
-                            results.Add(action);
-                        }
-                    }
+                    // 仅保留通用操作，Add using 只在诊断错误中提供
                 }
             }
             catch (System.Exception ex)
