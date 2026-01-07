@@ -15,6 +15,7 @@ namespace MonacoRoslynCompletionProvider.Api
         public string ProjectType { get; set; } = "console";
         public List<int> BreakpointLines { get; set; }
         public string BreakpointFileName { get; set; }
+        public Dictionary<string, List<int>> BreakpointLinesByFile { get; set; }
 
         // For backward compatibility
         public string SourceCode { get; set; }

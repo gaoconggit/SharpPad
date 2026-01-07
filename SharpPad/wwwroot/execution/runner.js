@@ -459,6 +459,7 @@ export class CodeRunner {
         const breakpointFileName = file?.name
             || selectedFiles.find(f => f.isEntry)?.name
             || 'Program.cs';
+        const breakpointLinesByFile = this.getBreakpointLinesByFile(selectedFiles, fileId, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preRunMessages = [];
 
@@ -502,7 +503,8 @@ export class CodeRunner {
                 ProjectType: projectType,
                 SessionId: this.currentSessionId,
                 BreakpointLines: breakpointLines,
-                BreakpointFileName: breakpointFileName
+                BreakpointFileName: breakpointFileName,
+                BreakpointLinesByFile: breakpointLinesByFile
             };
         } else {
             request = {
@@ -515,7 +517,8 @@ export class CodeRunner {
                 ProjectType: projectType,
                 SessionId: this.currentSessionId,
                 BreakpointLines: breakpointLines,
-                BreakpointFileName: breakpointFileName
+                BreakpointFileName: breakpointFileName,
+                BreakpointLinesByFile: breakpointLinesByFile
             };
         }
 
@@ -644,6 +647,60 @@ export class CodeRunner {
             missingReferences: Array.isArray(context.missingReferences) ? context.missingReferences : [],
             packages: Array.isArray(context.packages) ? context.packages : []
         };
+    }
+
+    normalizeBreakpointLines(lines) {
+        if (!Array.isArray(lines)) {
+            return [];
+        }
+
+        return Array.from(new Set(lines.filter(Number.isFinite).map(value => Math.floor(value)).filter(value => value > 0)))
+            .sort((a, b) => a - b);
+    }
+
+    getBreakpointStorageKey(fileId) {
+        if (!fileId) {
+            return null;
+        }
+
+        return `sharpPad.breakpoints.${fileId}`;
+    }
+
+    readBreakpointLinesForFileId(fileId) {
+        const key = this.getBreakpointStorageKey(fileId);
+        if (!key) {
+            return [];
+        }
+
+        try {
+            const raw = localStorage.getItem(key);
+            return this.normalizeBreakpointLines(raw ? JSON.parse(raw) : []);
+        } catch (error) {
+            console.warn('无法读取断点信息:', error);
+            return [];
+        }
+    }
+
+    getBreakpointLinesByFile(selectedFiles, fileId, currentFile) {
+        const map = {};
+        const addBreakpoints = (targetFileId, targetFileName) => {
+            if (!targetFileId || !targetFileName) {
+                return;
+            }
+
+            const lines = this.readBreakpointLinesForFileId(targetFileId);
+            if (lines.length > 0) {
+                map[targetFileName] = lines;
+            }
+        };
+
+        if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+            selectedFiles.forEach(file => addBreakpoints(file.id, file.name));
+        } else if (fileId && currentFile?.name) {
+            addBreakpoints(fileId, currentFile.name);
+        }
+
+        return map;
     }
 
     // 新增的方法，使用 FileManager 的公共保存方法

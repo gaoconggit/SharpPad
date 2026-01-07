@@ -236,6 +236,32 @@ namespace SharpPadRuntime
                 .ToArray();
         }
 
+        private static IReadOnlyDictionary<string, IReadOnlyList<int>> NormalizeBreakpointLinesByFile(
+            IDictionary<string, List<int>> breakpointLinesByFile)
+        {
+            if (breakpointLinesByFile == null || breakpointLinesByFile.Count == 0)
+            {
+                return new Dictionary<string, IReadOnlyList<int>>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var normalized = new Dictionary<string, IReadOnlyList<int>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in breakpointLinesByFile)
+            {
+                if (string.IsNullOrWhiteSpace(pair.Key))
+                {
+                    continue;
+                }
+
+                var normalizedLines = NormalizeBreakpointLines(pair.Value);
+                if (normalizedLines.Count > 0)
+                {
+                    normalized[pair.Key] = normalizedLines;
+                }
+            }
+
+            return normalized;
+        }
+
         private static FileContent ResolveBreakpointTarget(IReadOnlyList<FileContent> files, string breakpointFileName)
         {
             if (files == null || files.Count == 0)
@@ -259,6 +285,36 @@ namespace SharpPadRuntime
             }
 
             return files.Count == 1 ? files[0] : null;
+        }
+
+        private static IReadOnlyList<int> ResolveBreakpointsForFile(
+            FileContent file,
+            IReadOnlyDictionary<string, IReadOnlyList<int>> breakpointLinesByFile,
+            IReadOnlyList<int> legacyBreakpoints,
+            FileContent legacyTarget)
+        {
+            if (file == null)
+            {
+                return Array.Empty<int>();
+            }
+
+            if (breakpointLinesByFile != null && breakpointLinesByFile.Count > 0)
+            {
+                foreach (var pair in breakpointLinesByFile)
+                {
+                    if (FileNameMatches(file.FileName, pair.Key))
+                    {
+                        return pair.Value ?? Array.Empty<int>();
+                    }
+                }
+            }
+
+            if (legacyBreakpoints.Count > 0 && ReferenceEquals(file, legacyTarget))
+            {
+                return legacyBreakpoints;
+            }
+
+            return Array.Empty<int>();
         }
 
         private static bool FileNameMatches(string candidate, string expected)
@@ -691,6 +747,7 @@ namespace SharpPadRuntime
             string projectType = null,
             IReadOnlyList<int> breakpointLines = null,
             string breakpointFileName = null,
+            IDictionary<string, List<int>> breakpointLinesByFile = null,
             CancellationToken cancellationToken = default)
         {
             return CompileAndExecuteAsync(
@@ -703,6 +760,7 @@ namespace SharpPadRuntime
                 projectType,
                 breakpointLines,
                 breakpointFileName,
+                breakpointLinesByFile,
                 cancellationToken);
         }
 
@@ -716,6 +774,7 @@ namespace SharpPadRuntime
             string projectType = null,
             IReadOnlyList<int> breakpointLines = null,
             string breakpointFileName = null,
+            IDictionary<string, List<int>> breakpointLinesByFile = null,
             CancellationToken cancellationToken = default)
         {
             var files = new List<FileContent>
@@ -737,7 +796,8 @@ namespace SharpPadRuntime
                 projectType,
                 breakpointLines,
                 breakpointFileName,
-            cancellationToken);
+                breakpointLinesByFile,
+                cancellationToken);
         }
 
         private static void EnsureRuntimePackageReferences(IDictionary<string, string?> packageReferences)
@@ -764,6 +824,7 @@ namespace SharpPadRuntime
             string projectType,
             IReadOnlyList<int> breakpointLines,
             string breakpointFileName,
+            IDictionary<string, List<int>> breakpointLinesByFile,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -849,6 +910,7 @@ namespace SharpPadRuntime
                     projectType,
                     breakpointLines,
                     breakpointFileName,
+                    breakpointLinesByFile,
                     cancellationToken);
             }
             else
@@ -864,6 +926,7 @@ namespace SharpPadRuntime
                     projectType,
                     breakpointLines,
                     breakpointFileName,
+                    breakpointLinesByFile,
                     cancellationToken);
             }
         }
@@ -879,6 +942,7 @@ namespace SharpPadRuntime
             string projectType,
             IReadOnlyList<int> breakpointLines,
             string breakpointFileName,
+            IDictionary<string, List<int>> breakpointLinesByFile,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -901,7 +965,10 @@ namespace SharpPadRuntime
                     kind: SourceCodeKind.Regular,
                     documentationMode: DocumentationMode.Parse);
                 var normalizedBreakpoints = NormalizeBreakpointLines(breakpointLines);
-                var breakpointTarget = ResolveBreakpointTarget(files, breakpointFileName);
+                var normalizedBreakpointsByFile = NormalizeBreakpointLinesByFile(breakpointLinesByFile);
+                var breakpointTarget = normalizedBreakpoints.Count > 0
+                    ? ResolveBreakpointTarget(files, breakpointFileName)
+                    : null;
 
                 string assemblyName = "DynamicCode";
 
@@ -912,9 +979,14 @@ namespace SharpPadRuntime
                 {
                     var file = files[index];
                     var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
-                    if (normalizedBreakpoints.Count > 0 && ReferenceEquals(file, breakpointTarget))
+                    var fileBreakpoints = ResolveBreakpointsForFile(
+                        file,
+                        normalizedBreakpointsByFile,
+                        normalizedBreakpoints,
+                        breakpointTarget);
+                    if (fileBreakpoints.Count > 0)
                     {
-                        processedSource = InjectDebuggerBreakpoints(processedSource, normalizedBreakpoints, parseOptions);
+                        processedSource = InjectDebuggerBreakpoints(processedSource, fileBreakpoints, parseOptions);
                     }
                     var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
                     var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);
@@ -1094,6 +1166,7 @@ namespace SharpPadRuntime
             string projectType,
             IReadOnlyList<int> breakpointLines,
             string breakpointFileName,
+            IDictionary<string, List<int>> breakpointLinesByFile,
             CancellationToken cancellationToken)
         {
             var result = new RunResult
@@ -1120,7 +1193,10 @@ namespace SharpPadRuntime
                 kind: SourceCodeKind.Regular,
                 documentationMode: DocumentationMode.Parse);
             var normalizedBreakpoints = NormalizeBreakpointLines(breakpointLines);
-            var breakpointTarget = ResolveBreakpointTarget(files, breakpointFileName);
+            var normalizedBreakpointsByFile = NormalizeBreakpointLinesByFile(breakpointLinesByFile);
+            var breakpointTarget = normalizedBreakpoints.Count > 0
+                ? ResolveBreakpointTarget(files, breakpointFileName)
+                : null;
 
             var workingDirectory = CreateWorkingDirectory();
             var syntaxTrees = new List<SyntaxTree>(files.Count);
@@ -1130,9 +1206,14 @@ namespace SharpPadRuntime
                 cancellationToken.ThrowIfCancellationRequested();
                 var file = files[index];
                 var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
-                if (normalizedBreakpoints.Count > 0 && ReferenceEquals(file, breakpointTarget))
+                var fileBreakpoints = ResolveBreakpointsForFile(
+                    file,
+                    normalizedBreakpointsByFile,
+                    normalizedBreakpoints,
+                    breakpointTarget);
+                if (fileBreakpoints.Count > 0)
                 {
-                    processedSource = InjectDebuggerBreakpoints(processedSource, normalizedBreakpoints, parseOptions);
+                    processedSource = InjectDebuggerBreakpoints(processedSource, fileBreakpoints, parseOptions);
                 }
                 var relativePath = GetSafeRelativePath(file?.FileName, $"File{index + 1}.cs");
                 var sourcePath = WriteSourceFile(sourceRoot, relativePath, processedSource);

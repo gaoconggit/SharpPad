@@ -598,10 +598,14 @@ class FileManager {
 
         // 从localStorage获取最新的文件内容并更新编辑器
         if (window.editor) {
-            const fileContent = localStorage.getItem(`file_${file.id}`);        
+            const fileContent = localStorage.getItem(`file_${file.id}`);
             window.__suppressAutoSave = true;
             window.editor.setValue(fileContent || file.content || '');
             window.__suppressAutoSave = false;
+        }
+
+        if (window.editorInstance?.loadBreakpointsForFile) {
+            window.editorInstance.loadBreakpointsForFile(file.id);
         }
 
         const normalizedType = this.normalizeProjectType(file?.projectType);

@@ -66,6 +66,7 @@ namespace SharpPad.Controllers
                         projectType: request?.ProjectType,
                         breakpointLines: request?.BreakpointLines,
                         breakpointFileName: request?.BreakpointFileName,
+                        breakpointLinesByFile: request?.BreakpointLinesByFile,
                         cancellationToken: cancellationToken
                     );
                 }
@@ -82,6 +83,7 @@ namespace SharpPad.Controllers
                         projectType: request?.ProjectType,
                         breakpointLines: request?.BreakpointLines,
                         breakpointFileName: request?.BreakpointFileName,
+                        breakpointLinesByFile: request?.BreakpointLinesByFile,
                         cancellationToken: cancellationToken
                     );
                 }

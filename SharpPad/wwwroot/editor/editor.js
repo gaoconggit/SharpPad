@@ -1,5 +1,5 @@
 // 编辑器核心模块
-import { layoutEditor, DEFAULT_CODE, getSelectedModel, GPT_COMPLETION_SYSTEM_PROMPT } from '../utils/common.js';
+import { layoutEditor, DEFAULT_CODE, getSelectedModel, GPT_COMPLETION_SYSTEM_PROMPT, getCurrentFile } from '../utils/common.js';
 import { registerCompletion } from './index.mjs';
 import { getSystemSettings } from '../index.js';
 import { CodeActionProvider } from './codeActionProvider.js';
@@ -16,6 +16,7 @@ export class Editor {
         this.updateBreakpointDecorations = null;
         this.breakpointTooltip = null;
         this.hoverBreakpointDecorationIds = [];
+        this.breakpointStoragePrefix = 'sharpPad.breakpoints.';
 
         // 从localStorage读取主题设置，如果没有则默认为dark主题
         this.currentTheme = localStorage.getItem('editorTheme') || 'vs-dark';
@@ -416,6 +417,8 @@ Provide only the code to insert at the cursor position.`
             this.updateBreakpointDecorations();
         }
 
+        this.saveBreakpointsForActiveFile();
+
         if (this.hoverBreakpointDecorationIds.length > 0) {
             const hoveredLine = this.breakpointLines.has(lineNumber) ? null : lineNumber;
             if (!hoveredLine) {
@@ -429,6 +432,80 @@ Provide only the code to insert at the cursor position.`
 
     getBreakpointLines() {
         return Array.from(this.breakpointLines).sort((a, b) => a - b);
+    }
+
+    normalizeBreakpointLines(lines) {
+        if (!Array.isArray(lines)) {
+            return [];
+        }
+
+        return Array.from(new Set(lines.filter(Number.isFinite).map(value => Math.floor(value)).filter(value => value > 0)))
+            .sort((a, b) => a - b);
+    }
+
+    getBreakpointStorageKey(fileId) {
+        if (!fileId) {
+            return null;
+        }
+
+        return `${this.breakpointStoragePrefix}${fileId}`;
+    }
+
+    saveBreakpointsForActiveFile() {
+        const currentFile = getCurrentFile();
+        if (!currentFile?.id) {
+            return;
+        }
+
+        const key = this.getBreakpointStorageKey(currentFile.id);
+        if (!key) {
+            return;
+        }
+
+        try {
+            const lines = this.getBreakpointLines();
+            if (lines.length === 0) {
+                localStorage.removeItem(key);
+                return;
+            }
+
+            localStorage.setItem(key, JSON.stringify(lines));
+        } catch (error) {
+            console.warn('无法保存断点信息:', error);
+        }
+    }
+
+    loadBreakpointsForFile(fileId) {
+        const key = this.getBreakpointStorageKey(fileId);
+        if (!key) {
+            this.setBreakpointLines([]);
+            return;
+        }
+
+        let storedLines = [];
+        try {
+            const raw = localStorage.getItem(key);
+            storedLines = raw ? JSON.parse(raw) : [];
+        } catch (error) {
+            console.warn('无法读取断点信息:', error);
+        }
+
+        this.setBreakpointLines(storedLines);
+    }
+
+    setBreakpointLines(lines) {
+        this.breakpointLines = new Set(this.normalizeBreakpointLines(lines));
+
+        if (this.updateBreakpointDecorations) {
+            this.updateBreakpointDecorations();
+        }
+
+        if (this.editor && this.hoverBreakpointDecorationIds.length > 0) {
+            this.hoverBreakpointDecorationIds = this.editor.deltaDecorations(
+                this.hoverBreakpointDecorationIds,
+                []
+            );
+        }
     }
 
     ensureDebuggerBreakpointTooltip() {
