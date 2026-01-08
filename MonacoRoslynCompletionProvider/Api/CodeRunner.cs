@@ -134,11 +134,30 @@ namespace SharpPadRuntime
     internal static class DebuggerBreakpointShim
     {
         private static int _launchAttempted;
+        private static int _cancelRequested;
+
+        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
+        public static void RequestCancel()
+        {
+            Interlocked.Exchange(ref _cancelRequested, 1);
+        }
+
+        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
+        private static void ThrowIfCancelled()
+        {
+            if (Volatile.Read(ref _cancelRequested) != 0)
+            {
+                throw new OperationCanceledException();
+            }
+        }
 
         [DebuggerNonUserCode]
         [DebuggerStepThrough]
         public static void WaitForDebugger()
         {
+            ThrowIfCancelled();
             if (!Debugger.IsAttached)
             {
                 if (Interlocked.Exchange(ref _launchAttempted, 1) == 0)
@@ -155,6 +174,7 @@ namespace SharpPadRuntime
 
                 while (!Debugger.IsAttached)
                 {
+                    ThrowIfCancelled();
                     Thread.Sleep(50);
                 }
             }
@@ -169,6 +189,7 @@ namespace SharpPadRuntime
         [DebuggerStepThrough]
         public static void BreakIfAttached()
         {
+            ThrowIfCancelled();
             if (Debugger.IsAttached)
             {
                 Debugger.Break();
@@ -1173,6 +1194,7 @@ namespace SharpPadRuntime
                             Console.SetIn(interactiveReader);
                         }
 
+                        using var debuggerCancelRegistration = RegisterDebuggerCancellation(assembly, cancellationToken);
                         try
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -1185,6 +1207,10 @@ namespace SharpPadRuntime
                             {
                                 entryPoint.Invoke(null, null);
                             }
+                        }
+                        catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+                        {
+                            throw new OperationCanceledException(cancellationToken);
                         }
                         catch (OperationCanceledException)
                         {
@@ -1239,8 +1265,49 @@ namespace SharpPadRuntime
             return result;
         }
 
+        private static IDisposable RegisterDebuggerCancellation(Assembly assembly, CancellationToken cancellationToken)
+        {
+            if (!cancellationToken.CanBeCanceled || assembly == null)
+            {
+                return null;
+            }
+
+            var shimType = assembly.GetType("SharpPadRuntime.DebuggerBreakpointShim");
+            if (shimType == null)
+            {
+                return null;
+            }
+
+            var cancelMethod = shimType.GetMethod(
+                "RequestCancel",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            if (cancelMethod == null)
+            {
+                return null;
+            }
+
+            void SignalCancel()
+            {
+                try
+                {
+                    cancelMethod.Invoke(null, null);
+                }
+                catch
+                {
+                    // Best-effort; ignore if the shim is already unloaded.
+                }
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                SignalCancel();
+            }
+
+            return cancellationToken.Register(SignalCancel);
+        }
+
         // WinForms 和 Web API 应用进程外执行
-        private static async Task<RunResult> ExecuteInIsolatedProcessAsync(
+        private static async Task<RunResult> ExecuteInIsolatedProcessAsync(     
             List<FileContent> files,
             string nuget,
             int languageVersion,
