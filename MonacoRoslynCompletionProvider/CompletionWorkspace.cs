@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
@@ -442,13 +443,21 @@ namespace MonacoRoslynCompletionProvider
 
                     // 异步获取语法树
                     var syntaxTree = await document.GetSyntaxTreeAsync(token).ConfigureAwait(false);
+                    var root = await syntaxTree.GetRootAsync(token).ConfigureAwait(false);
+                    var effectiveOutputKind = outputKind;
+                    if (effectiveOutputKind == OutputKind.DynamicallyLinkedLibrary
+                        && root.DescendantNodes().OfType<GlobalStatementSyntax>().Any())
+                    {
+                        // 顶级语句只能在可执行目标中编译
+                        effectiveOutputKind = OutputKind.ConsoleApplication;
+                    }
 
                     // 创建编译对象，启用并发构建和 Release 优化
                     var compilation = CSharpCompilation.Create(
                         "TempCompilation",
                         new[] { syntaxTree },
                         references: allReferences,
-                        options: new CSharpCompilationOptions(outputKind)
+                        options: new CSharpCompilationOptions(effectiveOutputKind)
                                     .WithOptimizationLevel(OptimizationLevel.Release)
                                     .WithConcurrentBuild(true)
                     );
