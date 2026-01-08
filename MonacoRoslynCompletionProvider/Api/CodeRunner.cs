@@ -41,6 +41,7 @@ namespace MonacoRoslynCompletionProvider.Api
         private const string BreakpointWrapAnnotationKind = "sharpPadBreakpointWrap";
         private const string BreakpointBlockAnnotationKind = "sharpPadBreakpointBlock";
         private const string BreakpointSectionAnnotationKind = "sharpPadBreakpointSection";
+        private const string BreakpointGlobalInsertAnnotationKind = "sharpPadBreakpointGlobalInsert";
         private const string ConsoleReadKeyShimPath = "__ConsoleReadKeyShim.cs";
         private const string DebuggerBreakpointShimPath = "__DebuggerBreakpointShim.cs";
         private const string ConsoleReadKeyShimSource = @"
@@ -442,6 +443,7 @@ namespace SharpPadRuntime
             var wrapStatements = new HashSet<StatementSyntax>();
             var targetBlocks = new HashSet<BlockSyntax>();
             var targetSections = new HashSet<SwitchSectionSyntax>();
+            var targetGlobalStatements = new HashSet<GlobalStatementSyntax>();
 
             foreach (var lineNumber in orderedLines)
             {
@@ -456,6 +458,12 @@ namespace SharpPadRuntime
                 var statement = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
                 if (statement != null)
                 {
+                    if (statement.Parent is GlobalStatementSyntax globalStatement)
+                    {
+                        targetGlobalStatements.Add(globalStatement);
+                        continue;
+                    }
+
                     if (statement is BlockSyntax block)
                     {
                         targetBlocks.Add(block);
@@ -498,7 +506,8 @@ namespace SharpPadRuntime
             if (insertStatements.Count == 0 &&
                 wrapStatements.Count == 0 &&
                 targetBlocks.Count == 0 &&
-                targetSections.Count == 0)
+                targetSections.Count == 0 &&
+                targetGlobalStatements.Count == 0)
             {
                 return source;
             }
@@ -531,6 +540,13 @@ namespace SharpPadRuntime
                 annotatedRoot = annotatedRoot.ReplaceNodes(
                     targetSections,
                     (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointSectionAnnotationKind)));
+            }
+
+            if (targetGlobalStatements.Count > 0)
+            {
+                annotatedRoot = annotatedRoot.ReplaceNodes(
+                    targetGlobalStatements,
+                    (original, _) => original.WithAdditionalAnnotations(new SyntaxAnnotation(BreakpointGlobalInsertAnnotationKind)));
             }
 
             var rewriter = new BreakpointSyntaxRewriter();
@@ -595,6 +611,48 @@ namespace SharpPadRuntime
 
         private sealed class BreakpointSyntaxRewriter : CSharpSyntaxRewriter
         {
+            public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
+            {
+                if (node == null)
+                {
+                    return null;
+                }
+
+                var updated = (CompilationUnitSyntax)base.VisitCompilationUnit(node);
+                var members = updated.Members;
+                var builder = new List<MemberDeclarationSyntax>(members.Count + 2);
+                var modified = false;
+
+                foreach (var member in members)
+                {
+                    if (member is GlobalStatementSyntax globalStatement &&
+                        globalStatement.GetAnnotations(BreakpointGlobalInsertAnnotationKind).Any())
+                    {
+                        var leadingTrivia = globalStatement.Statement.GetLeadingTrivia();
+                        var normalizedLeading = EnsureLeadingLineBreak(leadingTrivia);
+
+                        builder.Add(SyntaxFactory.GlobalStatement(
+                            CreateDebuggerLaunchStatement(leadingTrivia)));
+                        builder.Add(SyntaxFactory.GlobalStatement(
+                            CreateDebuggerBreakStatement(normalizedLeading)));
+                        builder.Add(globalStatement.WithStatement(
+                            globalStatement.Statement.WithLeadingTrivia(normalizedLeading)));
+                        modified = true;
+                    }
+                    else
+                    {
+                        builder.Add(member);
+                    }
+                }
+
+                if (!modified)
+                {
+                    return updated;
+                }
+
+                return updated.WithMembers(SyntaxFactory.List(builder));
+            }
+
             public override SyntaxNode VisitBlock(BlockSyntax node)
             {
                 var updated = (BlockSyntax)base.VisitBlock(node);
