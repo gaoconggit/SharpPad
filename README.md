@@ -81,7 +81,8 @@
 - 断点调试(召唤vs)
 - windows pc client(mac silicon / windows)
 - nuget 管理页面
-- 多文件支持
+- 多文件支持(//@xxx.cs)
+- 顶层语句 console 与经典 console
 - 支持运行winform
 - 支持运行web api
 - 支持运行 avalonia
@@ -94,13 +95,13 @@
 
     
   
-
 ## 项目致谢
 
  - 感谢 [monacopilot](https://github.com/arshad-yaseen/monacopilot) 提供的 GPT 自动完成功能。
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
