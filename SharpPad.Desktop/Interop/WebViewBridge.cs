@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using AvaloniaWebView;
 using SharpPad.Desktop.Services;
 using WebViewCore.Events;
@@ -73,6 +75,10 @@ internal sealed class WebViewBridge : IDisposable
 
                 case "open-external-url":
                     HandleOpenExternalUrl(root);
+                    break;
+
+                case "pick-folder":
+                    await HandlePickFolderAsync(root);
                     break;
 
                 default:
@@ -267,6 +273,81 @@ internal sealed class WebViewBridge : IDisposable
                 type = "open-external-url-result",
                 success = false,
                 message = $"打开URL失败: {ex.Message}"
+            });
+        }
+    }
+
+    private async Task HandlePickFolderAsync(JsonElement root)
+    {
+        var contextPayload = ExtractContext(root);
+
+        if (_owner.StorageProvider is null)
+        {
+            Send(new
+            {
+                type = "pick-folder-completed",
+                success = false,
+                context = contextPayload,
+                message = "当前环境不支持文件选择。"
+            });
+            return;
+        }
+
+        try
+        {
+            var folders = await _owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "选择工作区文件夹",
+                AllowMultiple = false
+            });
+
+            var folder = folders?.FirstOrDefault();
+            if (folder is null)
+            {
+                Send(new
+                {
+                    type = "pick-folder-completed",
+                    success = false,
+                    cancelled = true,
+                    context = contextPayload
+                });
+                return;
+            }
+
+            var folderPath = folder.TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(folderPath) && folder.Path is not null)
+            {
+                folderPath = folder.Path.LocalPath;
+            }
+
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                Send(new
+                {
+                    type = "pick-folder-completed",
+                    success = false,
+                    context = contextPayload,
+                    message = "无法获取所选文件夹路径。"
+                });
+                return;
+            }
+
+            Send(new
+            {
+                type = "pick-folder-completed",
+                success = true,
+                path = folderPath,
+                context = contextPayload
+            });
+        }
+        catch (Exception ex)
+        {
+            Send(new
+            {
+                type = "pick-folder-completed",
+                success = false,
+                context = contextPayload,
+                message = ex.Message
             });
         }
     }

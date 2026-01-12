@@ -73,6 +73,7 @@ https://github.com/gaoconggit/SharpPad/tree/main/KingOfTool
 - Intelligent code suggestions
 - NuGet package import support
 - Multi-directory support
+- Disk-backed workspace: open a folder and persist files to local disk
 - Directory import/export functionality
 - AI chat
 - AI auto-completion

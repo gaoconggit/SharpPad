@@ -133,6 +133,22 @@ async function initializeApp() {
                 case 'pong':
                     console.log('Desktop bridge handshake completed.');
                     break;
+                case 'pick-folder-completed': {
+                    const handled = typeof window.fileManager?.handleFolderPicked === 'function'
+                        ? window.fileManager.handleFolderPicked(message)
+                        : false;
+
+                    if (!handled) {
+                        if (message.cancelled) {
+                            showNotification('已取消选择文件夹', 'info');
+                        } else if (message.success && message.path) {
+                            showNotification('已选择文件夹', 'success');
+                        } else {
+                            showNotification(message.message || '打开文件夹失败', 'error');
+                        }
+                    }
+                    break;
+                }
                 default:
                     break;
             }

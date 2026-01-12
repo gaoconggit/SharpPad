@@ -112,6 +112,20 @@ const desktopBridge = {
         if (!posted) {
             console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
         }
+        return posted;
+    },
+    requestFolderPick(context) {
+        const payload = { type: 'pick-folder' };
+
+        if (typeof context !== 'undefined') {
+            payload.context = context;
+        }
+
+        const posted = sendToHost(payload);
+        if (!posted) {
+            console.warn('Desktop bridge: 当前环境不支持宿主消息通道。');
+        }
+        return posted;
     },
     requestFileDownload(options) {
         const payload = {

@@ -16,6 +16,10 @@ class FileManager {
         FileManager.instance = this;
 
         this.fileListItems = document.getElementById('fileListItems');
+        this.workspaceRootPath = localStorage.getItem('workspaceRootPath') || null;
+        this.persistTimer = null;
+        this.storageHookInstalled = false;
+        this.installStorageHooks();
         this.initializeEventListeners();
     }
 
@@ -27,11 +31,35 @@ class FileManager {
         return FileManager.instance;
     }
 
+    installStorageHooks() {
+        if (this.storageHookInstalled || typeof localStorage?.setItem !== 'function') {
+            return;
+        }
+
+        const originalSetItem = localStorage.setItem.bind(localStorage);
+        localStorage.setItem = (key, value) => {
+            const result = originalSetItem(key, value);
+            const instance = FileManager.instance;
+            if (instance && (key === 'controllerFiles' || (typeof key === 'string' && key.startsWith('file_')))) {
+                instance.schedulePersistToDisk(key);
+            }
+            return result;
+        };
+
+        this.storageHookInstalled = true;
+    }
+
     initializeEventListeners() {
         // 文件过滤器监听
         const fileFilter = document.getElementById('fileFilter');
         if (fileFilter) {
             fileFilter.addEventListener('keyup', (e) => this.filterFiles(e.target.value));
+        }
+
+        // 打开文件夹监听
+        const openFolderBtn = document.getElementById('openFolderBtn');
+        if (openFolderBtn) {
+            openFolderBtn.addEventListener('click', () => this.selectAndOpenFolder());
         }
 
         // 添加文件按钮监听
@@ -101,6 +129,250 @@ class FileManager {
         if (fileListResizer && typeof fileListResizer.updateContainerWidth === 'function') {
             fileListResizer.updateContainerWidth();
         }
+    }
+
+    schedulePersistToDisk(reason) {
+        if (!this.workspaceRootPath) {
+            return;
+        }
+
+        clearTimeout(this.persistTimer);
+        this.persistTimer = setTimeout(() => {
+            this.persistWorkspaceToDisk(reason);
+        }, 600);
+    }
+
+    buildWorkspaceSnapshot() {
+        const filesData = localStorage.getItem('controllerFiles');
+        const files = filesData ? JSON.parse(filesData) : [];
+
+        const buildNodes = (items, parentPath = '') => {
+            if (!Array.isArray(items)) {
+                return [];
+            }
+
+            return items.map(item => {
+                const relativePath = parentPath ? `${parentPath}/${item.name}` : item.name;
+
+                if (item.type === 'folder') {
+                    return {
+                        id: item.id,
+                        name: item.name,
+                        type: 'folder',
+                        path: relativePath,
+                        files: buildNodes(item.files || [], relativePath),
+                        projectType: item.projectType,
+                        nugetConfig: item.nugetConfig
+                    };
+                }
+
+                const content = localStorage.getItem(`file_${item.id}`) ?? item.content ?? '';
+                return {
+                    id: item.id,
+                    name: item.name,
+                    type: 'file',
+                    path: relativePath,
+                    content,
+                    projectType: item.projectType,
+                    nugetConfig: item.nugetConfig
+                };
+            });
+        };
+
+        return buildNodes(files);
+    }
+
+    async persistWorkspaceToDisk(reason) {
+        if (!this.workspaceRootPath) {
+            return;
+        }
+
+        const payload = {
+            rootPath: this.workspaceRootPath,
+            files: this.buildWorkspaceSnapshot(),
+            pruneExtra: true
+        };
+
+        try {
+            const response = await fetch('/api/filesystem/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json().catch(() => ({}));
+            if (data && data.success !== false) {
+                if (reason === 'manual') {
+                    showNotification('已同步到磁盘', 'success');
+                }
+                return;
+            }
+
+            throw new Error(data?.message || '同步失败');
+        } catch (error) {
+            console.error('同步到磁盘失败:', error);
+            if (reason === 'manual') {
+                showNotification(`同步失败: ${error.message}`, 'error');
+            }
+        }
+    }
+
+    setWorkspaceRoot(rootPath) {
+        if (!rootPath) {
+            return;
+        }
+        this.workspaceRootPath = rootPath;
+        localStorage.setItem('workspaceRootPath', rootPath);
+    }
+
+    clearFileCache() {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('file_')) {
+                keys.push(key);
+            }
+        }
+
+        keys.forEach(key => localStorage.removeItem(key));
+    }
+
+    normalizeWorkspaceItems(items, parentPath = '') {
+        if (!Array.isArray(items)) {
+            return [];
+        }
+
+        return items
+            .filter(item => item && item.name)
+            .map(item => {
+                const relativePath = parentPath ? `${parentPath}/${item.name}` : item.name;
+                const id = item.id || this.generateUUID();
+
+                if (item.type === 'folder') {
+                    return {
+                        ...item,
+                        id,
+                        type: 'folder',
+                        path: relativePath,
+                        files: this.normalizeWorkspaceItems(item.files || [], relativePath)
+                    };
+                }
+
+                const content = typeof item.content === 'string' ? item.content : '';
+                localStorage.setItem(`file_${id}`, content);
+
+                return {
+                    ...item,
+                    id,
+                    type: 'file',
+                    path: relativePath,
+                    content
+                };
+            });
+    }
+
+    findFirstFile(items) {
+        for (const item of items) {
+            if (item.type === 'folder' && Array.isArray(item.files)) {
+                const child = this.findFirstFile(item.files);
+                if (child) {
+                    return child;
+                }
+            } else if (item.type !== 'folder') {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    async loadWorkspaceFromDisk(folderPath) {
+        if (!folderPath) {
+            showNotification('请选择有效的文件夹路径', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/filesystem/open-folder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ path: folderPath })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            const files = Array.isArray(payload?.files) ? payload.files : [];
+
+            this.clearFileCache();
+            const normalized = this.normalizeWorkspaceItems(files);
+
+            localStorage.setItem('controllerFiles', JSON.stringify(normalized));
+            this.setWorkspaceRoot(payload?.rootPath || folderPath);
+
+            const expandedFolders = this.saveExpandedFolders();
+            this.loadFileList();
+            this.restoreExpandedFolders(expandedFolders);
+
+            const firstFile = this.findFirstFile(normalized);
+            if (firstFile) {
+                setTimeout(() => this.openFile(firstFile), 0);
+            }
+
+            showNotification('已从磁盘加载项目', 'success');
+        } catch (error) {
+            console.error('加载文件夹失败:', error);
+            showNotification(`打开文件夹失败: ${error.message}`, 'error');
+        }
+    }
+
+    handleFolderPicked(message) {
+        if (!message || message.type !== 'pick-folder-completed') {
+            return false;
+        }
+
+        if (message.cancelled) {
+            showNotification('已取消选择文件夹', 'info');
+            return true;
+        }
+
+        if (!message.success || !message.path) {
+            showNotification(message.message || '打开文件夹失败', 'error');
+            return true;
+        }
+
+        this.loadWorkspaceFromDisk(message.path);
+        return true;
+    }
+
+    async requestFolderPath() {
+        if (desktopBridge?.isAvailable) {
+            const posted = desktopBridge.requestFolderPick({ source: 'file-manager-open' });
+            if (!posted) {
+                showNotification('桌面环境不可用，无法选择文件夹', 'error');
+            }
+            return null;
+        }
+
+        const manualPath = await customPrompt('请输入要打开的文件夹路径：');
+        return manualPath ? manualPath.trim() : null;
+    }
+
+    async selectAndOpenFolder() {
+        const path = await this.requestFolderPath();
+        if (!path) {
+            return;
+        }
+        await this.loadWorkspaceFromDisk(path);
     }
 
     normalizeProjectType(projectType) {
