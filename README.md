@@ -78,7 +78,7 @@
 - 主题切换
 - 仅显示当前目录
 - 支持选择c#版本
-- 断点调试(召唤vs)
+- 断点调试(召唤vs/vs code附加到进程)
 - windows pc client(mac silicon / windows)
 - nuget 管理页面
 - 多文件支持(//@xxx.cs)
@@ -101,6 +101,7 @@
 
 ##
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
+
 
 
 
