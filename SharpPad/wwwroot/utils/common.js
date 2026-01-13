@@ -297,15 +297,7 @@ export function showNotification(message, type = 'info') {
 }
 
 //定义常量
-export const DEFAULT_CODE = `using System;
-
-class Hello
-{
-    static void Main(string[] args)
-    {
-        Console.WriteLine("Hello World");
-    }
-}`;
+export const DEFAULT_CODE = `Console.WriteLine("Hello World");`;
 
 // 定义常量：completion prompt for code suggestions
 export const GPT_COMPLETION_SYSTEM_PROMPT = `## Task: {{language}} Code Completion Assistant

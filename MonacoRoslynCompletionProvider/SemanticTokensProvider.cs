@@ -156,8 +156,7 @@ namespace MonacoRoslynCompletionProvider
                    node is EnumDeclarationSyntax ||
                    node is MethodDeclarationSyntax ||
                    node is PropertyDeclarationSyntax ||
-                   node.Parent is FieldDeclarationSyntax ||
-                   node.Parent is VariableDeclarationSyntax ||
+                   node is VariableDeclaratorSyntax ||
                    node is ParameterSyntax;
         }
 
