@@ -43,6 +43,7 @@ namespace MonacoRoslynCompletionProvider.Api
         private const string BreakpointSectionAnnotationKind = "sharpPadBreakpointSection";
         private const string BreakpointGlobalInsertAnnotationKind = "sharpPadBreakpointGlobalInsert";
         private const string ConsoleReadKeyShimPath = "__ConsoleReadKeyShim.cs";
+        private const string ImplicitUsingsPath = "__ImplicitUsings.cs";
         private const string DebuggerBreakpointShimPath = "__DebuggerBreakpointShim.cs";
         private const string ConsoleReadKeyShimSource = @"
 using System;
@@ -227,6 +228,25 @@ namespace SharpPadRuntime
             {
                 return "latest";
             }
+        }
+
+        private static bool SupportsGlobalUsings(LanguageVersion version)
+        {
+            return version >= LanguageVersion.CSharp10;
+        }
+
+        private static SyntaxTree CreateImplicitUsingsTree(CSharpParseOptions parseOptions)
+        {
+            if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
+
+            var source = string.Join(Environment.NewLine,
+                CompilationDefaults.ImplicitUsings.Select(@using => $"global using {@using};"));
+
+            return CSharpSyntaxTree.ParseText(
+                source,
+                parseOptions,
+                path: ImplicitUsingsPath,
+                encoding: Encoding.UTF8);
         }
 
         private static string NormalizeProjectType(string type)
@@ -1134,6 +1154,10 @@ namespace SharpPadRuntime
 
                 // Parse all files into syntax trees
                 var syntaxTrees = new List<SyntaxTree>();
+                if (SupportsGlobalUsings(effectiveLanguageVersion))
+                {
+                    syntaxTrees.Add(CreateImplicitUsingsTree(parseOptions));
+                }
                 var sourceRoot = CreateSourceDirectory();
                 for (var index = 0; index < files.Count; index++)
                 {
@@ -1175,7 +1199,8 @@ namespace SharpPadRuntime
                     references.Add(MetadataReference.CreateFromFile(pkg.Path));
                 }
 
-                var compilationOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication);
+                var compilationOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+                    .WithUsings(CompilationDefaults.ImplicitUsings);
                 if (Debugger.IsAttached)
                 {
                     compilationOptions = compilationOptions.WithOptimizationLevel(OptimizationLevel.Debug);
@@ -1408,7 +1433,11 @@ namespace SharpPadRuntime
                 : null;
 
             var workingDirectory = CreateWorkingDirectory();
-            var syntaxTrees = new List<SyntaxTree>(files.Count);
+            var syntaxTrees = new List<SyntaxTree>(files.Count + 1);
+            if (SupportsGlobalUsings(effectiveLanguageVersion))
+            {
+                syntaxTrees.Add(CreateImplicitUsingsTree(parseOptions));
+            }
             var sourceRoot = CreateSourceDirectory(workingDirectory);
             for (var index = 0; index < files.Count; index++)
             {
@@ -1462,7 +1491,8 @@ namespace SharpPadRuntime
                 TryEnsureAssemblyLoaded(pkg);
             }
 
-            var compilationOptions = new CSharpCompilationOptions(runBehavior.OutputKind);
+            var compilationOptions = new CSharpCompilationOptions(runBehavior.OutputKind)
+                .WithUsings(CompilationDefaults.ImplicitUsings);
             if (Debugger.IsAttached)
             {
                 compilationOptions = compilationOptions.WithOptimizationLevel(OptimizationLevel.Debug);
@@ -2222,6 +2252,7 @@ namespace SharpPadRuntime
 
             var essentialAssemblies = new[]
             {
+                "System.Console",
                 "System.Net.Http",
                 "System.Net.WebSockets",
                 "System.Net.WebSockets.Client"

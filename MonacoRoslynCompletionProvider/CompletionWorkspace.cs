@@ -22,6 +22,7 @@ namespace MonacoRoslynCompletionProvider
     /// </summary>
     public sealed class CompletionWorkspace : IDisposable
     {
+        private const string ImplicitUsingsDocumentName = "__ImplicitUsings.cs";
         // 缓存程序集引用，避免重复加载（线程安全）
         private static readonly ConcurrentDictionary<string, MetadataReference> ReferenceCache = new ConcurrentDictionary<string, MetadataReference>();
 
@@ -223,6 +224,7 @@ namespace MonacoRoslynCompletionProvider
 
         private AdhocWorkspace _workspace;
         private Project _project;
+        private DocumentId _implicitUsingsDocumentId;
         // 存储所有程序集路径，初始化时已包含默认程序集
         private readonly HashSet<string> _metadataReferencePaths = new HashSet<string>(DefaultAssemblyPaths);
         private bool _disposed;
@@ -432,6 +434,7 @@ namespace MonacoRoslynCompletionProvider
                 await ConcurrencySemaphore.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
+                    EnsureImplicitUsingsDocument();
                     // 生成唯一的文档名称
                     string documentName = $"Document.cs";
                     var document = _workspace.AddDocument(_project.Id, documentName, SourceText.From(code));
@@ -453,11 +456,19 @@ namespace MonacoRoslynCompletionProvider
                     }
 
                     // 创建编译对象，启用并发构建和 Release 优化
+                    var syntaxTrees = new List<SyntaxTree> { syntaxTree };
+                    if (syntaxTree?.Options is CSharpParseOptions parseOptions &&
+                        parseOptions.LanguageVersion >= LanguageVersion.CSharp10)
+                    {
+                        syntaxTrees.Add(CreateImplicitUsingsTree(parseOptions));
+                    }
+
                     var compilation = CSharpCompilation.Create(
                         "TempCompilation",
-                        new[] { syntaxTree },
+                        syntaxTrees,
                         references: allReferences,
                         options: new CSharpCompilationOptions(effectiveOutputKind)
+                                    .WithUsings(CompilationDefaults.ImplicitUsings)
                                     .WithOptimizationLevel(OptimizationLevel.Release)
                                     .WithConcurrentBuild(true)
                     );
@@ -477,6 +488,50 @@ namespace MonacoRoslynCompletionProvider
                     ConcurrencySemaphore.Release();
                 }
             }
+        }
+
+        private void EnsureImplicitUsingsDocument()
+        {
+            if (_project == null)
+            {
+                return;
+            }
+
+            if (_implicitUsingsDocumentId != null && _project.GetDocument(_implicitUsingsDocumentId) != null)
+            {
+                return;
+            }
+
+            var existing = _project.Documents.FirstOrDefault(d => d.Name == ImplicitUsingsDocumentName);
+            if (existing != null)
+            {
+                _implicitUsingsDocumentId = existing.Id;
+                return;
+            }
+
+            var source = string.Join(Environment.NewLine,
+                CompilationDefaults.ImplicitUsings.Select(@using => $"global using {@using};"));
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return;
+            }
+
+            var document = _workspace.AddDocument(_project.Id, ImplicitUsingsDocumentName, SourceText.From(source));
+            _project = document.Project;
+            _implicitUsingsDocumentId = document.Id;
+        }
+
+        private static SyntaxTree CreateImplicitUsingsTree(CSharpParseOptions parseOptions)
+        {
+            if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
+
+            var source = string.Join(Environment.NewLine,
+                CompilationDefaults.ImplicitUsings.Select(@using => $"global using {@using};"));
+
+            return CSharpSyntaxTree.ParseText(
+                source,
+                parseOptions,
+                path: ImplicitUsingsDocumentName);
         }
 
         public void Dispose()
