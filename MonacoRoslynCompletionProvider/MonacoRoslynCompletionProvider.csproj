@@ -60,7 +60,13 @@
 		</None>
 	</ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="Extensions\ObjectExtension.cs" />
-	</ItemGroup>
+        <ItemGroup>
+                <EmbeddedResource Include="Extensions\ObjectExtension.cs" />
+                <EmbeddedResource Include="Extensions\ObjectExtension.Compat.cs" />
+                <EmbeddedResource Include="Extensions\ObjectExtension.Legacy.cs" />
+        </ItemGroup>
+        <ItemGroup>
+                <Compile Remove="Extensions\ObjectExtension.Compat.cs" />
+                <Compile Remove="Extensions\ObjectExtension.Legacy.cs" />
+        </ItemGroup>
 </Project>

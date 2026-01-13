@@ -35,7 +35,11 @@ namespace MonacoRoslynCompletionProvider.Api
 
         private const string WindowsFormsHostRequirementMessage = "WinForms can only run on Windows (System.Windows.Forms/System.Drawing are Windows-only).";
         private const string ObjectExtensionsResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.cs";
+        private const string ObjectExtensionsCompatResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.Compat.cs";
+        private const string ObjectExtensionsLegacyResourceName = "MonacoRoslynCompletionProvider.Extensions.ObjectExtension.Legacy.cs";
         private static readonly Lazy<string> _objectExtensionsSource = new(LoadObjectExtensionsFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
+        private static readonly Lazy<string> _objectExtensionsCompatSource = new(LoadObjectExtensionsCompatFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
+        private static readonly Lazy<string> _objectExtensionsLegacySource = new(LoadObjectExtensionsLegacyFromEmbeddedResource, LazyThreadSafetyMode.ExecutionAndPublication);
         private static readonly Regex ConsoleReadKeyPattern = new(@"(?<!\w)(?:System\.)?Console\.ReadKey(?=\s*\()", RegexOptions.Compiled);
         private const string BreakpointInsertAnnotationKind = "sharpPadBreakpointInsert";
         private const string BreakpointWrapAnnotationKind = "sharpPadBreakpointWrap";
@@ -133,10 +137,14 @@ namespace SharpPadRuntime
 {
     [DebuggerNonUserCode]
     [DebuggerStepThrough]
-    internal static class DebuggerBreakpointShim
+    internal sealed class DebuggerBreakpointShim
     {
         private static int _launchAttempted;
         private static int _cancelRequested;
+
+        private DebuggerBreakpointShim()
+        {
+        }
 
         [DebuggerNonUserCode]
         [DebuggerStepThrough]
@@ -222,7 +230,7 @@ namespace SharpPadRuntime
         {
             try
             {
-                return ResolveLanguageVersion(requested).ToString();
+                return MapLanguageVersionToMsBuild(ResolveLanguageVersion(requested));
             }
             catch
             {
@@ -230,9 +238,53 @@ namespace SharpPadRuntime
             }
         }
 
+        private static string MapLanguageVersionToMsBuild(LanguageVersion version)
+        {
+            switch (version)
+            {
+                case LanguageVersion.Default:
+                    return "default";
+                case LanguageVersion.Latest:
+                    return "latest";
+                case LanguageVersion.LatestMajor:
+                    return "latestmajor";
+                case LanguageVersion.Preview:
+                    return "preview";
+            }
+
+            var name = version.ToString();
+            if (!name.StartsWith("CSharp", StringComparison.OrdinalIgnoreCase))
+            {
+                return "latest";
+            }
+
+            var suffix = name.Substring("CSharp".Length).Replace('_', '.');
+            if (suffix.Length == 0)
+            {
+                return "latest";
+            }
+
+            if (suffix.IndexOf('.') < 0 && int.TryParse(suffix, out var major))
+            {
+                return major <= 6 ? major.ToString() : $"{major}.0";
+            }
+
+            return suffix;
+        }
+
         private static bool SupportsGlobalUsings(LanguageVersion version)
         {
             return version >= LanguageVersion.CSharp10;
+        }
+
+        private static bool SupportsExtensionMethods(LanguageVersion version)
+        {
+            return version >= LanguageVersion.CSharp3;
+        }
+
+        private static bool SupportsNullableAnnotations(LanguageVersion version)
+        {
+            return version >= LanguageVersion.CSharp8;
         }
 
         private static SyntaxTree CreateImplicitUsingsTree(CSharpParseOptions parseOptions)
@@ -290,7 +342,20 @@ namespace SharpPadRuntime
             };
         }
 
-        private static string GetObjectExtensionsSource() => _objectExtensionsSource.Value;
+        private static string GetObjectExtensionsSource(LanguageVersion version)
+        {
+            if (version >= LanguageVersion.CSharp8)
+            {
+                return _objectExtensionsSource.Value;
+            }
+
+            if (version >= LanguageVersion.CSharp3)
+            {
+                return _objectExtensionsCompatSource.Value;
+            }
+
+            return _objectExtensionsLegacySource.Value;
+        }
 
         private static string LoadObjectExtensionsFromEmbeddedResource()
         {
@@ -300,6 +365,31 @@ namespace SharpPadRuntime
             if (stream == null)
             {
                 throw new FileNotFoundException($"Unable to locate embedded resource: {ObjectExtensionsResourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
+            }
+
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+        private static string LoadObjectExtensionsCompatFromEmbeddedResource()
+        {
+            var assembly = typeof(CodeRunner).Assembly;
+            using var stream = assembly.GetManifestResourceStream(ObjectExtensionsCompatResourceName);
+            if (stream == null)
+            {
+                throw new FileNotFoundException($"Unable to locate embedded resource: {ObjectExtensionsCompatResourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
+            }
+
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        private static string LoadObjectExtensionsLegacyFromEmbeddedResource()
+        {
+            var assembly = typeof(CodeRunner).Assembly;
+            using var stream = assembly.GetManifestResourceStream(ObjectExtensionsLegacyResourceName);
+            if (stream == null)
+            {
+                throw new FileNotFoundException($"Unable to locate embedded resource: {ObjectExtensionsLegacyResourceName}. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
             }
 
             using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -319,6 +409,107 @@ namespace SharpPadRuntime
             }
 
             return ConsoleReadKeyPattern.Replace(source, "SharpPadRuntime.ConsoleReadKeyShim.ReadKey");
+        }
+
+        private static string RewriteRuntimeExtensionCalls(string source, CSharpParseOptions parseOptions)
+        {
+            if (parseOptions == null) throw new ArgumentNullException(nameof(parseOptions));
+
+            if (SupportsExtensionMethods(parseOptions.LanguageVersion))
+            {
+                return source ?? string.Empty;
+            }
+
+            var syntaxTree = CSharpSyntaxTree.ParseText(source ?? string.Empty, parseOptions);
+            var root = syntaxTree.GetRoot();
+            var updated = new LegacyRuntimeExtensionRewriter().Visit(root);
+            return updated?.ToFullString() ?? source ?? string.Empty;
+        }
+
+        private sealed class LegacyRuntimeExtensionRewriter : CSharpSyntaxRewriter
+        {
+            public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
+            {
+                if (node?.Expression is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var methodName = memberAccess.Name.Identifier.ValueText;
+                    if (methodName == "Dump" || methodName == "ToJson")
+                    {
+                        if (!IsObjectExtensionTarget(memberAccess.Expression))
+                        {
+                            var newArguments = BuildRuntimeExtensionArguments(methodName, memberAccess.Expression, node.ArgumentList.Arguments);
+                            var staticTarget = SyntaxFactory.ParseExpression("System.ObjectExtension");
+                            var staticAccess = SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                staticTarget,
+                                SyntaxFactory.IdentifierName(methodName));
+                            return node.WithExpression(staticAccess)
+                                .WithArgumentList(SyntaxFactory.ArgumentList(newArguments))
+                                .WithTriviaFrom(node);
+                        }
+                    }
+                }
+
+                return base.VisitInvocationExpression(node);
+            }
+
+            private static bool IsObjectExtensionTarget(ExpressionSyntax expression)
+            {
+                if (expression == null)
+                {
+                    return false;
+                }
+
+                var text = expression.ToString();
+                return string.Equals(text, "ObjectExtension", StringComparison.Ordinal)
+                    || string.Equals(text, "System.ObjectExtension", StringComparison.Ordinal)
+                    || string.Equals(text, "global::System.ObjectExtension", StringComparison.Ordinal);
+            }
+
+            private static SeparatedSyntaxList<ArgumentSyntax> BuildRuntimeExtensionArguments(
+                string methodName,
+                ExpressionSyntax target,
+                SeparatedSyntaxList<ArgumentSyntax> originalArguments)
+            {
+                var arguments = new List<ArgumentSyntax> { SyntaxFactory.Argument(target) };
+
+                if (methodName == "Dump")
+                {
+                    if (originalArguments.Count == 0)
+                    {
+                        arguments.Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
+                        arguments.Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(3))));
+                    }
+                    else if (originalArguments.Count == 1)
+                    {
+                        arguments.Add(originalArguments[0]);
+                        arguments.Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(3))));
+                    }
+                    else
+                    {
+                        foreach (var arg in originalArguments)
+                        {
+                            arguments.Add(arg);
+                        }
+                    }
+                }
+                else
+                {
+                    if (originalArguments.Count == 0)
+                    {
+                        arguments.Add(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression)));
+                    }
+                    else
+                    {
+                        foreach (var arg in originalArguments)
+                        {
+                            arguments.Add(arg);
+                        }
+                    }
+                }
+
+                return SyntaxFactory.SeparatedList(arguments);
+            }
         }
 
         private static IReadOnlyList<int> NormalizeBreakpointLines(IEnumerable<int> breakpointLines)
@@ -1163,6 +1354,7 @@ namespace SharpPadRuntime
                 {
                     var file = files[index];
                     var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                    processedSource = RewriteRuntimeExtensionCalls(processedSource, parseOptions);
                     var fileBreakpoints = ResolveBreakpointsForFile(
                         file,
                         normalizedBreakpointsByFile,
@@ -1444,6 +1636,7 @@ namespace SharpPadRuntime
                 cancellationToken.ThrowIfCancellationRequested();
                 var file = files[index];
                 var processedSource = ApplyConsoleReadKeyFallback(file?.Content);
+                processedSource = RewriteRuntimeExtensionCalls(processedSource, parseOptions);
                 var fileBreakpoints = ResolveBreakpointsForFile(
                     file,
                     normalizedBreakpointsByFile,
@@ -3560,6 +3753,7 @@ namespace SharpPadRuntime
                     break;
             }
 
+            var effectiveLanguageVersion = ResolveLanguageVersion(languageVersion);
             var langVer = ResolveLanguageVersionString(languageVersion);
 
             var builder = new StringBuilder();
@@ -3567,8 +3761,8 @@ namespace SharpPadRuntime
             builder.AppendLine("  <PropertyGroup>");
             builder.AppendLine($"    <OutputType>{outputTypeValue}</OutputType>");
             builder.AppendLine($"    <TargetFramework>{targetFramework}</TargetFramework>");
-            builder.AppendLine("    <ImplicitUsings>enable</ImplicitUsings>");
-            builder.AppendLine("    <Nullable>enable</Nullable>");
+            builder.AppendLine($"    <ImplicitUsings>{(SupportsGlobalUsings(effectiveLanguageVersion) ? "enable" : "disable")}</ImplicitUsings>");
+            builder.AppendLine($"    <Nullable>{(SupportsNullableAnnotations(effectiveLanguageVersion) ? "enable" : "disable")}</Nullable>");
             builder.AppendLine($"    <AssemblyName>{assemblyName}</AssemblyName>");
             builder.AppendLine($"    <RootNamespace>{assemblyName}</RootNamespace>");
             builder.AppendLine($"    <LangVersion>{langVer}</LangVersion>");
@@ -3853,6 +4047,7 @@ namespace SharpPadRuntime
                 var packageReferences = BuildPackageReferenceMap(nuget, normalizedProjectType);
                 EnsureRuntimePackageReferences(packageReferences);
 
+                var effectiveLanguageVersion = ResolveLanguageVersion(languageVersion);
                 var langVer = ResolveLanguageVersionString(languageVersion);
 
                 var projectBuilder = new StringBuilder();
@@ -3860,8 +4055,8 @@ namespace SharpPadRuntime
                 projectBuilder.AppendLine("  <PropertyGroup>");
                 projectBuilder.AppendLine($"    <OutputType>{outputTypeValue}</OutputType>");
                 projectBuilder.AppendLine($"    <TargetFramework>{targetFramework}</TargetFramework>");
-                projectBuilder.AppendLine("    <ImplicitUsings>enable</ImplicitUsings>");
-                projectBuilder.AppendLine("    <Nullable>enable</Nullable>");
+                projectBuilder.AppendLine($"    <ImplicitUsings>{(SupportsGlobalUsings(effectiveLanguageVersion) ? "enable" : "disable")}</ImplicitUsings>");
+                projectBuilder.AppendLine($"    <Nullable>{(SupportsNullableAnnotations(effectiveLanguageVersion) ? "enable" : "disable")}</Nullable>");
                 projectBuilder.AppendLine($"    <AssemblyName>{asmName}</AssemblyName>");
                 projectBuilder.AppendLine($"    <RootNamespace>{asmName}</RootNamespace>");
                 projectBuilder.AppendLine($"    <LangVersion>{langVer}</LangVersion>");
@@ -3902,17 +4097,23 @@ namespace SharpPadRuntime
                 var csproj = projectBuilder.ToString();
                 await File.WriteAllTextAsync(csprojPath, csproj, Encoding.UTF8);
 
+                var fileParseOptions = new CSharpParseOptions(
+                    languageVersion: effectiveLanguageVersion,
+                    kind: SourceCodeKind.Regular,
+                    documentationMode: DocumentationMode.Parse);
+
                 foreach (var f in files)
                 {
                     var safeName = string.IsNullOrWhiteSpace(f?.FileName) ? "Program.cs" : f.FileName;
                     foreach (var c in Path.GetInvalidFileNameChars()) safeName = safeName.Replace(c, '_');
                     var dest = Path.Combine(srcDir, safeName);
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                    await File.WriteAllTextAsync(dest, f?.Content ?? string.Empty, Encoding.UTF8);
+                    var fileContent = RewriteRuntimeExtensionCalls(f?.Content ?? string.Empty, fileParseOptions);
+                    await File.WriteAllTextAsync(dest, fileContent, Encoding.UTF8);
                 }
 
                 var runtimeExtensionsPath = Path.Combine(srcDir, "__SharpPadRuntimeExtensions.cs");
-                await File.WriteAllTextAsync(runtimeExtensionsPath, GetObjectExtensionsSource(), Encoding.UTF8);
+                await File.WriteAllTextAsync(runtimeExtensionsPath, GetObjectExtensionsSource(effectiveLanguageVersion), Encoding.UTF8);
 
                 async Task<(int code, string stdout, string stderr)> RunAsync(string fileName, string args, string workingDir)
                 {
@@ -4094,3 +4295,4 @@ namespace SharpPadRuntime
         }
     }
 }
+
