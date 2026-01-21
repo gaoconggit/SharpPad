@@ -1,5 +1,7 @@
 **[English](README_EN.md)** | **简体中文**
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaoconggit/SharpPad)
+
 # SharpPad
 基于 Roslyn 、 monaco-editor 开发的快速验证 C# 代码片段的工具。类似 LinqPad,支持ai chat、ai completion、ai edit
 
@@ -103,7 +105,8 @@
 [![Star History Chart](https://api.star-history.com/svg?repos=gaoconggit/SharpPad&type=Date)](https://star-history.com/#gaoconggit/SharpPad&Date)
 
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaoconggit/SharpPad)
+
+
 
 
 
