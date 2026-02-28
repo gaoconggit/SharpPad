@@ -313,7 +313,7 @@ body.theme-light .chat-messages .assistant-message {
         font-size: 13px !important;
     }
 
-    #runButton, #buildExeButton {
+    #runButton, #buildExeButton, #clearBreakpointsButton {
         padding: 4px 10px !important;
         font-size: 13px !important;
         margin-right: 6px !important;
@@ -387,6 +387,31 @@ body.theme-light #systemSettingsBtn:active {
     font-size: 14px;
     transition: background-color 0.2s;
     margin-right: 2.5rem;
+}
+
+#clearBreakpointsButton {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #6c757d;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    margin-right: 2rem;
+}
+
+#clearBreakpointsButton:hover {
+    background-color: #5a6268;
+}
+
+body.theme-light #clearBreakpointsButton {
+    background-color: #d0d4d9;
+    color: #333333;
+}
+
+body.theme-light #clearBreakpointsButton:hover {
+    background-color: #c0c4c9;
 }
 
 #buildExeButton:hover {

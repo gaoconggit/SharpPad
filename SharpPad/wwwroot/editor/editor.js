@@ -151,6 +151,7 @@ Provide only the code to insert at the cursor position.`
         this.setupDebuggerBreakpoints();
         this.setupDebuggerBreakpointToggle();
         this.setupDebuggerBreakpointHover();
+        this.setupClearBreakpointsButton();
 
         return this.editor;
     }
@@ -518,6 +519,35 @@ Provide only the code to insert at the cursor position.`
         document.body.appendChild(tooltip);
         this.breakpointTooltip = tooltip;
         return tooltip;
+    }
+
+    setupClearBreakpointsButton() {
+        const clearBreakpointsButton = document.getElementById('clearBreakpointsButton');
+        if (!clearBreakpointsButton) {
+            return;
+        }
+
+        clearBreakpointsButton.addEventListener('click', () => {
+            this.clearAllBreakpoints();
+        });
+    }
+
+    clearAllBreakpoints() {
+        this.setBreakpointLines([]);
+
+        try {
+            const keysToRemove = [];
+            for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index);
+                if (key && key.startsWith(this.breakpointStoragePrefix)) {
+                    keysToRemove.push(key);
+                }
+            }
+
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+        } catch (error) {
+            console.warn('无法清空全部断点信息:', error);
+        }
     }
 
     defineVSDarkTheme() {
