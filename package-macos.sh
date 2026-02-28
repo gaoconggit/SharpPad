@@ -1,399 +1,191 @@
 #!/bin/bash
 
-# SharpPad macOS 一键打包脚本
-# 使用方法: ./package-macos.sh
-# 
-# 基于 cursor_app.md 中成功的打包方法：
-# 1. 使用 self-contained 模式发布，包含所有运行时文件
-# 2. 清理不需要的 Windows/Linux 运行时文件避免签名问题  
-# 3. 直接使用原生可执行文件，无需启动器脚本
-# 4. 使用 codesign --force --deep -s - 进行 ad-hoc 签名
-# 5. 清理扩展属性确保可以双击启动
+set -e
 
-set -e  # 遇到错误立即退出
-
-# 配置变量
 APP_NAME="SharpPad"
 BUNDLE_ID="com.sharppad.desktop"
 VERSION="1.0.0"
 PROJECT_PATH="SharpPad.Desktop/SharpPad.Desktop.csproj"
-# 使用与手动命令一致的发布输出目录
-PUBLISH_DIR="/tmp/SharpPad-pub"
+BACKGROUND_IMG="dmg-background.png"
 
-# 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# 打印带颜色的消息
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
+print_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+print_success() { echo -e "${GREEN}✅ $1${NC}"; }
+print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+print_error() { echo -e "${RED}❌ $1${NC}"; }
+print_step() { echo -e "${BLUE}📦 $1${NC}"; }
 
-print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}❌ $1${NC}"
-}
-
-print_step() {
-    echo -e "${BLUE}📦 $1${NC}"
-}
-
-# 检查依赖
 check_dependencies() {
-    print_step "检查依赖..."
-    
-    if ! command -v dotnet &> /dev/null; then
-        print_error ".NET SDK 未安装或未在PATH中"
+    print_step "检查依赖"
+
+    command -v dotnet >/dev/null || { print_error ".NET 未安装"; exit 1; }
+
+    if ! command -v create-dmg >/dev/null; then
+        print_error "需要安装 create-dmg: brew install create-dmg"
         exit 1
     fi
-    
-    if ! command -v sips &> /dev/null; then
-        print_warning "sips 命令未找到，将跳过图标转换"
-    fi
-    
-    if ! command -v iconutil &> /dev/null; then
-        print_warning "iconutil 命令未找到，将跳过图标转换"
-    fi
-    
+
     print_success "依赖检查完成"
 }
 
-# 清理之前的构建
 clean_build() {
-    print_step "清理之前的构建..."
-    
-    rm -rf "SharpPad.Desktop/bin" "SharpPad.Desktop/obj" 2>/dev/null || true
-    rm -rf "SharpPad.app" 2>/dev/null || true
-    rm -rf "$PUBLISH_DIR" 2>/dev/null || true
-    rm -rf "icon.iconset" 2>/dev/null || true
-    
+    print_step "清理旧文件"
+    rm -rf publish-temp
+    rm -rf "$APP_NAME.app"
+    rm -f "$APP_NAME-$VERSION.dmg"
     print_success "清理完成"
 }
 
-# 检测架构
-detect_architecture() {
+detect_arch() {
     ARCH=$(uname -m)
     if [ "$ARCH" = "arm64" ]; then
         RID="osx-arm64"
-        print_info "检测到 Apple Silicon (ARM64)"
     else
         RID="osx-x64"
-        print_info "检测到 Intel (x64)"
     fi
+    print_info "架构: $RID"
 }
 
-# 构建和发布应用
 build_app() {
-    print_step "构建应用程序 ($RID)..."
-    
-    # 对齐手动执行的发布命令，确保 ExecutionHost 等全部产物被包含
+    print_step "发布应用"
+
     dotnet publish "$PROJECT_PATH" \
         -c Release \
         -r "$RID" \
         --self-contained true \
-        --output "$PUBLISH_DIR" \
-        --nologo
-    
-    if [ $? -eq 0 ]; then
-        print_success "应用构建完成"
-    else
-        print_error "应用构建失败"
-        exit 1
-    fi
+        -o publish-temp \
+        --verbosity quiet
+
+    print_success "发布完成"
 }
 
-# 创建应用包结构
-create_app_structure() {
-    print_step "创建应用包结构..."
-    
-    mkdir -p "SharpPad.app/Contents/MacOS"
-    mkdir -p "SharpPad.app/Contents/Resources"
-    
-    print_success "应用包结构创建完成"
+create_app_bundle() {
+    print_step "创建 .app 结构"
+
+    mkdir -p "$APP_NAME.app/Contents/MacOS"
+    mkdir -p "$APP_NAME.app/Contents/Resources"
+
+    cp -R publish-temp/* "$APP_NAME.app/Contents/MacOS/"
+
+    rm -rf "$APP_NAME.app/Contents/MacOS/runtimes/win"* || true
+    rm -rf "$APP_NAME.app/Contents/MacOS/runtimes/linux"* || true
+
+    chmod +x "$APP_NAME.app/Contents/MacOS/SharpPad.Desktop"
+
+    print_success ".app 创建完成"
 }
 
-# 复制应用文件
-copy_app_files() {
-    print_step "复制应用文件..."
-    
-    # 复制所有发布文件到 MacOS 目录
-    cp -r "$PUBLISH_DIR"/* "SharpPad.app/Contents/MacOS/"
-    
-    # 清理不需要的运行时文件（避免签名问题）
-    rm -rf "SharpPad.app/Contents/MacOS/runtimes/win"* 2>/dev/null || true
-    rm -rf "SharpPad.app/Contents/MacOS/runtimes/linux"* 2>/dev/null || true
-    
-    print_success "应用文件复制完成"
-}
-
-# 创建Info.plist
 create_info_plist() {
-    print_step "创建Info.plist..."
-    
-    cat > "SharpPad.app/Contents/Info.plist" << EOF
+cat > "$APP_NAME.app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>$APP_NAME</string>
-	<key>CFBundleDisplayName</key>
-	<string>$APP_NAME</string>
-	<key>CFBundleIdentifier</key>
-	<string>$BUNDLE_ID</string>
-	<key>CFBundleVersion</key>
-	<string>$VERSION</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$VERSION</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleSignature</key>
-	<string>SHPD</string>
-	<key>CFBundleExecutable</key>
-	<string>SharpPad.Desktop</string>
-	<key>CFBundleIconFile</key>
-	<string>SharpPad.icns</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>10.15</string>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
-	<key>NSHumanReadableCopyright</key>
-	<string>© 2024 SharpPad. All rights reserved.</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>C# Source File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>cs</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Alternate</string>
-		</dict>
-	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
+<key>CFBundleName</key><string>$APP_NAME</string>
+<key>CFBundleDisplayName</key><string>$APP_NAME</string>
+<key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
+<key>CFBundleVersion</key><string>$VERSION</string>
+<key>CFBundleShortVersionString</key><string>$VERSION</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleExecutable</key><string>SharpPad.Desktop</string>
+<key>CFBundleIconFile</key><string>$APP_NAME.icns</string>
+<key>LSMinimumSystemVersion</key><string>10.15</string>
+<key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
 EOF
-    
-    print_success "Info.plist 创建完成"
 }
 
-# 设置可执行文件权限（不需要启动器脚本）
-setup_executable() {
-    print_step "设置可执行文件权限..."
-    
-    # 使用 self-contained 发布模式时，SharpPad.Desktop 是原生可执行文件
-    chmod +x "SharpPad.app/Contents/MacOS/SharpPad.Desktop"
-    
-    print_success "可执行文件权限设置完成"
-}
-
-# 创建应用图标
-create_app_icon() {
-    print_step "创建应用图标..."
-    
-    ICNS_SOURCE="SharpPad.Desktop/Assets/favicon.icns"
-    ICO_SOURCE="SharpPad.Desktop/Assets/favicon.ico"
-    
-    # 优先使用已有的 .icns 文件
-    if [ -f "$ICNS_SOURCE" ]; then
-        cp "$ICNS_SOURCE" "SharpPad.app/Contents/Resources/SharpPad.icns"
-        print_success "应用图标复制完成 (使用现有 .icns 文件)"
-        return
-    fi
-    
-    # 如果没有 .icns 文件，则从 .ico 文件创建
-    if [ -f "$ICO_SOURCE" ] && command -v sips &> /dev/null && command -v iconutil &> /dev/null; then
-        # 创建图标集目录
-        mkdir -p "icon.iconset"
-        
-        # 转换各种尺寸的图标
-        sips -z 16 16 "$ICO_SOURCE" --out "icon.iconset/icon_16x16.png" 2>/dev/null || true
-        sips -z 32 32 "$ICO_SOURCE" --out "icon.iconset/icon_16x16@2x.png" 2>/dev/null || true
-        sips -z 32 32 "$ICO_SOURCE" --out "icon.iconset/icon_32x32.png" 2>/dev/null || true
-        sips -z 64 64 "$ICO_SOURCE" --out "icon.iconset/icon_32x32@2x.png" 2>/dev/null || true
-        sips -z 128 128 "$ICO_SOURCE" --out "icon.iconset/icon_128x128.png" 2>/dev/null || true
-        sips -z 256 256 "$ICO_SOURCE" --out "icon.iconset/icon_128x128@2x.png" 2>/dev/null || true
-        sips -z 256 256 "$ICO_SOURCE" --out "icon.iconset/icon_256x256.png" 2>/dev/null || true
-        sips -z 512 512 "$ICO_SOURCE" --out "icon.iconset/icon_256x256@2x.png" 2>/dev/null || true
-        sips -z 512 512 "$ICO_SOURCE" --out "icon.iconset/icon_512x512.png" 2>/dev/null || true
-        sips -z 1024 1024 "$ICO_SOURCE" --out "icon.iconset/icon_512x512@2x.png" 2>/dev/null || true
-        
-        # 创建icns文件
-        if iconutil -c icns "icon.iconset" -o "SharpPad.app/Contents/Resources/SharpPad.icns" 2>/dev/null; then
-            print_success "应用图标创建完成 (从 .ico 文件转换)"
-        else
-            print_warning "图标转换失败，将使用默认图标"
-        fi
-        
-        # 清理临时文件
-        rm -rf "icon.iconset"
+copy_icon() {
+    ICON_SRC="SharpPad.Desktop/Assets/favicon.icns"
+    if [ -f "$ICON_SRC" ]; then
+        cp "$ICON_SRC" "$APP_NAME.app/Contents/Resources/$APP_NAME.icns"
+        print_success "图标复制完成"
     else
-        print_warning "跳过图标创建（图标文件不存在或缺少工具）"
+        print_warning "未找到 icns 图标"
     fi
 }
 
-# 代码签名
 sign_app() {
-    print_step "代码签名..."
-    
-    # 检查是否有开发者证书
-    if security find-identity -v -p codesigning | grep -q "Developer ID Application" 2>/dev/null; then
-        SIGNING_IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -n 1 | sed 's/.*) \(.*\)$/\1/')
-        print_info "找到开发者证书: $SIGNING_IDENTITY"
-        
-        # 使用开发者证书签名
-        if codesign --sign "$SIGNING_IDENTITY" --force --deep --options runtime "SharpPad.app" 2>/dev/null; then
-            print_success "使用开发者证书签名完成"
-            
-            # 检查是否需要公证
-            if command -v xcrun &> /dev/null && [ -n "$NOTARIZATION_PROFILE" ]; then
-                print_info "开始公证应用..."
-                if xcrun notarytool submit "SharpPad.app" --keychain-profile "$NOTARIZATION_PROFILE" --wait 2>/dev/null; then
-                    xcrun stapler staple "SharpPad.app"
-                    print_success "公证完成"
-                else
-                    print_warning "公证失败，但应用仍可在本机使用"
-                fi
-            else
-                print_info "跳过公证（需要配置公证配置文件）"
-            fi
-        else
-            print_warning "开发者证书签名失败，将使用临时签名"
-            codesign --force --deep -s - "SharpPad.app"
-            print_success "临时签名完成"
-        fi
+    print_step "签名应用"
+
+    if security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
+        SIGN_ID=$(security find-identity -v -p codesigning | \
+                  grep "Developer ID Application" | head -n1 | \
+                  sed 's/.*) \(.*\)$/\1/')
+        codesign --force --deep --options runtime \
+                 --sign "$SIGN_ID" "$APP_NAME.app"
+        print_success "Developer ID 签名完成"
     else
-        print_info "未找到开发者证书，使用临时签名"
-        # 使用正确的 ad-hoc 签名方法（基于 cursor_app.md 成功案例）
-        if codesign --force --deep -s - "SharpPad.app" 2>/dev/null; then
-            print_success "临时签名完成"
-        else
-            print_error "签名失败"
-            exit 1
-        fi
+        codesign --force --deep -s - "$APP_NAME.app"
+        print_warning "使用 ad-hoc 签名"
     fi
+
+    xattr -cr "$APP_NAME.app"
 }
 
-# 设置最终权限
-set_permissions() {
-    print_step "设置权限..."
-    
-    # 清除隔离属性和其他扩展属性
-    xattr -dr com.apple.quarantine "SharpPad.app" 2>/dev/null || true
-    xattr -cr "SharpPad.app" 2>/dev/null || true
-    
-    # 确保可执行文件有执行权限
-    chmod +x "SharpPad.app/Contents/MacOS/SharpPad.Desktop"
-    
-    print_success "权限设置完成"
+create_dmg() {
+    print_step "创建 DMG"
+
+    DMG_NAME="$APP_NAME-$VERSION.dmg"
+    ICON_PATH="$APP_NAME.app/Contents/Resources/$APP_NAME.icns"
+
+    if [ ! -f "$BACKGROUND_IMG" ]; then
+        print_error "缺少背景图: $BACKGROUND_IMG"
+        exit 1
+    fi
+
+    if [ ! -f "$ICON_PATH" ]; then
+        print_warning "未找到 DMG 卷图标，将不设置 --volicon"
+        VOLICON_OPTION=""
+    else
+        VOLICON_OPTION="--volicon $ICON_PATH"
+        print_info "使用卷图标: $ICON_PATH"
+    fi
+
+    create-dmg \
+      --volname "$APP_NAME" \
+      $VOLICON_OPTION \
+      --background "$BACKGROUND_IMG" \
+      --window-size 600 400 \
+      --icon-size 120 \
+      --icon "$APP_NAME.app" 150 200 \
+      --app-drop-link 450 200 \
+      --hide-extension "$APP_NAME.app" \
+      --no-internet-enable \
+      "$DMG_NAME" \
+      "$APP_NAME.app"
+
+    print_success "DMG 创建完成: $DMG_NAME"
 }
 
-# 清理临时文件
 cleanup() {
-    print_step "清理临时文件..."
-    
-    rm -rf "$PUBLISH_DIR" 2>/dev/null || true
-    rm -rf "icon.iconset" 2>/dev/null || true
-    
-    print_success "清理完成"
+    rm -rf publish-temp
 }
 
-# 验证应用包
-verify_app() {
-    print_step "验证应用包..."
-    
-    if [ ! -f "SharpPad.app/Contents/Info.plist" ] || [ ! -f "SharpPad.app/Contents/MacOS/SharpPad.Desktop" ]; then
-        print_error "应用包验证失败"
-        exit 1
-    fi
-
-    # 确认执行宿主被拷贝完整（避免运行时报缺失 .dll）
-    if [ ! -f "SharpPad.app/Contents/MacOS/ExecutionHost/SharpPad.ExecutionHost.dll" ]; then
-        print_error "未找到 ExecutionHost：SharpPad.app/Contents/MacOS/ExecutionHost/SharpPad.ExecutionHost.dll"
-        exit 1
-    fi
-
-    print_success "应用包验证通过"
-}
-
-# 显示完成信息
-show_completion_info() {
-    echo ""
-    echo "🎉 ${GREEN}SharpPad.app 打包完成！${NC}"
-    echo ""
-    echo "📍 位置: $(pwd)/SharpPad.app"
-    echo "💾 大小: $(du -sh SharpPad.app | cut -f1)"
-    echo ""
-    echo "🚀 使用方法:"
-    echo "   运行应用:     open SharpPad.app"
-    echo "   双击启动:     支持双击直接启动"
-    echo "   安装到应用:   cp -r SharpPad.app /Applications/"
-    echo "   创建DMG:      hdiutil create -volname 'SharpPad' -srcfolder SharpPad.app -ov -format UDZO SharpPad.dmg"
-    echo ""
-    echo "📝 签名说明:"
-    echo "   • 已自动进行代码签名，支持双击启动"
-    echo "   • 如需分发给其他用户，建议使用Developer ID证书签名"
-    echo "   • 公证配置: export NOTARIZATION_PROFILE=your_profile_name"
-    echo ""
-}
-
-# 主函数
 main() {
-    echo "🔧 ${BLUE}SharpPad macOS 应用打包器${NC}"
-    echo ""
-    
-    # 检查是否在正确的目录
-    if [ ! -f "$PROJECT_PATH" ]; then
-        print_error "未找到项目文件: $PROJECT_PATH"
-        print_info "请在SharpPad项目根目录运行此脚本"
-        exit 1
-    fi
-    
-    # 执行所有步骤
+    echo "🔧 SharpPad macOS 打包开始"
     check_dependencies
     clean_build
-    detect_architecture
+    detect_arch
     build_app
-    create_app_structure
-    copy_app_files
+    create_app_bundle
     create_info_plist
-    setup_executable
-    create_app_icon
-    set_permissions
+    copy_icon
     sign_app
+    create_dmg
     cleanup
-    verify_app
-    show_completion_info
+
+    echo ""
+    echo "🎉 打包完成"
+    echo "APP: $(pwd)/$APP_NAME.app"
+    echo "DMG: $(pwd)/$APP_NAME-$VERSION.dmg"
 }
 
-# 运行主函数
 main "$@"
