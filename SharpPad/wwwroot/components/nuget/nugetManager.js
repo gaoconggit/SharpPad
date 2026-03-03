@@ -1,4 +1,5 @@
 const SEARCH_DEBOUNCE_MS = 350;
+const NUGET_SEARCH_SEMVER_LEVEL = "2.0.0";
 
 const DEFAULT_PACKAGE_SOURCES = [
     {
@@ -740,6 +741,7 @@ export class NugetManager {
         url.searchParams.set("skip", "0");
         url.searchParams.set("take", "20");
         url.searchParams.set("prerelease", this.includePrerelease?.checked ? "true" : "false");
+        url.searchParams.set("semVerLevel", NUGET_SEARCH_SEMVER_LEVEL);
 
         try {
             const response = await fetch(url.toString(), { signal: this.currentSearchAbort.signal });
@@ -1209,6 +1211,7 @@ export class NugetManager {
         url.searchParams.set('q', `PackageId:${packageId}`);
         url.searchParams.set('take', '1');
         url.searchParams.set('prerelease', 'true');
+        url.searchParams.set('semVerLevel', NUGET_SEARCH_SEMVER_LEVEL);
 
         const response = await fetch(url.toString());
         if (!response.ok) {
