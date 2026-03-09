@@ -26,12 +26,15 @@
     <div id="fileList" style="max-width: 800px; width: 380px; min-width: 340px;">
         <div class="file-list-header">
             <button id="toggleFileList" title="收起/展开">◀</button>
-            <input type="text" id="fileFilter" placeholder="搜索文件...">
-            <div style="display: flex; gap: 5px;">
-                <button id="addFolderBtn" title="新建文件夹">📁</button>
-                <button id="addFileBtn" title="新建文件">+</button>
+            <span id="workspaceTitle" class="workspace-title" title="">项目</span>
+            <div style="display: flex; gap: 3px; margin-left: auto;">
+                <button id="openFolderBtn" class="header-icon-btn" title="打开文件夹">📂</button>
+                <button id="addFileBtn" class="header-icon-btn" title="新建文件">+</button>
+                <button id="addFolderBtn" class="header-icon-btn" title="新建文件夹">📁</button>
+                <button id="refreshTreeBtn" class="header-icon-btn" title="刷新">⟳</button>
             </div>
         </div>
+        <input type="text" id="fileFilter" placeholder="搜索文件...">
         <ul id="fileListItems">
         </ul>
     </div>
@@ -140,39 +143,19 @@
         </div>
     </div>
     <div id="fileContextMenu" class="context-menu" style="display: none;">
-        <div class="context-menu-item"
-            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'up')">上移
-        </div>
-        <div class="context-menu-item"
-            onclick="moveItem(document.getElementById('fileContextMenu').getAttribute('data-target-file-id'), 'down')">
-            下移</div>
         <div class="context-menu-item" onclick="renameFile()">重命名</div>
-        <div class="context-menu-item" onclick="duplicateFile()">复制文件</div>
         <div class="context-menu-item" onclick="configureNuGet()">配置 NuGet</div>
-        <div class="context-menu-item" onclick="saveFileAs()">另存为...</div>
-        <div class="context-menu-item" onclick="moveOutOfFolder()">移出文件夹</div>
         <div class="context-menu-item delete" onclick="deleteFile()">删除</div>
     </div>
     <div id="folderContextMenu" class="context-menu" style="display: none;">
         <div class="context-menu-item"
-            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">新建文件
+            onclick="addFileToFolder(document.getElementById('folderContextMenu').getAttribute('data-path'))">新建文件
         </div>
         <div class="context-menu-item"
-            onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">
+            onclick="addFolderToFolder(document.getElementById('folderContextMenu').getAttribute('data-path'))">
             新建文件夹</div>
         <div class="context-menu-separator"></div>
-        <div class="context-menu-item"
-            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'up')">上移
-        </div>
-        <div class="context-menu-item"
-            onclick="moveItem(document.getElementById('folderContextMenu').getAttribute('data-folder-id'), 'down')">下移
-        </div>
         <div class="context-menu-item" onclick="renameFolder()">重命名</div>
-        <div class="context-menu-item" onclick="duplicateFolder()">复制</div>
-        <div class="context-menu-item" onclick="exportFolder()">导出</div>
-        <div class="context-menu-item" onclick="importFolder()">导入</div>
-        <div class="context-menu-item" onclick="saveFolderAs()">另存为...</div>
-        <div class="context-menu-item" onclick="showOnlyCurrentFolder(document.getElementById('folderContextMenu').getAttribute('data-folder-id'))">隐藏其它</div>
         <div class="context-menu-item delete" onclick="deleteFolder()">删除</div>
     </div>
     <div id="rootContextMenu" class="context-menu" style="display: none;">

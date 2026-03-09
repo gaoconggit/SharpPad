@@ -30,9 +30,10 @@ export function extractDirectiveReferences(code) {
     return Array.from(references);
 }
 
-export function buildMultiFileContext({ entryFileId = null, entryFileName = null, entryContent = '', entryPackages = [] } = {}) {
-    const filesCacheRaw = localStorage.getItem('controllerFiles');
-    const filesCache = filesCacheRaw ? JSON.parse(filesCacheRaw) : [];
+export async function buildMultiFileContext({ entryFileId = null, entryFileName = null, entryContent = '', entryPackages = [] } = {}) {
+    // 从后端 API 获取文件树和文件内容
+    const { FileManager } = await import('../fileSystem/fileManager.js');
+    const fileManager = FileManager.getInstance();
 
     const filesById = new Map();
     const filesByName = new Map();
@@ -95,34 +96,63 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
         }
     }
 
-    function indexFiles(items, parentSegments = []) {
+    // 从文件树递归索引所有文件
+    async function indexFiles(items, parentSegments = []) {
         if (!Array.isArray(items)) {
             return;
         }
 
-        items.forEach(item => {
-            if (!item) {
-                return;
-            }
+        for (const item of items) {
+            if (!item) continue;
 
             if (item.type === 'folder') {
-                indexFiles(item.files, parentSegments.concat(item.name || ''));
-                return;
+                if (item.children) {
+                    await indexFiles(item.children, parentSegments.concat(item.name || ''));
+                }
+                continue;
             }
 
-            const segments = parentSegments.concat(item.name || '');
-            const path = segments.filter(Boolean).join('/');
+            const path = item.path;
+            const name = item.name;
+
+            // 读取文件内容
+            let content = '';
+            try {
+                const resp = await fetch(`/api/fs/file?path=${encodeURIComponent(path)}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    content = data.content || '';
+                }
+            } catch {
+                // Skip files we can't read
+            }
+
+            // 尝试读取元数据
+            let packages = [];
+            try {
+                const dir = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+                const metaPath = dir ? `${dir}/.sharppad/${name}.json` : `.sharppad/${name}.json`;
+                const metaResp = await fetch(`/api/fs/file?path=${encodeURIComponent(metaPath)}`);
+                if (metaResp.ok) {
+                    const metaData = await metaResp.json();
+                    const meta = JSON.parse(metaData.content || '{}');
+                    packages = sanitizePackages(meta.nugetPackages);
+                }
+            } catch {
+                // No metadata
+            }
+
             const record = {
-                id: item.id,
-                name: item.name,
+                id: path,
+                name,
                 path,
-                content: localStorage.getItem(`file_${item.id}`) ?? item.content ?? '',
-                packages: sanitizePackages(item?.nugetConfig?.packages)
+                content,
+                packages
             };
 
-            filesById.set(item.id, record);
+            filesById.set(path, record);
 
-            const nameKey = (item.name || '').toLowerCase();
+            const nameKey = (name || '').toLowerCase();
             if (!filesByName.has(nameKey)) {
                 filesByName.set(nameKey, []);
             }
@@ -132,10 +162,19 @@ export function buildMultiFileContext({ entryFileId = null, entryFileName = null
             if (pathKey) {
                 filesByPath.set(pathKey, record);
             }
-        });
+        }
     }
 
-    indexFiles(filesCache);
+    // 获取文件树并索引
+    try {
+        const treeResp = await fetch('/api/fs/tree');
+        if (treeResp.ok) {
+            const tree = await treeResp.json();
+            await indexFiles(tree);
+        }
+    } catch {
+        // Failed to get tree
+    }
 
     function normalizeReference(reference) {
         if (typeof reference !== 'string') {

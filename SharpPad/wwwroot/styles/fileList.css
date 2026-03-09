@@ -3,9 +3,7 @@
     border-right: 1px solid #444;
     box-sizing: border-box;
     background-color: #252526;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    padding: 0;
     position: fixed;
     left: 0;
     top: 0;
@@ -22,43 +20,96 @@
     transform: translateX(-100%);
 }
 
-/* 亮色主题样式 */
 body.theme-light #fileList {
     background-color: #f5f5f5;
     border-right: 1px solid #e0e0e0;
     box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
 }
 
-#fileList:hover {
-    border-right-color: #444;
-}
-
+/* ===== Header ===== */
 .file-list-header {
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 6px;
     align-items: center;
     flex-shrink: 0;
     background-color: #252526;
-    padding: 0 0 10px 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
     z-index: 999;
+    min-height: 36px;
 }
 
 body.theme-light .file-list-header {
     background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
 }
 
-#fileFilter {
+.workspace-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #bbbbbb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     flex: 1;
-    padding: 8px 12px;
+    min-width: 0;
+}
+
+body.theme-light .workspace-title {
+    color: #616161;
+}
+
+.header-icon-btn {
+    background: none;
+    border: none;
+    color: #cccccc;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 14px;
+    border-radius: 3px;
+    opacity: 0.7;
+    transition: opacity 0.15s, background-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    width: 22px;
+}
+
+.header-icon-btn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.theme-light .header-icon-btn {
+    color: #424242;
+}
+
+body.theme-light .header-icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* ===== Search ===== */
+#fileFilter {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 6px 12px;
+    padding: 4px 8px;
     border: 1px solid #444;
     border-radius: 3px;
     background-color: #3c3c3c;
     color: #fff;
-    font-size: 14px;
-    height: 32px;
+    font-size: 13px;
+    height: 26px;
     box-sizing: border-box;
     outline: none;
+    flex-shrink: 0;
+}
+
+#fileFilter:focus {
+    border-color: #007acc;
 }
 
 body.theme-light #fileFilter {
@@ -71,318 +122,14 @@ body.theme-light #fileFilter:focus {
     border-color: #0066b8;
 }
 
-#addFileBtn {
-    background-color: #444;
-    border: none;
-    color: #fff;
-    padding: 0;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 16px;
-    opacity: 0.7;
-    transition: all 0.2s;
-    white-space: nowrap;
-    height: 24px;
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    background-image: linear-gradient(to bottom right, #2979ff, #1565c0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-#addFileBtn:hover {
-    opacity: 1;
-    background-image: linear-gradient(to bottom right, #2962ff, #1976d2);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-#addFileBtn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    background-image: linear-gradient(to bottom right, #1565c0, #0d47a1);
-}
-
-#addFolderBtn {
-    background-color: #444;
-    border: none;
-    color: #fff;
-    padding: 0;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 14px;
-    opacity: 0.7;
-    transition: all 0.2s;
-    height: 24px;
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#fileListItems {
-    position: relative;
-    padding-top: 10px;
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-}
-
-#fileListItems li {
-    margin-bottom: 2px;
-}
-
-body.theme-dark #fileListItems a {
-    text-decoration: none;
-    color: #ffffff;
-    transition: all 0.2s;
-    display: block;
-    padding: 6px 10px;
-    border-radius: 3px;
-    background-color: transparent;
-    font-size: 13px;
-    position: relative;
-    opacity: 0.8;
-    cursor: pointer;
-}
-
-body.theme-dark #fileListItems a:hover {
-    background-color: #2a2d2e;
-    color: #4fc3f7;
-}
-
-body.theme-dark #fileListItems a.selected {
-    background-color: #37373d;
-    color: #ffffff;
-    font-weight: 500;
-    border-left: 3px solid #007acc;
-}
-
-body.theme-light #fileListItems a {
-    text-decoration: none;
-    color: #333333;
-    transition: all 0.2s;
-    display: block;
-    padding: 6px 10px;
-    border-radius: 3px;
-    background-color: transparent;
-    font-size: 13px;
-    position: relative;
-    opacity: 1;
-    cursor: pointer;
-}
-
-body.theme-light #fileListItems a:hover {
-    background-color: #e8e8e8;
-    color: #0066b8;
-}
-
-body.theme-light #fileListItems a.selected {
-    background-color: #e8f0fe;
-    color: #0066b8;
-    font-weight: 500;
-}
-
-#fileListItems a::before {
-    content: "📄";
-    margin-right: 5px;
-    opacity: 0.7;
-}
-
-.folder {
-    margin-bottom: 5px;
-}
-
-.folder-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 6px 10px;
-    cursor: pointer;
-    color: #ffffff;
-    opacity: 0.8;
-    transition: all 0.2s;
-    position: relative;
-    text-align: left;
-}
-
-body.theme-light .folder-header {
-    color: #0066b8;
-    opacity: 1;
-    font-weight: 500;
-}
-
-body.theme-light .folder-header:hover {
-    background-color: #e8e8e8;
-}
-
-/* 标准文件夹图标样式 */
-.folder-header::before {
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 12px;
-    margin-right: 8px;
-    background: linear-gradient(135deg, #ffc947 0%, #ffb347 100%);
-    border-radius: 2px 2px 0 0;
-    position: relative;
-    vertical-align: middle;
-    margin-top: -1px;
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.folder-header::after {
-    content: "";
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 5px;
-    height: 2px;
-    background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
-    border-radius: 1px 1px 0 0;
-    margin-top: -6px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-}
-
-.folder-header.open::before {
-    background: linear-gradient(135deg, #ffe066 0%, #ffcc47 100%);
-    transform: perspective(8px) rotateX(15deg);
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.1),
-        0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.folder-header.open::after {
-    background: linear-gradient(135deg, #ffcc47 0%, #ffab47 100%);
-    transform: translateY(-50%) perspective(8px) rotateX(15deg);
-}
-
-/* 亮色主题下的文件夹颜色 */
-body.theme-light .folder-header::before {
-    background: linear-gradient(135deg, #ffc947 0%, #ffb347 100%);
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.15),
-        0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-body.theme-light .folder-header::after {
-    background: linear-gradient(135deg, #ffb347 0%, #ff8c42 100%);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
-}
-
-body.theme-light .folder-header.open::before {
-    background: linear-gradient(135deg, #ffe066 0%, #ffcc47 100%);
-    box-shadow: 
-        0 0 0 1px rgba(0, 0, 0, 0.15),
-        0 2px 5px rgba(0, 0, 0, 0.25);
-}
-
-body.theme-light .folder-header.open::after {
-    background: linear-gradient(135deg, #ffcc47 0%, #ffab47 100%);
-}
-
-.folder-content {
-    margin-left: 20px;
-    display: none;
-}
-
-.folder-content.open {
-    display: block;
-}
-
-.folder-header.drag-over {
-    background-color: #094771;
-}
-
-.folder-header.drag-over::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    border: 2px dashed #2979ff;
-    border-radius: 3px;
-    pointer-events: none;
-}
-
-body.theme-light .folder-header.drag-over {
-    background-color: #e3f2fd;
-}
-
-body.theme-light .folder-header.drag-over::after {
-    border: 2px dashed #0066b8;
-}
-
-body.theme-light .drag-over-top {
-    border-top: 2px solid #0066b8;
-}
-
-body.theme-light .drag-over-bottom {
-    border-bottom: 2px solid #0066b8;
-}
-
-.dragging {
-    opacity: 0.5;
-}
-
-.drag-over-top {
-    border-top: 2px solid #2979ff;
-}
-
-.drag-over-bottom {
-    border-bottom: 2px solid #2979ff;
-}
-
-.sort-buttons {
-    display: flex;
-    gap: 2px;
-    margin-left: 8px;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-}
-
-.file-container:hover .sort-buttons,
-.folder-header:hover .sort-buttons {
-    opacity: 1;
-}
-
-.sort-button {
-    background: none;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    padding: 0 4px;
-    font-size: 14px;
-    line-height: 1;
-}
-
-body.theme-light .sort-buttons {
-    opacity: 0.6;
-}
-
-body.theme-light .sort-button {
-    color: #424242;
-}
-
-body.theme-light .sort-button:hover {
-    color: #0066b8;
-}
-
-/* 文件列表折叠/展开按钮 */
+/* ===== Toggle button ===== */
 #toggleFileList {
     background: none;
     border: none;
     color: #cccccc;
     cursor: pointer;
-    padding: 4px 8px;
-    font-size: 14px;
+    padding: 2px 4px;
+    font-size: 12px;
     transition: all 0.2s;
     border-radius: 3px;
     display: flex;
@@ -404,7 +151,201 @@ body.theme-light #toggleFileList:hover {
     background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* 最小化文件列表按钮 */
+/* ===== Tree list ===== */
+#fileListItems {
+    position: relative;
+    padding: 4px 0;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    list-style: none;
+    margin: 0;
+}
+
+#fileListItems ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#fileListItems li {
+    margin: 0;
+}
+
+.empty-hint {
+    color: #888;
+    font-size: 12px;
+    padding: 20px 16px;
+    text-align: center;
+}
+
+/* ===== File items ===== */
+body.theme-dark #fileListItems a {
+    text-decoration: none;
+    color: #cccccc;
+    transition: background-color 0.1s;
+    display: block;
+    padding: 4px 8px 4px 24px;
+    font-size: 13px;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.theme-dark #fileListItems a:hover {
+    background-color: #2a2d2e;
+}
+
+body.theme-dark #fileListItems a.selected {
+    background-color: #094771;
+    color: #ffffff;
+}
+
+body.theme-light #fileListItems a {
+    text-decoration: none;
+    color: #333333;
+    transition: background-color 0.1s;
+    display: block;
+    padding: 4px 8px 4px 24px;
+    font-size: 13px;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.theme-light #fileListItems a:hover {
+    background-color: #e8e8e8;
+}
+
+body.theme-light #fileListItems a.selected {
+    background-color: #e8f0fe;
+    color: #0066b8;
+}
+
+/* File icon */
+#fileListItems a::before {
+    content: "📄";
+    margin-right: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* C# file icon override */
+#fileListItems a[data-path$=".cs"]::before {
+    content: "🟪";
+}
+
+#fileListItems a[data-path$=".json"]::before {
+    content: "{ }";
+    font-size: 10px;
+    font-weight: bold;
+    color: #e5c07b;
+}
+
+#fileListItems a[data-path$=".xml"]::before,
+#fileListItems a[data-path$=".csproj"]::before {
+    content: "📋";
+}
+
+/* ===== Folder ===== */
+.folder {
+    margin: 0;
+}
+
+.folder-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: #cccccc;
+    transition: background-color 0.1s;
+    position: relative;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.folder-header:hover {
+    background-color: #2a2d2e;
+}
+
+body.theme-light .folder-header {
+    color: #333333;
+}
+
+body.theme-light .folder-header:hover {
+    background-color: #e8e8e8;
+}
+
+/* Tree arrow */
+.tree-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    color: #cccccc;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.tree-arrow.open {
+    transform: rotate(90deg);
+}
+
+body.theme-light .tree-arrow {
+    color: #424242;
+}
+
+/* Folder name */
+.folder-name {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-name::before {
+    content: "📁";
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.folder-header.open .folder-name::before {
+    content: "📂";
+}
+
+/* Folder content */
+.folder-content {
+    padding-left: 12px;
+    display: none;
+}
+
+.folder-content.open {
+    display: block;
+}
+
+/* Nested indentation - deeper levels indent file items too */
+.folder-content #fileListItems a,
+.folder-content a {
+    padding-left: 24px;
+}
+
+.folder-content .folder-content a {
+    padding-left: 36px;
+}
+
+.folder-content .folder-content .folder-content a {
+    padding-left: 48px;
+}
+
+/* ===== Minimized file list button ===== */
 .minimized-filelist-button {
     position: fixed;
     left: 10px;
@@ -422,7 +363,7 @@ body.theme-light #toggleFileList:hover {
     border-radius: 0 10px 10px 0;
     font-size: 15px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -435,12 +376,6 @@ body.theme-light #toggleFileList:hover {
     color: #ffffff;
     border-color: #4c8bf7;
     transform: translateX(3px);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
-}
-
-.minimized-filelist-button .icon-button:active {
-    transform: translateX(1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 body.theme-light .minimized-filelist-button .icon-button {
@@ -454,9 +389,9 @@ body.theme-light .minimized-filelist-button .icon-button:hover {
     background: #ffffff;
     border-color: #b3d4ff;
     color: #005a9e;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
+/* ===== Responsive ===== */
 @media only screen and (max-width: 768px) {
     #fileList {
         display: none;
@@ -465,4 +400,4 @@ body.theme-light .minimized-filelist-button .icon-button:hover {
     .minimized-filelist-button {
         display: none !important;
     }
-} 
+}

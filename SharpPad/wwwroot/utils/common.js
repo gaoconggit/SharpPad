@@ -83,31 +83,19 @@ function mergePackageLists(...groups) {
 // 公共工具函数
 export function getCurrentFile() {
     // 获取当前选中的文件
-    const selectedFile = document.querySelector('.selected[data-file-id]');
+    const selectedFile = document.querySelector('.selected[data-path]');
     if (!selectedFile) return null;
 
-    // 获取文件ID
-    const fileId = selectedFile.getAttribute('data-file-id');
+    const filePath = selectedFile.getAttribute('data-path');
+    const fileName = filePath ? filePath.split('/').pop() : '';
 
-    // 从 localStorage 获取文件列表
-    const filesData = localStorage.getItem('controllerFiles');
-    const files = filesData ? JSON.parse(filesData) : [];
-
-    // 递归查找目标文件
-    function findFile(items) {
-        for (let item of items) {
-            if (item.id === fileId) {
-                return item;
-            }
-            if (item.type === 'folder' && item.files) {
-                const found = findFile(item.files);
-                if (found) return found;
-            }
-        }
-        return null;
-    }
-
-    return findFile(files);
+    return {
+        id: filePath,
+        name: fileName,
+        path: filePath,
+        type: 'file',
+        projectType: document.getElementById('projectTypeSelect')?.value || 'console'
+    };
 }
 
 // 判断是否应该使用多文件模式
@@ -118,9 +106,9 @@ export function shouldUseMultiFileMode(currentContent) {
 }
 
 // 创建多文件请求
-export function createMultiFileRequest(targetFileName, position, packages, currentContent, projectType) {
+export async function createMultiFileRequest(targetFileName, position, packages, currentContent, projectType) {
     const sanitizedPackages = sanitizePackageList(packages);
-    const context = buildMultiFileContext({
+    const context = await buildMultiFileContext({
         entryFileName: targetFileName || null,
         entryContent: typeof currentContent === 'string' ? currentContent : '',
         entryPackages: sanitizedPackages

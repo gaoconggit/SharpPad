@@ -161,7 +161,7 @@ async function getSemanticTokens(model) {
     let requestPayload;
 
     if (useMultiFile) {
-        const multiFileRequest = createMultiFileRequest(file?.name, undefined, packagesData, code, projectType);
+        const multiFileRequest = await createMultiFileRequest(file?.name, undefined, packagesData, code, projectType);
         if (!multiFileRequest) {
             return { data: new Uint32Array(0) };
         }

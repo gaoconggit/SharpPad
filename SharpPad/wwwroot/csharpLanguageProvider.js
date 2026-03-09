@@ -33,7 +33,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
+                request = await createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileComplete";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
@@ -82,7 +82,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
+                request = await createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileSignature";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
@@ -147,7 +147,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
+                request = await createMultiFileRequest(file?.name, model.getOffsetAt(position), packagesData, model.getValue(), projectType);
                 requestType = "multiFileHover";
             } else {
                 request = createSingleFileRequest(model.getValue(), model.getOffsetAt(position), packagesData, projectType);
@@ -194,7 +194,7 @@ export function registerCsharpProvider() {
             let requestType;
 
             if (useMultiFile) {
-                request = createMultiFileRequest(file?.name, undefined, packagesData, model.getValue(), projectType);
+                request = await createMultiFileRequest(file?.name, undefined, packagesData, model.getValue(), projectType);
                 if (!request) {
                     return;
                 }

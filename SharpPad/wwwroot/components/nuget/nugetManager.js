@@ -1400,24 +1400,17 @@ export class NugetManager {
         if (!this.currentFile) {
             return;
         }
-        const files = window.GetCurrentFiles();
-        const update = (items) => {
-            for (const item of items) {
-                if (item.id === this.currentFile.id) {
-                    item.nugetConfig = this.currentFile.nugetConfig;
-                    return true;
-                }
-                if (item.type === "folder" && Array.isArray(item.files)) {
-                    const found = update(item.files);
-                    if (found) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        };
-        update(files);
-        localStorage.setItem("controllerFiles", JSON.stringify(files));
+        // 保存 NuGet 包配置到文件系统元数据
+        const fm = window.fileManager;
+        if (fm && fm.currentFilePath) {
+            const packages = this.currentFile.nugetConfig?.packages || [];
+            fm.saveFileMetadata(fm.currentFilePath, {
+                nugetPackages: packages.map(p => ({
+                    id: p.id || p.Id,
+                    version: p.version || p.Version || ''
+                }))
+            });
+        }
     }
 }
 

@@ -147,27 +147,18 @@ async function initializeApp() {
     const fileManager = new FileManager();
     window.fileManager = fileManager; // 暴露到全局作用域
     // 暴露必要的方法到全局作用域
-    window.moveItem = (itemId, direction) => fileManager.moveItem(itemId, direction);
     window.renameFile = () => fileManager.renameFile();
     window.deleteFile = () => fileManager.deleteFile();
     window.renameFolder = () => fileManager.renameFolder();
     window.deleteFolder = () => fileManager.deleteFolder();
     window.addFile = () => fileManager.addFile();
     window.addFolder = () => fileManager.addFolder();
-    window.duplicateFile = () => fileManager.duplicateFile();
-    window.duplicateFolder = () => fileManager.duplicateFolder();
-    window.moveOutOfFolder = () => fileManager.moveOutOfFolder();
     window.configureNuGet = () => fileManager.configureNuGet();
-    window.addFileToFolder = (folderId) => fileManager.addFileToFolder(folderId);
-    window.addFolderToFolder = (parentFolderId) => fileManager.addFolderToFolder(parentFolderId);
-    window.exportFolder = () => fileManager.exportFolder();
-    window.importFolder = () => fileManager.importFolder();
-    window.showOnlyCurrentFolder = (folderId) => fileManager.showOnlyCurrentFolder(folderId);
-    window.saveFileAs = () => fileManager.saveFileAs();
-    window.saveFolderAs = () => fileManager.saveFolderAs();
+    window.addFileToFolder = (folderPath) => fileManager.addFileToFolder(folderPath);
+    window.addFolderToFolder = (parentFolderPath) => fileManager.addFolderToFolder(parentFolderPath);
 
     // NuGet 相关的全局函数
-    window.GetCurrentFiles = () => JSON.parse(localStorage.getItem('controllerFiles') || '[]');
+    window.GetCurrentFiles = () => [];
     window.sendRequest = sendRequest;  // 暴露 sendRequest 到全局作用域
 
     const nugetManager = new NugetManager({ sendRequest, notify: showNotification });
@@ -350,13 +341,11 @@ function setupAutoSave(editor, fileManager) {
             return;
         }
 
-        const selectedFileElement = document.querySelector('#fileListItems a.selected');
-        const fileId = selectedFileElement?.getAttribute('data-file-id');
-        if (!fileId) {
+        if (!fileManager.currentFilePath) {
             return;
         }
 
-        fileManager.saveFileToLocalStorage(fileId, editor.getValue(), { silent: true });
+        fileManager.saveFile(fileManager.currentFilePath, editor.getValue());
     };
 
     const scheduleAutoSave = () => {

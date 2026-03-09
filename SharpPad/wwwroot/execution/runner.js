@@ -83,8 +83,14 @@ export class CodeRunner {
         this.buildExeButton.addEventListener('click', () => this.buildExe(window.editor.getValue()));
     }
 
+    normalizeProjectType(projectType) {
+        const candidate = typeof projectType === 'string' ? projectType.trim().toLowerCase() : '';
+        const allowed = ['console', 'winforms', 'webapi', 'avalonia'];
+        return allowed.includes(candidate) ? candidate : 'console';
+    }
+
     isOutOfProcessProjectType(projectType) {
-        const normalized = fileManager.normalizeProjectType(projectType);
+        const normalized = this.normalizeProjectType(projectType);
         return normalized === 'avalonia' || normalized === 'winforms' || normalized === 'webapi';
     }
 
@@ -174,7 +180,7 @@ export class CodeRunner {
                 }
             }
 
-            const normalized = fileManager.normalizeProjectType(preferredType);
+            const normalized = this.normalizeProjectType(preferredType);
             if ((this.projectTypeSelect.value || '').toLowerCase() !== normalized) {
                 this.projectTypeSelect.value = normalized;
             }
@@ -183,7 +189,7 @@ export class CodeRunner {
         applyInitialSelection();
 
         this.projectTypeSelect.addEventListener('change', () => {
-            const selectedType = fileManager.normalizeProjectType(this.projectTypeSelect.value);
+            const selectedType = this.normalizeProjectType(this.projectTypeSelect.value);
             this.projectTypeSelect.value = selectedType;
             try {
                 window.localStorage.setItem(this.projectTypeStorageKey, selectedType);
@@ -436,17 +442,14 @@ export class CodeRunner {
         if (!code) return;
 
         //运行代码之前如果已选择文件则自动保存
-        const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
-        if (fileId) {
-            // 使用 FileManager 的公共保存方法
-            fileManager.saveFileToLocalStorage(fileId, code);
-        }
+        await fileManager.saveCurrentFile();
 
         const file = getCurrentFile();
+        const filePath = file?.path || null;
         const breakpointLines = window.editorInstance?.getBreakpointLines?.() || [];
-        const basePackages = file?.nugetConfig?.packages || [];
+        const basePackages = [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
-        const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
+        const projectType = this.normalizeProjectType(this.projectTypeSelect?.value);
         this.currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         this.setRunningState(true);
         if (this.isOutOfProcessProjectType(projectType)) {
@@ -455,11 +458,11 @@ export class CodeRunner {
             this.hideOutOfProcessOverlay();
         }
 
-        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
+        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = await this.gatherMultiFileContext(code, filePath, file);
         const breakpointFileName = file?.name
             || selectedFiles.find(f => f.isEntry)?.name
             || 'Program.cs';
-        const breakpointLinesByFile = this.getBreakpointLinesByFile(selectedFiles, fileId, file);
+        const breakpointLinesByFile = this.getBreakpointLinesByFile(selectedFiles, filePath, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preRunMessages = [];
 
@@ -484,7 +487,7 @@ export class CodeRunner {
                     || f.content.includes('static void Main')
                     || f.content.includes('static Task Main')
                     || f.content.includes('static async Task Main');
-                const shouldUseEditorContent = (fileId && f.id === fileId) || (!fileId && isEntry);
+                const shouldUseEditorContent = (filePath && f.id === filePath) || (!filePath && isEntry);
 
                 return {
                     FileName: f.name,
@@ -624,13 +627,13 @@ export class CodeRunner {
         }
     }
 
-    gatherMultiFileContext(code, fileId, currentFile = null) {
+    async gatherMultiFileContext(code, filePath, currentFile = null) {
         const entryName = currentFile?.name || getCurrentFile()?.name || null;
-        const context = buildMultiFileContext({
-            entryFileId: fileId || currentFile?.id || null,
+        const context = await buildMultiFileContext({
+            entryFileId: filePath || currentFile?.id || null,
             entryFileName: entryName,
             entryContent: code,
-            entryPackages: currentFile?.nugetConfig?.packages || []
+            entryPackages: []
         });
 
         const selectedFiles = Array.isArray(context.files) ? context.files.map(file => ({
@@ -703,12 +706,10 @@ export class CodeRunner {
         return map;
     }
 
-    // 新增的方法，使用 FileManager 的公共保存方法
     async saveCurrentFile(code) {
         try {
-            const currentFile = getCurrentFile();
-            if (currentFile) {
-                fileManager.saveFileToLocalStorage(currentFile.id, code);
+            if (fileManager.currentFilePath) {
+                await fileManager.saveFile(fileManager.currentFilePath, code);
                 return true;
             }
             return false;
@@ -833,21 +834,19 @@ export class CodeRunner {
         }
 
         // 保存当前文件
-        const fileId = document.querySelector('#fileListItems a.selected')?.getAttribute('data-file-id');
-        if (fileId) {
-            fileManager.saveFileToLocalStorage(fileId, code);
-        }
+        await fileManager.saveCurrentFile();
 
         const file = getCurrentFile();
-        const basePackages = file?.nugetConfig?.packages || [];
+        const filePath = file?.path || null;
+        const basePackages = [];
         const csharpVersion = document.getElementById('csharpVersion')?.value || 2147483647;
 
         let request;
         let outputFileName = 'Program.exe';
 
-        const projectType = fileManager.normalizeProjectType(this.projectTypeSelect?.value);
+        const projectType = this.normalizeProjectType(this.projectTypeSelect?.value);
 
-        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = this.gatherMultiFileContext(code, fileId, file);
+        const { selectedFiles, autoIncludedNames, missingReferences, packages: contextPackages } = await this.gatherMultiFileContext(code, filePath, file);
         const combinedPackages = mergePackageLists(basePackages, contextPackages);
         const preBuildMessages = [];
 
